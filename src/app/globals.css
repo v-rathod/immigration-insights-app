@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+/* =========================================================================
+   NorthStar Compass — "Aurora" Design System
+   Dark-first, glassmorphic, Linear/Vercel-inspired
+   ========================================================================= */
+
+:root {
+  /* Base */
+  --background: #fafafa;
+  --foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+
+  /* Cards */
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-glass: rgba(255, 255, 255, 0.8);
+
+  /* Accents */
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+
+  /* Surfaces */
+  --sidebar: #f9fafb;
+  --sidebar-border: #e5e7eb;
+
+  /* Chart palette */
+  --chart-1: #3b82f6;
+  --chart-2: #8b5cf6;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #f43f5e;
+  --chart-6: #06b6d4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Dark theme (default visual) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --muted: #18181b;
+    --muted-foreground: #a1a1aa;
+    --border: #27272a;
+
+    --card: rgba(255, 255, 255, 0.03);
+    --card-foreground: #fafafa;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-glass: rgba(255, 255, 255, 0.03);
+
+    --sidebar: #0a0a0c;
+    --sidebar-border: #1f1f23;
+  }
+}
+
+/* Dark mode class override (for manual toggle) */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+
+  --card: rgba(255, 255, 255, 0.03);
+  --card-foreground: #fafafa;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-glass: rgba(255, 255, 255, 0.03);
+
+  --sidebar: #0a0a0c;
+  --sidebar-border: #1f1f23;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* =========================================================================
+   Aurora Glassmorphic Card
+   ========================================================================= */
+.glass-card {
+  background: var(--card-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+}
+
+/* =========================================================================
+   Gradient Text
+   ========================================================================= */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =========================================================================
+   Glow Effect (for chart hover, buttons)
+   ========================================================================= */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15),
+              0 0 60px rgba(59, 130, 246, 0.05);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15),
+              0 0 60px rgba(139, 92, 246, 0.05);
+}
+
+/* =========================================================================
+   Scrollbar (thin, minimal)
+   ========================================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* =========================================================================
+   Animations
+   ========================================================================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Staggered delays for card grids */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.40s; }
