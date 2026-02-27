@@ -2,6 +2,11 @@
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
+[![Tests](https://img.shields.io/badge/tests-338%20passing-brightgreen)]()
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
+[![License](https://img.shields.io/badge/license-MIT-green)]()
+
 ## The NorthStar Program
 
 NorthStar is a three-part immigration data intelligence platform. The codenames follow a **celestial navigation** metaphor — the same way sailors once used the sky to cross oceans, NorthStar helps immigrants navigate the complex U.S. immigration system.
@@ -27,14 +32,37 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 
 ---
 
-## Purpose
+## What's Built
 
-**Compass** is a statically-exported Next.js web app that sits directly on top of **Meridian** artifacts (Parquet tables, JSON models, RAG chunks). It provides:
+### Dashboards (2/8 complete)
+- **Visa Bulletin (PDC)** — Priority Date Cortex with category/country selectors, unified historical+forecast chart (DFF & FAD lines), optimistic/realistic toggle, prediction cards, velocity stats
+- **Sponsor Reliability Score (SRS)** — Fuzzy employer search (243K employers), animated SVG gauge, subscore breakdown, trend chart, risk alerts, methodology section
 
-- **8 Interactive Dashboards** — Visa Bulletin, Employer Friendliness, EB Categories, Geographic Heatmaps, Wages, SOC Demand, Processing Speed, Backlog
-- **5 Personalized Panels** — Green Card Forecast, Employer Insights, Job Market, Recommendations, Visual Dashboard
-- **RAG-Powered Q&A** — 98 text chunks + 178 pre-computed answers, searchable with Fuse.js
-- **Zero Runtime Compute** — All data pre-built by Meridian, served as static JSON from S3/CloudFront
+### RAG-Powered Q&A (`/ask`)
+- **3-tier search**: QA cache (182 pairs) → chunk retrieval (100 chunks) → LLM synthesis
+- **4-backend LLM cascade**: Groq (free cloud, Llama 3.3 70B) → OpenAI → Ollama → Mock
+- Search-as-you-type with Fuse.js, topic filter pills (10 topics), AI answer cards
+- Zero-result searches auto-trigger AI answer — no dead-end screens
+
+### Site Pages
+- **Landing** — Hero with animated stat cards, 8-dashboard catalog grid, value propositions
+- **About** — Personal story, guiding principles, data pipeline diagram, tech stack
+- **Privacy** — Zero data collection policy (localStorage only)
+- **Terms** — Not legal advice, data accuracy, open source license
+
+### UI & UX
+- **Aurora design system** — Dark-first glassmorphic UI inspired by Linear/Vercel/Raycast
+- **25 custom components** — GlassCard, NumberTicker, StatCard, ScoreGauge, animations
+- **Unified FAB** — Floating action button with Ask NorthStar + Send Feedback
+- **Responsive** — Mobile hamburger menu, collapsible sidebar (240→60px)
+- **Theme toggle** — Dark/Light/System with zero-FOUC blocking script
+- **Security module** — XSS prevention, prototype pollution defense, URL sanitization, CSP headers
+
+### Testing
+- **338 tests** across 18 test files (Vitest + React Testing Library + happy-dom)
+- Covers all components, utilities, data loaders, security, and page integrations
+
+---
 
 ## Architecture
 
@@ -72,7 +100,7 @@ Meridian artifacts/
 scripts/sync_p2_data.py  (Parquet → JSON conversion)
         │
         ▼
-public/data/             (Static JSON slices)
+public/data/             (23 static JSON files)
 ├── dashboards/          (one dir per dashboard)
 ├── dims/                (dimension lookups)
 ├── models/              (forecast outputs)
@@ -87,19 +115,20 @@ S3 + CloudFront          (Static hosting, ~$1–3/mo)
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router, static export) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS 4 |
-| Components | shadcn/ui (Radix UI) |
-| Charts | Recharts |
-| Maps | react-simple-maps |
-| Animations | Framer Motion |
-| Icons | Lucide React |
-| Search | Fuse.js (client-side) |
-| URL State | nuqs |
-| Font | Geist (Sans + Mono) |
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | Next.js (App Router, static export) | 16.x |
+| Language | TypeScript (strict) | 5.x |
+| Styling | Tailwind CSS | 4.x |
+| Components | shadcn/ui (Radix UI) | Latest |
+| Charts | Recharts | 2.15.x |
+| Maps | react-simple-maps | 3.x |
+| Animations | Framer Motion | 12.x |
+| Icons | Lucide React | 0.470.x |
+| Search | Fuse.js (client-side fuzzy) | 7.x |
+| LLM | Groq (Llama 3.3 70B) / OpenAI (GPT-4o-mini) | — |
+| Testing | Vitest + React Testing Library + happy-dom | 4.x |
+| Font | Geist (Sans + Mono) | System |
 
 ## Setup
 
@@ -107,15 +136,35 @@ S3 + CloudFront          (Static hosting, ~$1–3/mo)
 # Prerequisites: Node.js ≥ 22, Python 3.12 (for data sync)
 npm install
 
-# Sync data from P2 Meridian (sibling directory)
+# Sync data from Meridian (sibling directory)
 python3 scripts/sync_p2_data.py
 
 # Run dev server
 npm run dev
 
+# Run tests
+npm test
+
 # Build static export
 npm run build    # → out/
 ```
+
+### LLM Configuration (optional)
+
+To enable real AI-powered answers on the `/ask` page:
+
+```bash
+# Copy example env file
+cp .env.local.example .env.local
+
+# Add your free Groq API key (get one at https://console.groq.com)
+echo "NEXT_PUBLIC_GROQ_API_KEY=gsk_your_key_here" >> .env.local
+
+# Restart dev server
+npm run dev
+```
+
+Without an API key, the app falls back to a mock LLM that stitches pre-computed data summaries — still useful, just not as natural.
 
 ## Project Structure
 
@@ -125,52 +174,63 @@ immigration-insights-app/
 │   └── copilot-instructions.md    # AI assistant context (comprehensive)
 ├── public/
 │   └── data/                      # Pre-built JSON (from sync_p2_data.py)
+│       ├── dashboards/            # 8 dashboard data dirs
+│       ├── dims/                  # Dimension lookups (employer, SOC, etc.)
+│       ├── models/                # Forecast model outputs
+│       └── rag/                   # RAG chunks + QA cache
 ├── scripts/
 │   └── sync_p2_data.py            # Parquet → JSON converter
 ├── src/
-│   ├── app/                       # Next.js App Router pages
-│   │   ├── layout.tsx             # Root layout (Geist font, dark mode)
-│   │   ├── page.tsx               # Landing page (hero + dashboards)
-│   │   ├── globals.css            # Aurora design system tokens
-│   │   ├── dashboard/[slug]/      # 8 dashboard pages
-│   │   ├── insights/              # Personalized panels (A–E)
-│   │   ├── ask/                   # RAG Q&A search
-│   │   └── ops/                   # QA center
+│   ├── __tests__/                 # 18 test files, 338 tests
+│   ├── app/
+│   │   ├── layout.tsx             # Root layout (Geist font, theme)
+│   │   ├── page.tsx               # Landing page
+│   │   ├── globals.css            # Aurora design tokens
+│   │   ├── about/                 # About page
+│   │   ├── ask/                   # RAG Q&A page
+│   │   ├── privacy/               # Privacy policy
+│   │   ├── terms/                 # Terms of use
+│   │   └── dashboard/
+│   │       ├── employer/          # SRS dashboard
+│   │       └── visa-bulletin/     # PDC dashboard
 │   ├── components/
-│   │   ├── ui/                    # shadcn/ui primitives
-│   │   ├── charts/                # Themed chart wrappers
-│   │   ├── cards/                 # Glassmorphic stat cards
-│   │   └── layout/                # Sidebar, nav, header
+│   │   ├── layout/                # AppShell, Sidebar, Footer
+│   │   ├── pdi/                   # PDC chart, quick-look, teaser
+│   │   ├── providers/             # ThemeProvider
+│   │   ├── srs/                   # Search, gauge, detail, trend, overview
+│   │   └── ui/                    # GlassCard, NumberTicker, StatCard, etc.
 │   ├── lib/
-│   │   ├── data/                  # Data loaders (fetch JSON)
-│   │   ├── search/                # Fuse.js RAG search engine
-│   │   └── utils/                 # cn(), formatters, constants
+│   │   ├── data/                  # Data loaders (loader, srs, pdi)
+│   │   ├── search/                # RAG engine + LLM service
+│   │   ├── security/              # XSS, CSP, URL sanitization
+│   │   └── utils/                 # cn(), formatters
 │   └── types/
-│       └── p2-artifacts.ts        # TypeScript types from P2 schemas
+│       └── p2-artifacts.ts        # TypeScript types from Meridian schemas
+├── PROGRESS.md                    # Detailed milestone log
 ├── next.config.ts                 # Static export config
-├── tsconfig.json                  # Strict TypeScript
+├── vitest.config.mts              # Test configuration
 └── package.json
 ```
 
 ## Dashboards
 
-| # | Dashboard | P2 Artifacts |
-|---|-----------|--------------|
-| 1 | Visa Bulletin Trends | fact_cutoff_trends, pd_forecasts |
-| 2 | Employer Friendliness | employer_friendliness_scores, employer_monthly_metrics |
-| 3 | EB Category Comparison | category_movement_metrics |
-| 4 | Geographic Heatmaps | worksite_geo_metrics |
-| 5 | Wage Competitiveness | salary_benchmarks, fact_oews |
-| 6 | SOC Demand | soc_demand_metrics |
-| 7 | Processing Speed | processing_times_trends, fact_uscis_approvals |
-| 8 | Backlog Visualization | backlog_estimates, queue_depth_estimates |
+| # | Dashboard | Status | P2 Artifacts |
+|---|-----------|--------|--------------|
+| 1 | Visa Bulletin Trends (PDC) | ✅ Built | fact_cutoff_trends, pd_forecasts, fact_cutoffs_all |
+| 2 | Sponsor Reliability Score (SRS) | ✅ Built | employer_friendliness_scores, employer_monthly_metrics, employer_features, employer_risk_features |
+| 3 | EB Category Comparison | Planned | category_movement_metrics |
+| 4 | Geographic Heatmaps | Planned | worksite_geo_metrics |
+| 5 | Wage Competitiveness | Planned | salary_benchmarks, fact_oews |
+| 6 | SOC Demand | Planned | soc_demand_metrics |
+| 7 | Processing Speed | Planned | processing_times_trends, fact_uscis_approvals |
+| 8 | Backlog Visualization | Planned | backlog_estimates, queue_depth_estimates |
 
-## Personalized Panels
+## Personalized Panels (Planned)
 
-Users enter 8 fields (priority date, country, category, employer, job title, location, wage, experience) and receive:
+Users will enter 8 fields (priority date, country, category, employer, job title, location, wage, experience) and receive:
 
 - **A. Green Card Forecast** — Wait time, retrogression risk, PD-becomes-current projection
-- **B. Employer Insights** — GC friendliness score, audit risk, wage comparison, WARN overlay
+- **B. Employer Insights** — SRS score, audit risk, wage comparison, WARN overlay
 - **C. Job Market** — Similar role locations, best employers for occupation, salary analysis
 - **D. Recommendations** — Switch employer advice, EB2 vs EB3, layoff impact, start PERM early
 - **E. Visual Dashboards** — Personalized chart mosaic
@@ -180,7 +240,7 @@ Users enter 8 fields (priority date, country, category, employer, job title, loc
 Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired UI:
 - **Glassmorphic cards**: backdrop-blur, subtle borders, frosted glass
 - **Gradient accents**: blue→purple for primary, contextual colors per dashboard
-- **Animated number tickers**: Count-up on stat cards
+- **Animated number tickers**: Count-up on stat cards via Framer Motion springs
 - **Staggered reveals**: Cards animate in sequence on page load
 - **Geist typography**: Sans for UI, Mono for data/numbers
 - **Generous whitespace**: Data-dense but never cluttered
@@ -200,9 +260,9 @@ No Lambda, no database, no API Gateway, no EC2.
 
 | Source | Records | Coverage |
 |--------|---------|----------|
-| DOL PERM | 1.7M filings, FY2008–2026 | 21 Excel files |
-| DOL LCA (H-1B) | 9.6M filings, FY2008–2026 | 19 files |
-| DOS Visa Bulletin | 14K cutoff records, 2011–2026 | ~180 PDFs |
+| DOL PERM | 1.7M filings | FY2008–2026 |
+| DOL LCA (H-1B) | 9.6M filings | FY2008–2026 |
+| DOS Visa Bulletin | 14K cutoff records | 2011–2026 |
 | BLS OEWS | 446K wage records | 3 annual datasets |
 | DOS Visa Statistics | 200K+ issuance records | ~600 PDFs |
 | USCIS Employment | 146 approval records | ~245 files |
