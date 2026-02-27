@@ -10,12 +10,12 @@
 // ---------------------------------------------------------------------------
 
 export interface DimEmployer {
-  employer_id: number;
+  employer_id: string;
   employer_name: string;
-  city: string | null;
-  state: string | null;
-  naics_code: string | null;
-  sector: string | null;
+  aliases: string | null;
+  domain: string | null;
+  source_files: string | null;
+  ingested_at: string;
 }
 
 export interface DimSoc {
@@ -114,52 +114,94 @@ export interface FactCutoffsAll {
 // Feature Tables
 // ---------------------------------------------------------------------------
 
-export interface EmployerFriendlinessScore {
-  employer_id: number;
+/** Sponsor Reliability Score — rules-based (70,206 employers) */
+export interface SponsorReliabilityScore {
+  employer_id: string;
   employer_name: string;
-  total_cases: number;
-  certified_cases: number;
-  denied_cases: number;
-  approval_rate: number;
-  bayesian_approval_rate: number;
+  scope: string;           // "overall" | "SOC"
+  soc_code: string | null;
+  n_12m: number;
+  n_24m: number;
+  n_36m: number;
+  approval_rate_24m: number;
+  denial_rate_24m: number;
   wage_ratio_med: number;
   wage_ratio_p75: number;
-  median_processing_days: number;
-  distinct_soc_codes: number;
-  distinct_states: number;
-  months_active: number;
-  trend_slope: number;
-  volatility: number;
-  score_outcome: number;
-  score_wage: number;
-  score_sustainability: number;
-  efs_score: number;
-  efs_tier: string;
-  efs_percentile: number;
-  data_quality_flag: string;
+  outcome_subscore: number;
+  wage_subscore: number;
+  sustainability_subscore: number;
+  srs: number | null;      // renamed from efs
+  srs_tier: string;        // renamed from efs_tier
+  months_active_24m: number;
+  soc_breadth_24m: number;
+  site_breadth_24m: number;
+  approval_rate_trend_12v12: number | null;
+  outcome_volatility: number | null;
+  last_refreshed_at: string;
+}
+
+/** Sponsor Reliability Score — ML model (1,695 high-volume employers) */
+export interface SponsorReliabilityScoreML {
+  employer_id: string;
+  n_cases_36m: number;
+  avg_calibrated_prob: number;
+  median_calibrated_prob: number;
+  srs_ml: number;          // renamed from efs_ml
+  scope: string;
+  version: string;
+  last_refreshed_at: string;
 }
 
 export interface EmployerMonthlyMetric {
-  employer_id: number;
+  employer_id: string;
   employer_name: string;
-  fiscal_year: number;
-  month: number;
+  month: string;           // ISO date: "2021-11-01"
   filings: number;
   approvals: number;
   denials: number;
   approval_rate: number;
-  audit_rate: number;
-  avg_wage_offered: number;
+  denial_rate: number;
+  audit_rate_t12: number;
+  dataset: string;
 }
 
 export interface EmployerRiskFeature {
-  employer_id: number;
+  employer_key: string;
+  total_warn_events: number;
+  total_employees_affected: number;
+  states: string;
+  employer_name_raw: string;
+  employer_id: string | null;
+  is_warn_flagged: boolean;
+}
+
+/** Raw employer features (approval/denial/audit rates, wage ratios) */
+export interface EmployerFeatures {
+  employer_id: string;
   employer_name: string;
-  warn_events: number;
-  total_layoffs: number;
-  latest_warn_date: string;
-  warn_state: string;
-  risk_level: string;
+  scope: string;
+  soc_code: string | null;
+  n_12m: number;
+  n_24m: number;
+  n_36m: number;
+  months_active_24m: number;
+  soc_breadth_24m: number;
+  site_breadth_24m: number;
+  approval_rate_12m: number | null;
+  approval_rate_24m: number | null;
+  approval_rate_36m: number | null;
+  denial_rate_12m: number | null;
+  denial_rate_24m: number | null;
+  denial_rate_36m: number | null;
+  audit_rate_12m: number | null;
+  audit_rate_24m: number | null;
+  audit_rate_36m: number | null;
+  approval_rate_trend_12v12: number | null;
+  outcome_volatility: number | null;
+  wage_ratio_med: number | null;
+  wage_ratio_p75: number | null;
+  windows_used: string;
+  last_refreshed_at: string;
 }
 
 export interface SalaryBenchmark {
@@ -249,16 +291,16 @@ export interface QueueDepthEstimate {
 // ---------------------------------------------------------------------------
 
 export interface PdForecast {
-  category: string;
-  country: string;
-  chart_type: string;
-  forecast_month: number;  // 1..24
-  forecast_date: string;
-  predicted_cutoff: string;
-  lower_bound: string;
-  upper_bound: string;
-  confidence: number;
-  methodology: string;
+  forecast_month: string;          // "2026-04"
+  months_ahead: number;            // 1–24
+  chart: string;                   // "FAD" | "DFF"
+  category: string;                // "EB1" | "EB2" | "EB3" | etc.
+  country: string;                 // "IND" | "CHN" | "ROW" | etc.
+  projected_cutoff_date: string;   // ISO date: "2014-11-19"
+  confidence_low: string;          // ISO date
+  confidence_high: string;         // ISO date
+  velocity_days_per_month: number; // advancement speed
+  cumulative_advancement_days: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -266,20 +308,22 @@ export interface PdForecast {
 // ---------------------------------------------------------------------------
 
 export interface RagChunk {
-  id: string;
+  chunk_id: string;
+  source_artifact: string;
   topic: string;
-  title: string;
-  content: string;
-  source_artifacts: string[];
+  label: string;
+  text: string;
   metadata: Record<string, unknown>;
+  generated_at: string;
 }
 
 export interface RagQaPair {
   question: string;
   answer: string;
+  sources: string[];
   topic: string;
-  source_artifacts: string[];
-  confidence: number;
+  confidence: string;
+  generated_at: string;
 }
 
 export interface RagCatalogEntry {

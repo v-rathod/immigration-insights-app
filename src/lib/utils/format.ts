@@ -48,7 +48,11 @@ export function formatMonthYear(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
   } catch {
     return dateStr;
   }
@@ -63,6 +67,7 @@ export function formatFullDate(dateStr: string | null | undefined): string {
       month: "long",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     });
   } catch {
     return dateStr;
@@ -82,8 +87,8 @@ export function formatWaitTime(days: number | null | undefined): string {
   return `${years} years`;
 }
 
-/** EFS tier → color class mapping */
-export function tierColor(tier: string): string {
+/** SRS tier → color class mapping */
+export function srsTierColor(tier: string): string {
   switch (tier?.toLowerCase()) {
     case "excellent":
       return "text-emerald-400";
@@ -100,8 +105,8 @@ export function tierColor(tier: string): string {
   }
 }
 
-/** EFS tier → background color class */
-export function tierBg(tier: string): string {
+/** SRS tier → background color class */
+export function srsTierBg(tier: string): string {
   switch (tier?.toLowerCase()) {
     case "excellent":
       return "bg-emerald-500/10 border-emerald-500/20";
@@ -117,3 +122,35 @@ export function tierBg(tier: string): string {
       return "bg-zinc-500/10 border-zinc-500/20";
   }
 }
+
+/** SRS tier → hex color for charts */
+export function srsTierHex(tier: string): string {
+  switch (tier?.toLowerCase()) {
+    case "excellent":
+      return "#10b981";
+    case "good":
+      return "#3b82f6";
+    case "moderate":
+      return "#f59e0b";
+    case "below average":
+      return "#f97316";
+    case "poor":
+      return "#f43f5e";
+    default:
+      return "#71717a";
+  }
+}
+
+/** SRS numeric score → tier label */
+export function srsScoreToTier(score: number | null): string {
+  if (score == null || isNaN(score)) return "Unrated";
+  if (score >= 85) return "Excellent";
+  if (score >= 70) return "Good";
+  if (score >= 50) return "Moderate";
+  if (score >= 35) return "Below Average";
+  return "Poor";
+}
+
+// Keep backwards compat aliases
+export const tierColor = srsTierColor;
+export const tierBg = srsTierBg;

@@ -10,6 +10,8 @@ const DATA_BASE = "/data";
 
 /**
  * Generic JSON fetcher with type safety.
+ * Sanitizes Python/Pandas-style NaN, Infinity, -Infinity values
+ * that are invalid in strict JSON but present in P2 Meridian artifacts.
  */
 async function fetchJson<T>(path: string): Promise<T> {
   const url = `${DATA_BASE}/${path}`;
@@ -17,7 +19,10 @@ async function fetchJson<T>(path: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`Failed to load data: ${url} (${res.status})`);
   }
-  return res.json() as Promise<T>;
+  const raw = await res.text();
+  // Replace bare NaN / Infinity / -Infinity with null (JSON-safe)
+  const sanitized = raw.replace(/\bNaN\b|-?\bInfinity\b/g, "null");
+  return JSON.parse(sanitized) as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,8 +66,8 @@ export async function loadRagChunks(): Promise<RagChunk[]> {
   return fetchJson<RagChunk[]>("rag/all_chunks.json");
 }
 
-export async function loadRagQaPairs(): Promise<{ pairs: RagQaPair[] }> {
-  return fetchJson<{ pairs: RagQaPair[] }>("rag/qa_cache.json");
+export async function loadRagQaPairs(): Promise<RagQaPair[]> {
+  return fetchJson<RagQaPair[]>("rag/qa_cache.json");
 }
 
 export async function loadRagCatalog(): Promise<RagCatalogEntry[]> {

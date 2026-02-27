@@ -13,7 +13,7 @@
 
 ## Project Overview
 
-**Compass** is a statically-exported Next.js web app that consumes pre-computed Parquet-to-JSON artifacts from **Meridian** (P2). It provides personalized immigration insights — priority date forecasts, employer friendliness scores, salary benchmarks, and 8 interactive dashboards — with **zero runtime compute** and an AWS hosting cost of ~$1–3/month.
+**Compass** is a statically-exported Next.js web app that consumes pre-computed Parquet-to-JSON artifacts from **Meridian** (P2). It provides personalized immigration insights — priority date forecasts, Sponsor Reliability Scores (SRS), salary benchmarks, and 8 interactive dashboards — with **zero runtime compute** and an AWS hosting cost of ~$1–3/month.
 
 ---
 
@@ -140,10 +140,13 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 
 ```
 /                           → Landing page (hero + key stats)
+/about                      → About page (personal story, principles, tech stack)
+/privacy                    → Privacy Policy (zero data collection)
+/terms                      → Terms of Use
 /setup                      → User input form (8 fields)
 /insights                   → Personalized panels (A–E)
 /dashboard/visa-bulletin     → Dashboard 1: Visa Bulletin Trends
-/dashboard/employer          → Dashboard 2: Employer Friendliness
+/dashboard/employer          → Dashboard 2: Sponsor Reliability Score (SRS)
 /dashboard/eb-category       → Dashboard 3: EB Category Comparison
 /dashboard/geographic        → Dashboard 4: Geographic Heatmaps
 /dashboard/wage              → Dashboard 5: Wage Competitiveness
@@ -161,7 +164,7 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 | Dashboard | P2 Artifacts Consumed |
 |-----------|----------------------|
 | 1. Visa Bulletin Trends | fact_cutoff_trends, pd_forecasts, fact_cutoffs_all |
-| 2. Employer Friendliness | employer_friendliness_scores, employer_monthly_metrics, employer_features, employer_risk_features |
+| 2. Sponsor Reliability Score | employer_friendliness_scores (remapped efs→srs), employer_friendliness_scores_ml, employer_monthly_metrics, employer_features, employer_risk_features |
 | 3. EB Category Comparison | category_movement_metrics |
 | 4. Geographic Heatmaps | worksite_geo_metrics |
 | 5. Wage Competitiveness | salary_benchmarks, fact_oews |
@@ -176,7 +179,7 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 | Panel | User Input Used | P2 Artifacts |
 |-------|----------------|--------------|
 | A. Green Card Forecast | priority_date, country, category | pd_forecasts, fact_cutoff_trends |
-| B. Employer Insights | employer_name | employer_friendliness_scores, employer_risk_features, employer_monthly_metrics |
+| B. Employer Insights | employer_name | employer_friendliness_scores (remapped efs→srs), employer_risk_features, employer_monthly_metrics |
 | C. Job Market Insights | job_title, location, soc | worksite_geo_metrics, soc_demand_metrics, salary_benchmarks |
 | D. Recommendations | All inputs | Composite logic from A–C |
 | E. Visual Dashboards | All inputs | Personalized chart mosaic |
@@ -207,7 +210,7 @@ interface UserProfile {
 | Pre-computed answers | `qa_cache.json` — 178 pairs, exact/fuzzy match first |
 | Chunk retrieval | `all_chunks.json` — 98 chunks, filtered by topic via Fuse.js |
 | Topics | pd_forecast, employer, salary, visa_bulletin, geographic, occupation, processing, visa_demand, filings, general |
-| LLM (optional) | GPT-4o-mini via API route or client-side fetch — ~$0.15/month for 100 users |
+| LLM | Groq (free cloud, Llama 3.3 70B) for dev; OpenAI GPT-4o-mini reserved for prod; Ollama local; Mock fallback |
 
 ---
 
@@ -273,7 +276,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **6 dimensions**: employer (243K), SOC (1,801), country (249), area (587), visa_class (6), visa_ceiling (14)
 - **15 fact tables**: PERM (1.7M), LCA (9.6M), OEWS (446K), cutoffs (14K), visa issuances, DHS admissions...
 - **12 feature tables**: employer_features, salary_benchmarks, worksite_geo_metrics, soc_demand_metrics...
-- **3 model outputs**: pd_forecasts (56 series × 24 months), EFS rules (70K), EFS ML (1,695)
+- **3 model outputs**: pd_forecasts (56 series × 24 months), SRS rules (70K), SRS ML (1,695)
 - **RAG**: 98 chunks across 10 topics, 178 pre-computed QA pairs
 
 ### Stub Tables (0 rows — expected)
@@ -288,28 +291,33 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 
 ## Execution Plan (Phases)
 
-### Phase 0: Bootstrap ✅
+### Phase 0: Bootstrap ✅ (Milestone 1 — 2026-02-25)
 - [x] Next.js 16 + TypeScript + Tailwind + App Router + static export
 - [x] All dependencies installed
 - [x] Project structure created
 - [x] Design tokens configured
 - [x] README + copilot-instructions
 
-### Phase 1: Data Bridge
-- [ ] `scripts/sync_p2_data.py` — Parquet → JSON converter
-- [ ] TypeScript types from P2 schemas
-- [ ] RAG data copy
-- [ ] Data loader utilities
+### Phase 1: Data Bridge ✅ (Milestone 2 — 2026-02-25)
+- [x] `scripts/sync_p2_data.py` — Parquet → JSON converter (23 files synced)
+- [x] `public/data/_manifest.json` — Sync manifest with timestamps
+- [x] TypeScript types from P2 schemas (`src/types/p2-artifacts.ts`)
+- [x] Data loader utilities (`src/lib/data/loader.ts`)
+- [x] RAG search utility (`src/lib/search/rag-search.ts`)
 
-### Phase 2: App Shell & Landing
-- [ ] Sidebar navigation with glassmorphic styling
-- [ ] Landing page with animated stat cards
-- [ ] Theme toggle (dark/light)
-- [ ] User input form (8 fields)
+### Phase 2: App Shell & Landing 🔄 (Milestone 2 — 2026-02-25)
+- [x] Sidebar navigation with glassmorphic styling
+- [x] Landing page with animated stat cards (hero + key metrics + dashboard grid)
+- [x] Theme toggle (dark/light/system — 3-way toggle)
+- [x] Security module (XSS, proto pollution, CSP, URL sanitization)
+- [x] Test infrastructure (Vitest 4.x + RTL + happy-dom, 133 tests)
+- [x] UI component library (GlassCard, NumberTicker, StatCard, animations)
+- [x] Responsive layout (mobile hamburger + collapsible sidebar)
+- [ ] User input form (/setup — 8 fields, localStorage persistence)
 
 ### Phase 3: 8 Dashboards
-- [ ] 1. Visa Bulletin Trends
-- [ ] 2. Employer Friendliness
+- [x] 1. Visa Bulletin Trends (PDI)
+- [x] 2. Sponsor Reliability Score (SRS)
 - [ ] 3. EB Category Comparison
 - [ ] 4. Geographic Heatmaps
 - [ ] 5. Wage Competitiveness
@@ -324,12 +332,195 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [ ] D. Actionable Recommendations
 - [ ] E. Visual Dashboard Mosaic
 
-### Phase 5: RAG Q&A
-- [ ] Search-as-you-type with Fuse.js
-- [ ] Topic-filtered browsing
-- [ ] Source attribution
+### Phase 5: RAG Q&A ✅
+- [x] Search-as-you-type with Fuse.js (182 QA pairs + 100 chunks)
+- [x] Topic-filtered browsing (10 topics, pill filters)
+- [x] Source attribution
+- [x] Cloud LLM integration (Groq free tier, Llama 3.3 70B)
+- [x] 4-backend cascade: Groq → OpenAI → Ollama → Mock
+- [x] 3-tier architecture: QA cache → chunk retrieval → LLM synthesis
 
 ### Phase 6: Deploy
 - [ ] S3 + CloudFront + Route53 Terraform/CDK
 - [ ] GitHub Actions CI/CD
 - [ ] Data freshness banner
+
+---
+
+## Testing Strategy
+
+- **Framework**: Vitest 4.x + React Testing Library + happy-dom
+- **Coverage**: Every component, utility, and data loader must have tests
+- **Test location**: `src/__tests__/` — colocated by feature
+- **Config**: `vitest.config.mts` (ESM required for Vite 7+)
+- **Run**: `npm test` (single run), `npm run test:watch` (dev), `npm run test:coverage`
+- **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
+- **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
+- **Isolation**: localStorage is cleared between tests via `beforeEach`
+
+---
+
+## Security Principles
+
+1. **Input sanitization** — All user input validated and sanitized before use (`src/lib/security/index.ts`)
+2. **XSS prevention** — `escapeHtml()`, `stripHtml()`, `sanitizeTextInput()` for all user-facing text
+3. **Prototype pollution defense** — `secureSet()` blocks `__proto__` and `constructor` in serialized data
+4. **Route allowlisting** — `isAllowedPath()` prevents open redirect attacks
+5. **URL sanitization** — `sanitizeUrl()` blocks `javascript:`, `data:`, `vbscript:` protocols
+6. **Secure storage** — All localStorage access through `secureGet/Set/Remove/ClearAll` with `compass_` prefix
+7. **CSP headers** — Content-Security-Policy configured for CloudFront deployment (`src/lib/security/headers.ts`)
+8. **No secrets in client** — Zero API keys, tokens, or credentials in the codebase
+
+---
+
+## Design Editorial — "Apple Quality Standard"
+
+### Visual Bar
+Every pixel must justify its existence. The UI should feel like it was crafted by Apple's design team — precise, intentional, and delightful. Zero clutter, zero noise.
+
+### Key Principles
+- **Clarity over cleverness** — Data should be immediately comprehensible
+- **Generous whitespace** — Let content breathe; never crowd
+- **Purposeful animation** — Every motion communicates state change, never decorative
+- **Dark-first luxury** — The dark theme is the primary experience; it should feel premium
+- **Glass and depth** — Glassmorphic layers create visual hierarchy without heavy borders
+- **Typography hierarchy** — Geist Sans for UI text, Geist Mono for data/numbers; clear size steps
+- **Color restraint** — Use accent colors sparingly and meaningfully; gradient text for headlines only
+
+### Animation Standards
+- Easing: `[0.25, 0.1, 0.25, 1]` (cubic bezier) for all transitions
+- Stagger: 50ms between sequential card reveals
+- Duration: 200ms for micro-interactions, 400ms for page transitions
+- Number tickers: Spring animation for stat counters on viewport entry
+- Never block interaction for animation completion
+
+---
+
+## Current File Inventory (as of Milestone 8)
+
+### Source Files (57 files)
+
+**App Pages**
+| File | Purpose |
+|------|------|
+| `src/app/layout.tsx` | Root layout — Geist fonts, ThemeProvider + AppShell wrapper, blocking theme script in `<head>`, suppressHydrationWarning |
+| `src/app/page.tsx` | Landing page — hero, stats, 8 dashboards (neutral catalog), value props |
+| `src/app/globals.css` | Aurora design tokens — CSS custom properties for dark/light, gradients, glassmorphic effects |
+| `src/app/about/page.tsx` | About page — personal story, guiding principles, data sources, pipeline, tech stack, CTA |
+| `src/app/privacy/page.tsx` | Privacy Policy — zero data collection, local storage only, no cookies/tracking |
+| `src/app/terms/page.tsx` | Terms of Use — not legal advice, data accuracy, open source license |
+| `src/app/dashboard/employer/page.tsx` | SRS Dashboard — employer search, score gauge, detail card, trend chart, methodology |
+| `src/app/dashboard/visa-bulletin/page.tsx` | PDI Dashboard — reactive category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats, methodology |
+| `src/app/ask/page.tsx` | Ask page — RAG-powered Q&A with 3-tier search (QA cache + chunks + cloud LLM via Groq), topic filter pills, suggested questions, AI answer button, result cards with expand/collapse |
+
+**Components — Layout**
+| File | Purpose |
+|------|------|
+| `src/components/layout/sidebar.tsx` | Full sidebar nav — 13 items in 6 groups (Main/Insights/Dashboards/Tools/Project/Personal), Insights group promotes PDI + SRS, collapse (240→60px), mobile hamburger + overlay, keyboard escape, aria-current |
+| `src/components/layout/app-shell.tsx` | Root shell — Sidebar + scrollable main with `lg:ml-[240px]`, `max-w-7xl`, Footer after content, FeedbackWidget floating |
+| `src/components/layout/footer.tsx` | Site-wide footer — brand, 3 link columns (Dashboards/Tools/Project), data source badges, copyright |
+| `src/components/layout/index.ts` | Barrel export |
+
+**Components — UI**
+| File | Purpose |
+|------|------|
+| `src/components/ui/glass-card.tsx` | Glassmorphic card — variants: default/elevated/interactive/accent, padding: none/sm/md/lg, Framer Motion fade-in, optional glow |
+| `src/components/ui/number-ticker.tsx` | Animated counter — useSpring + IntersectionObserver viewport trigger, configurable format/prefix/suffix |
+| `src/components/ui/stat-card.tsx` | Stat display — NumberTicker + TrendBadge (up/down/neutral), LucideIcon prop |
+| `src/components/ui/animations.tsx` | StaggerContainer, StaggerItem, FadeIn (up/down/left/right), ScaleIn, GlowPulse |
+| `src/components/ui/theme-toggle.tsx` | 3-way toggle — Sun/Moon/Monitor icons, role="radiogroup", aria-checked |
+| `src/components/ui/feedback-widget.tsx` | Unified FAB (Floating Action Button) — Plus/X rotating trigger, mini-menu with 2 items (Ask NorthStar link + Send Feedback button), glassmorphic feedback dialog with 3 categories (feedback/feature/bug), textarea with char limit, GitHub Issues integration; auto-hides Ask item on /ask page; route-change detection closes menu |
+| `src/components/ui/index.ts` | Barrel export |
+
+**Components — SRS (Sponsor Reliability Score)**
+| File | Purpose |
+|------|------|
+| `src/components/srs/employer-search.tsx` | Fuzzy search autocomplete — Fuse.js, 150ms debounce, keyboard nav, ARIA combobox, glassmorphic dropdown |
+| `src/components/srs/score-gauge.tsx` | Animated SVG arc gauge — 270° arc, Framer Motion spring, subscore breakdown bars, ML badge |
+| `src/components/srs/employer-detail-card.tsx` | Key metrics grid — approval/denial rates, cases, wage ratio, SOC/site breadth, WARN risk alert |
+| `src/components/srs/trend-chart.tsx` | Recharts AreaChart — monthly filings/approvals/denials with gradient fills, custom tooltip |
+| `src/components/srs/srs-overview.tsx` | Aggregate stats bar — total/rated employer counts, avg score, tier distribution stacked bar |
+| `src/components/srs/index.ts` | Barrel export |
+
+**Components — PDI (Priority Date Index)**
+| File | Purpose |
+|------|------|
+| `src/components/pdi/pdi-quick-look.tsx` | Interactive PDC widget — category/country/chart selectors, SVG sparkline, velocity stats, loads pd_forecasts.json (342KB). Currently unused; reserved for Visa Bulletin dashboard. |
+| `src/components/pdi/srs-teaser.tsx` | Static SRS teaser card — hardcoded stats (70K employers), decorative gauge, feature checklist, search placeholder. Currently unused; reserved for future use. |
+| `src/components/pdi/priority-date-chart.tsx` | Unified PriorityDateChart — single continuous timeline: historical DFF/FAD (solid lines) + forecast DFF/FAD (dashed lines) + PD reference (green); bridge logic connects last actual point to first forecast; 530 lines |
+| `src/components/pdi/index.ts` | Barrel export |
+
+**Components — Providers**
+| File | Purpose |
+|------|------|
+| `src/components/providers/theme-provider.tsx` | ThemeProvider — light/dark/system, localStorage persistence (key: compass_theme), system preference listener, blocking themeScript for `<head>` to prevent FOUC |
+
+**Libraries**
+| File | Purpose |
+|------|------|
+| `src/lib/data/loader.ts` | Generic JSON fetcher — loadDashboardData, loadDimensionData, loadModelData, loadRAGData |
+| `src/lib/data/srs.ts` | SRS data loaders — field remapping (efs→srs), filterOverallScores, filterRatedEmployers, mergeMLScores, getEmployerMetrics, getEmployerRisk, computeSrsStats |
+| `src/lib/data/pdi.ts` | PDI data loader — loadPdForecasts, getForecastSeries, computePdi, getVelocitySummary, constants (charts/categories/countries/labels) |
+| `src/lib/search/rag-search.ts` | RAG search engine — Fuse.js over 100 chunks + 182 QA pairs, topic filtering, getTopics, getByTopic |
+| `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
+| `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
+| `src/lib/security/headers.ts` | Security headers for CloudFront — CSP, HSTS, X-Frame-Options, Permissions-Policy |
+| `src/lib/utils/cn.ts` | Tailwind class merger (clsx + tailwind-merge) |
+| `src/lib/utils/format.ts` | Number/date/currency formatting — formatNumber, formatCurrency, formatPercent, formatCompact, formatMonthYear, formatFullDate (UTC), formatWaitTime, srsTierColor/Bg/Hex, srsScoreToTier |
+| `src/lib/utils/index.ts` | Barrel export |
+| `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
+
+**Tests (18 files, 338 tests)**
+| File | Tests | Covers |
+|------|-------|--------|
+| `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
+| `src/__tests__/cn.test.ts` | 6 | cn() utility |
+| `src/__tests__/format.test.ts` | 33 | All format functions + srsTierColor/Bg/Hex, srsScoreToTier |
+| `src/__tests__/security.test.ts` | 48 | XSS, validation, localStorage, URL safety, nonce |
+| `src/__tests__/security-headers.test.ts` | 11 | Header values |
+| `src/__tests__/loader.test.ts` | 10 | Data loaders with mocked fetch |
+| `src/__tests__/theme-provider.test.tsx` | 6 | Theme state, toggle, persistence |
+| `src/__tests__/theme-toggle.test.tsx` | 4 | Accessibility, aria attributes |
+| `src/__tests__/glass-card.test.tsx` | 6 | Variants, glow, children |
+| `src/__tests__/sidebar.test.tsx` | 8 | Nav items, Insights group (PDI+SRS), active state, mobile |
+| `src/__tests__/landing-page.test.tsx` | 10 | Hero, stats, 8 dashboards (neutral catalog) |
+| `src/__tests__/srs-data.test.ts` | 18 | SRS data helpers + efs→srs remapping |
+| `src/__tests__/srs-components.test.tsx` | 21 | SRS components (search, gauge, detail, chart, overview) |
+| `src/__tests__/pdi-data.test.ts` | 29 | PDI constants, getForecastSeries, computePdi, getVelocitySummary, extrapolateForChart, loadPdForecasts, loadCutoffTrends, getHistoricalSeries |
+| `src/__tests__/pdi-components.test.tsx` | 19 | PdiQuickLook (11 tests), SrsTeaser (8 tests) |
+| `src/__tests__/visa-bulletin.test.tsx` | 33 | PriorityDateChart (11), VisaBulletinPage (20 incl. historical+forecast chart integration): selectors, velocity toggle, predictions, extrapolation, chart, error states |
+| `src/__tests__/site-pages.test.tsx` | 31 | Footer (7), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
+| `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
+| `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
+
+### Key Technical Decisions Log
+| Decision | Rationale |
+|----------|----------|
+| happy-dom over jsdom | jsdom's `html-encoding-sniffer` → `@exodus/bytes` is ESM-only but loaded via CJS require(). happy-dom is lighter and ESM-compatible. |
+| ThemeProvider always provides context | Wraps children in context even before mount (visibility:hidden for SSR), preventing useTheme() throws in nested components. |
+| UTC date formatting | All date formatters use `timeZone: 'UTC'` to prevent timezone-dependent test failures. |
+| Exact + prefix path matching | `isAllowedPath()` uses exact match for `/` and prefix match for `/dashboard/` to prevent overly permissive matching. |
+| localStorage cleared in beforeEach | Prevents theme state leaking between tests. |
+| Theme defaults to dark | Dark-first luxury aesthetic per Aurora design system. User can switch to light/system via toggle. |
+| EFS→SRS remap at load boundary | P2 JSON uses `efs`/`efs_tier`/`efs_ml` field names. P3 remaps to `srs`/`srs_tier`/`srs_ml` in data loaders so all downstream code uses consistent SRS naming. |
+| NaN normalization | P2 JSON contains `NaN` values for unrated employers. Remapper normalizes `NaN` to `null` for safe JS comparisons. |
+| PDI loads on homepage | pd_forecasts.json is 342KB — small enough for client-side fetch. SRS data (138MB) uses static teaser instead. |
+| EB2/IND/DFF as PDI defaults | Most common EB immigrant profile — provides immediate value without user configuration. |
+| Blocking theme script | Industry-standard (next-themes, Vercel.com) — reads localStorage and applies CSS class in `<head>` before React hydrates to prevent FOUC. |
+| Feedback via GitHub Issues | No backend needed — FeedbackWidget opens pre-filled GitHub Issues URL. Zero runtime cost, leverages existing GitHub infrastructure. |
+| Mock LLM for local dev | $0 cost; prod would use GPT-4o-mini via CloudFront proxy (~$0.0006/query). Mock uses QA matches or stitches chunk summaries. |
+| Groq free cloud LLM | Groq runs Llama 3.3 70B on custom LPU hardware; free tier: 30 RPM / 14,400 RPD; OpenAI-compatible API; `NEXT_PUBLIC_GROQ_API_KEY` in `.env.local`; for go-live, swap to OpenAI with CloudFront proxy. |
+| QA-first RAG search | 182 pre-computed QA pairs are searched first (Tier 1) — instant, high-quality answers without LLM cost. |
+| 200ms search debounce | Balances responsiveness with Fuse.js search efficiency on /ask page. |
+
+---
+
+## Session Workflow Rules (MANDATORY)
+
+These rules apply to **every coding session**, regardless of scope:
+
+1. **Update `PROGRESS.md` after every milestone** — Any significant work (new feature, dashboard, component, bug fix batch, refactor) must be logged as a milestone entry with date, objective, what was done, test results, files changed, and next steps. Do NOT wait to be reminded.
+2. **Update `copilot-instructions.md` when inventory changes** — If files are created/deleted or test counts change, update the "Current File Inventory" section.
+3. **Update the Quick Reference table** in `PROGRESS.md` — Keep test count, component count, dashboard count, and phase status current.
+4. **Update the Milestone History table** in `PROGRESS.md` — Add a row for each new milestone.
+5. **Update the Execution Phases** checklists in both `PROGRESS.md` and `copilot-instructions.md` — Mark items `[x]` as completed.

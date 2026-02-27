@@ -14,8 +14,8 @@ import type { RagChunk, RagQaPair, RagTopic } from "@/types/p2-artifacts";
 
 const CHUNK_FUSE_OPTIONS: IFuseOptions<RagChunk> = {
   keys: [
-    { name: "title", weight: 0.4 },
-    { name: "content", weight: 0.5 },
+    { name: "label", weight: 0.4 },
+    { name: "text", weight: 0.5 },
     { name: "topic", weight: 0.1 },
   ],
   threshold: 0.4,
@@ -88,7 +88,7 @@ export class RagSearchEngine {
         topic: r.item.topic as RagTopic,
         title: r.item.question,
         content: r.item.answer,
-        sources: r.item.source_artifacts,
+        sources: r.item.sources,
       });
     }
 
@@ -100,9 +100,9 @@ export class RagSearchEngine {
         type: "chunk",
         score: 1 - (r.score ?? 0),
         topic: r.item.topic as RagTopic,
-        title: r.item.title,
-        content: r.item.content,
-        sources: r.item.source_artifacts,
+        title: r.item.label,
+        content: r.item.text,
+        sources: [r.item.source_artifact],
       });
     }
 
