@@ -88,19 +88,20 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+
+## Data Flow & Artifact Inventory
 
 ```
 Meridian artifacts/
-├── tables/*.parquet     (46 tables, 18.5M+ rows)
+├── tables/*.parquet     (49 tables, 22.5M+ rows)
 ├── models/*.json        (forecast model weights)
-└── rag/                 (98 chunks, 178 QA pairs)
+└── rag/                 (341 chunks, 684 QA pairs)
         │
         ▼
 scripts/sync_p2_data.py  (Parquet → JSON conversion)
         │
         ▼
-public/data/             (23 static JSON files)
+public/data/             (28 static JSON files)
 ├── dashboards/          (one dir per dashboard)
 ├── dims/                (dimension lookups)
 ├── models/              (forecast outputs)
@@ -112,6 +113,31 @@ next build → out/        (Pure HTML/CSS/JS)
         ▼
 S3 + CloudFront          (Static hosting, ~$1–3/mo)
 ```
+
+### Artifact Inventory (as of 2026-02-27)
+
+- **Dimensions (6):** `dim_country`, `dim_soc`, `dim_area`, `dim_employer`, `dim_visa_ceiling`, `dim_visa_class`
+- **Fact Tables (18):** `fact_perm`, `fact_lca`, `fact_oews`, `fact_cutoffs`, `fact_h1b_employer_hub`, `fact_niv_issuance`, `fact_visa_issuance`, `fact_visa_applications`, `fact_perm_unique_case`, `fact_perm_all`, `fact_cutoffs_all`, `fact_uscis_approvals`, `fact_dhs_admissions`, `fact_waiting_list`, `fact_warn_events`, `fact_bls_ces`, `fact_processing_times`, `fact_trac_adjudications`
+- **Feature/Metric Tables (14):** `employer_features`, `employer_monthly_metrics`, `salary_benchmarks`, `visa_demand_metrics`, `worksite_geo_metrics`, `backlog_estimates`, `category_movement_metrics`, `fact_cutoff_trends`, `soc_demand_metrics`, `queue_depth_estimates`, `processing_times_trends`, `employer_risk_features`, `employer_salary_profiles`, `employer_salary_yearly`, `soc_salary_market`
+- **Model Outputs (3):** `employer_friendliness_scores`, `employer_friendliness_scores_ml`, `pd_forecasts`
+- **RAG/QA Artifacts (4):** `catalog.json`, `all_chunks.json`, `qa_cache.json`, `build_summary.json`
+- **Stubs (4):** `employer_scores.parquet`, `oews_wages.parquet`, `visa_bulletin.parquet`, `fact_acs_wages.parquet`, `fact_processing_times.parquet`, `fact_trac_adjudications.parquet`
+
+### RAG/QA Scale
+- **Chunks:** 341 (across 10 topics)
+- **QA pairs:** 684 (pre-computed, topic-tagged)
+- **Catalog:** 49 artifacts
+
+### How to Sync New Artifacts
+
+```bash
+# Sync all new P2 artifacts to P3 (run before build)
+python3 scripts/sync_p2_data.py
+# Then build static export
+npm run build
+```
+
+All new tables and RAG/QA artifacts will appear in `public/data/` for static use in P3.
 
 ## Tech Stack
 

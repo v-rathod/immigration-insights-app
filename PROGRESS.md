@@ -1,3 +1,32 @@
+## 2026-02-27 — Milestone 8.4: Full P2 Artifact Sync & RAG/QA Expansion
+
+### Objective
+Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs) to P3, update documentation, and ensure Ask NorthStar is ready for new data scale.
+
+### What Was Done
+- Ran `python3 scripts/sync_p2_data.py` to sync all new artifacts from P2 to P3 (`public/data/` now has 28 JSON files)
+- Updated README.md and .github/copilot-instructions.md with new artifact inventory, RAG/QA scale, and sync instructions
+- Confirmed RAG/QA artifacts: 341 chunks, 684 QA pairs, 49 artifacts in catalog
+- Attempted to run/test Ask NorthStar (site temporarily unavailable due to dev server lock; user will restart VS Code)
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Artifacts synced | 49 tables, 22.5M+ rows |
+| RAG/QA scale | 341 chunks, 684 QA pairs |
+| Docs updated | README.md, copilot-instructions.md |
+| Next steps | User will restart VS Code and agent |
+
+### Files Created/Modified
+- `public/data/` — 28 JSON files (synced)
+- `README.md` — Updated artifact inventory, RAG/QA scale, sync instructions
+- `.github/copilot-instructions.md` — Updated artifact inventory, RAG/QA scale, sync instructions
+- `PROGRESS.md` — This entry
+
+### Next Steps
+1. User restarts VS Code and agent
+2. Test Ask NorthStar with new data
+3. Continue with dashboards and personalized panels
 # NorthStar · Compass — Progress Log
 
 > **PURPOSE**: Chronological record of work completed, decisions made, and implementation progress for the Compass (P3) app.  

@@ -441,32 +441,35 @@ export default function VisaBulletinPage() {
         </FadeIn>
       )}
 
-      {/* Methodology */}
+      {/* Methodology — collapsible */}
       <FadeIn delay={0.3}>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-4 text-xs text-[var(--muted-foreground)] space-y-2">
-          <h3 className="font-semibold text-[var(--foreground)] text-sm mb-1.5">
+        <details className="group rounded-2xl border border-white/[0.06] bg-white/[0.01] text-xs text-[var(--muted-foreground)]">
+          <summary className="cursor-pointer select-none list-none p-4 flex items-center justify-between gap-2 font-semibold text-[var(--foreground)] text-sm hover:text-blue-400 transition-colors [&::-webkit-details-marker]:hidden">
             How It Works
-          </h3>
-          <p>
-            The <strong>Priority Date Cortex</strong> forecasts EB visa cutoff
-            date movement using historical Visa Bulletin data (Oct
-            2015&ndash;present). Two projected timelines are always shown:
-          </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>
-              <strong>Date for Filing (DFF)</strong> &mdash; When you can submit
-              Form I-485 (Adjustment of Status). Typically advances faster.
-            </li>
-            <li>
-              <strong>Final Action Date (FAD)</strong> &mdash; When your green
-              card is actually approved. Typically lags behind DFF.
-            </li>
-          </ul>
-          <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-1">
-            Source: DOS Visa Bulletin (FY2015&ndash;FY2025) &middot; P2 Meridian
-            forecast model
-          </p>
-        </div>
+            <svg className="w-4 h-4 shrink-0 text-[var(--muted-foreground)]/60 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </summary>
+          <div className="px-4 pb-4 space-y-2">
+            <p>
+              The <strong>Priority Date Cortex</strong> forecasts EB visa cutoff
+              date movement using historical Visa Bulletin data (Oct
+              2015&ndash;present). Two projected timelines are always shown:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <strong>Date for Filing (DFF)</strong> &mdash; When you can submit
+                Form I-485 (Adjustment of Status). Typically advances faster.
+              </li>
+              <li>
+                <strong>Final Action Date (FAD)</strong> &mdash; When your green
+                card is actually approved. Typically lags behind DFF.
+              </li>
+            </ul>
+            <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-1">
+              Source: DOS Visa Bulletin (FY2015&ndash;FY2025) &middot; P2 Meridian
+              forecast model
+            </p>
+          </div>
+        </details>
       </FadeIn>
     </div>
   );
