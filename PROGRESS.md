@@ -1,3 +1,45 @@
+## 2026-03-02 — Milestone 10.5: Wage Dashboard UX + Data Quality (100-Employer Minimum Threshold)
+
+### Objective
+Improve wage dashboard user experience and data quality: 
+1. Reorder page sections so "Salary Overview by Occupation Group" appears at bottom as a reference (not early in user flow)
+2. Apply minimum 100-employer threshold to occupation group statistics for statistical significance (exclude small groups)
+
+### Root Cause
+- Salary Overview was appearing too early in the page, before Rising Stars leaderboard — users saw aggregate context before personalized insights
+- Occupation groups with 1-2 employers skew the "median salary" statistic — needs ≥100 employers for reliable aggregates
+
+### What Was Done
+
+**1. Page section reordering (`WageIntelligenceHub.tsx`):**
+- **OLD**: Empty State → Salary Overview → Rising Stars leaderboard → SOC stat cards
+- **NEW**: Empty State → Rising Stars leaderboard → Salary Overview → SOC stat cards
+- Moved Salary Overview heading + subtitle down from line ~895 to ~930+ (after Rising Stars)
+- Updated subtitle to clarify minimum: "FY2025 · H-1B median · min 100 employers"
+
+**2. Statistical minimum filter (`wage.ts` - `getSocGroupStats()`):**
+- Added `&& g.employers >= 100` to the filter on line 288
+- Purpose: Exclude occupation groups with <100 employers from the Salary Overview table
+- Effect: Only statistically significant groups are shown (medians with 100+ datapoints)
+
+**3. Test mock update (`wage-dashboard.test.tsx`):**
+- Updated `loadEmployerWageRankings` mock to generate 122 synthetic "Tech Company" entries
+- Each synthetic entry: same SOC code (15-1252), FY2025, realistic salary range
+- Ensures mock data meets the 100-employer threshold, so tests validate new filtering logic
+
+### Test Results
+- **395 passing** (test failure from threshold now fixed via mock)
+
+### Files Changed
+- `src/lib/data/wage.ts` — Added `&& g.employers >= 100` filter in getSocGroupStats
+- `src/components/wage/WageIntelligenceHub.tsx` — Reordered sections, updated subtitle
+- `src/__tests__/wage-dashboard.test.tsx` — Updated mock to generate 122+ employers
+
+### Commit
+`daceb738a4918d23da315b09660461ecbe97d924`
+
+---
+
 ## 2026-03-02 — Milestone 10.4: Top Roles Data Source Fix (employer_role_profiles.json)
 
 ### Objective
@@ -445,7 +487,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.4 — 2026-03-02)
+## Quick Reference (Current State as of Milestone 10.5 — 2026-03-02)
 
 | Metric | Value |
 |--------|-------|
@@ -456,20 +498,20 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
 | Tests | **395 passing** across 20 test files |
-| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (added `employer_role_profiles.json`) |
+| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (includes `employer_role_profiles.json`) |
 | Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
 | Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → Personal |
-| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅) |
+| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅ with 100-employer min threshold) |
 | Personalized panels | 0 / 5 |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
-| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is the sole source of truth |
+| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is the sole source of truth; occupation groups filtered by ≥100 employers |
 
 ### Quick Commands
 ```bash
@@ -593,6 +635,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.2 | 2026-03-01 | Chart Axes + UI Defect Fixes | All charts: visible axes, `#9ca3af` ticks, `rgba(128,128,160,0.15)` grid, `bottom: 24` margin, activeDot r:5 glow; hover text contrast `group-hover:text-white` → foreground var; tab active state readable both themes; dropdown z-[100]; salary overview always visible; trend label with tooltip; 391 tests; commit 0be551e |
 | 10.3 | 2026-03-01 | Top Roles Bug Fixes + Context Preservation | `getEmployerRoles`: latest year only, visaType filter, soc_code dedup — eliminates stale/irrelevant roles; removed `onSelectSoc` from EmployerProfile (role rows static, employer context preserved); 6 new tests; 395 tests; commit 72302de |
 | 10.4 | 2026-03-02 | Top Roles Data Source Fix | Root-cause fix: new `employer_role_profiles.json` (employer-centric, top-25 roles by filings, 485 employers); was using SOC-centric `employer_wage_rankings` causing Cognizant to show 2 of 33 roles; sync script + new loader + EmployerProfile updated; 395 tests; commit 5ecf659 |
+| 10.5 | 2026-03-02 | Wage Dashboard UX + Data Quality | Reorder page sections (Salary Overview pushed down after Rising Stars); apply 100-employer minimum threshold to occupation groups for statistical significance; updated test mock to generate 122+ synthetic employers; all 395 tests passing; commit daceb738 |
 
 ---
 
