@@ -58,6 +58,14 @@ export interface EmployerSalaryTrend {
   employer_id?: string | number;
 }
 
+export interface EmployerSearchIndex {
+  employer_name: string;
+  total_filings: number;
+  n_soc_codes: number;
+  latest_median_salary: number;
+  latest_year: number;
+}
+
 // ---------------------------------------------------------------------------
 // Data quality thresholds
 // ---------------------------------------------------------------------------
@@ -113,6 +121,12 @@ export async function loadEmployerWageRankings(): Promise<EmployerWageRanking[]>
 
 export async function loadEmployerSalaryTrend(): Promise<EmployerSalaryTrend[]> {
   const raw = await loadDashboardData('wage', 'employer_salary_trend') as EmployerSalaryTrend[];
+  return Array.isArray(raw) ? raw : [];
+}
+
+/** Load ALL employers (402K+) for full-text search — no cutoff. */
+export async function loadEmployerSearchIndex(): Promise<EmployerSearchIndex[]> {
+  const raw = await loadDashboardData('wage', 'employer_search_index') as EmployerSearchIndex[];
   return Array.isArray(raw) ? raw : [];
 }
 

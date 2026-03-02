@@ -340,10 +340,44 @@ def sync_wage_dashboard():
         size_kb = (out_dir / "employer_wage_rankings.json").stat().st_size / 1024
         print(f"    ✓ employer_wage_rankings: {n:,} rows → {size_kb:.0f} KB")
 
-        # ── 4. employer_salary_yearly — top 300 employers' wage trend ─────
+        # ── 4a. employer_search_index — ALL employers (no cutoff) for search ───
         esy = read_parquet_safe(P2_TABLES / "employer_salary_yearly.parquet")
         if not esy.empty:
-            # Get top employers by total filings across all time
+            # Export ALL H-1B employers with minimal metadata for full-text search
+            esy_all = esy[esy["visa_type"] == "H-1B"].copy()
+            
+            # Get total filings per employer
+            employer_stats = (
+                esy_all.groupby("employer_name")
+                .agg({
+                    "total_filings": "sum",
+                    "n_soc_codes": "max",  # latest unique job titles
+                    "median_salary": lambda x: x[x.notna()].median(),
+                    "fiscal_year": "max"  # latest year
+                })
+                .reset_index()
+                .rename({
+                    "total_filings": "total_filings",
+                    "n_soc_codes": "n_soc_codes",
+                    "median_salary": "latest_median_salary",
+                    "fiscal_year": "latest_year"
+                }, axis=1)
+            )
+            
+            # Round salary
+            employer_stats["latest_median_salary"] = employer_stats["latest_median_salary"].fillna(0).round(0).astype(int)
+            employer_stats["latest_year"] = employer_stats["latest_year"].fillna(0).astype(int)
+            
+            # Sort by filing count (most relevant first)
+            employer_stats = employer_stats.sort_values("total_filings", ascending=False).reset_index(drop=True)
+            
+            n = df_to_json(employer_stats, out_dir / "employer_search_index.json")
+            size_kb = (out_dir / "employer_search_index.json").stat().st_size / 1024
+            print(f"    ✓ employer_search_index: {n:,} rows (ALL employers) → {size_kb:.0f} KB")
+
+        # ── 4b. employer_salary_trend — top 300 employers' wage trend ───────
+        if not esy.empty:
+            # Get top employers by total filings (for trend visualization)
             top_employers = (
                 esy[esy["visa_type"] == "H-1B"]
                 .groupby("employer_name")["total_filings"]
@@ -359,7 +393,7 @@ def sync_wage_dashboard():
                 esy_top[col] = esy_top[col].fillna(0).round(0).astype(int)
             n = df_to_json(esy_top, out_dir / "employer_salary_trend.json")
             size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
-            print(f"    ✓ employer_salary_trend: {n:,} rows → {size_kb:.0f} KB")
+            print(f"    ✓ employer_salary_trend: {n:,} rows (top 300) → {size_kb:.0f} KB")
 
 
 def write_manifest():

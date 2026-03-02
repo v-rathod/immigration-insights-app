@@ -35,7 +35,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sortEmployerResults, sortSocResults } from "@/lib/search/smart-sort";
+import { sortSocResults } from "@/lib/search/smart-sort";
 import { formatCurrency, formatNumber, formatCompact } from "@/lib/utils/format";
 import { secureGet } from "@/lib/security";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -53,6 +53,7 @@ import {
   loadSocSalaryMarket,
   loadEmployerWageRankings,
   loadEmployerSalaryTrend,
+  loadEmployerSearchIndex,
   getSocList,
   getEmployerList,
   getNationalBenchmark,
@@ -65,6 +66,7 @@ import {
   type SocSalaryMarket,
   type EmployerWageRanking,
   type EmployerSalaryTrend,
+  type EmployerSearchIndex,
 } from "@/lib/data/wage";
 
 // ---------------------------------------------------------------------------
@@ -111,14 +113,14 @@ const POPULAR_SOCS: Array<{ code: string; title: string }> = [
 ];
 
 const POPULAR_EMPLOYERS = [
-  "AMAZON.COM SERVICES LLC",
-  "GOOGLE LLC",
-  "MICROSOFT CORPORATION",
-  "META PLATFORMS, INC.",
-  "APPLE INC.",
-  "DELOITTE CONSULTING LLP",
-  "COGNIZANT TECHNOLOGY SOLUTIONS",
-  "INFOSYS LIMITED",
+  "Infosys",
+  "Tata Consultancy Services",
+  "Cognizant Technology Solutions Us",
+  "Microsoft",
+  "Deloitte Consulting",
+  "Ernst Young U S",
+  "Amazon Com Services",
+  "Google",
 ];
 
 const SEARCH_MODES: Array<{ id: SearchMode; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -214,6 +216,7 @@ export function WageIntelligenceHub() {
   const [market, setMarket] = useState<SocSalaryMarket[]>([]);
   const [rankings, setRankings] = useState<EmployerWageRanking[]>([]);
   const [trends, setTrends] = useState<EmployerSalaryTrend[]>([]);
+  const [searchIndex, setSearchIndex] = useState<EmployerSearchIndex[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -237,18 +240,20 @@ export function WageIntelligenceHub() {
   useEffect(() => {
     async function load() {
       try {
-        const [nat, sts, mkt, rnk, trd] = await Promise.all([
+        const [nat, sts, mkt, rnk, trd, searchIdx] = await Promise.all([
           loadSalaryBenchmarksNational(),
           loadSalaryBenchmarksStates(),
           loadSocSalaryMarket(),
           loadEmployerWageRankings(),
           loadEmployerSalaryTrend(),
+          loadEmployerSearchIndex(),
         ]);
         setNational(nat);
         setStates(sts);
         setMarket(mkt);
         setRankings(rnk);
         setTrends(trd);
+        setSearchIndex(searchIdx);
 
         // Build SOC Fuse index — search by title only (no SOC code knowledge required)
         const socList = getSocList(mkt);
@@ -259,8 +264,8 @@ export function WageIntelligenceHub() {
           ignoreLocation: true,
         });
 
-        // Build Employer Fuse index
-        const empList = getEmployerList(trd, "H-1B");
+        // Build Employer Fuse index from FULL search index (402K+ employers, no cutoff)
+        const empList = searchIdx.map((e) => e.employer_name);
         employerFuseRef.current = new Fuse(empList, {
           threshold: 0.25,
           minMatchCharLength: 2,
@@ -278,8 +283,8 @@ export function WageIntelligenceHub() {
     if (profile?.wageOffered && profile.wageOffered > 0) setUserProfile(profile);
   }, []);
 
-  // ── Employer list for empty-state quick picks ──────────────────────────────
-  const allEmployers = useMemo(() => getEmployerList(trends, "H-1B"), [trends]);
+  // ── Employer list for empty-state quick picks (all 402K+ employers) ────────
+  const allEmployers = useMemo(() => searchIndex.map((e) => e.employer_name), [searchIndex]);
 
   // ── Search handler ────────────────────────────────────────────────────────
   const handleSearch = useCallback(
@@ -291,50 +296,10 @@ export function WageIntelligenceHub() {
         return;
       }
       
-      if (searchMode === "employer" && employerFuseRef.current && rankings.length > 0) {
-        const fuseResults = employerFuseRef.current.search(q).slice(0, 20); // Get more for better re-scoring
-        
-        // Look up full ranking data for smart sorting
-        const enriched = fuseResults.map((r) => {
-          const employerName = r.item;
-          const rankingData = rankings.find(
-            (rk) => rk.employer_name.toUpperCase() === employerName.toUpperCase()
-          );
-          return {
-            item: {
-              employer_id: rankingData?.employer_id ?? "",
-              employer_name: employerName,
-              scope: "overall",
-              soc_code: null,
-              n_12m: 0,
-              n_24m: 0,
-              n_36m: rankingData?.n_filings ?? 0,
-              approval_rate_24m: 0,
-              denial_rate_24m: 0,
-              wage_ratio_med: 0,
-              wage_ratio_p75: 0,
-              outcome_subscore: 0,
-              wage_subscore: 0,
-              sustainability_subscore: 0,
-              srs: rankingData?.avg_salary
-                ? (rankingData.avg_salary / 200000) * 100
-                : null,
-              srs_tier: "Unrated" as const,
-              months_active_24m: 0,
-              soc_breadth_24m: 0,
-              site_breadth_24m: 0,
-              approval_rate_trend_12v12: null,
-              outcome_volatility: null,
-              last_refreshed_at: "",
-            } as any,
-            refIndex: r.refIndex,
-            score: r.score,
-          };
-        });
-        
-        // Smart sort by relevance + volume + salary
-        const sorted = sortEmployerResults(enriched, q).slice(0, 8);
-        const results = sorted.map((emp) => ({ label: emp.employer_name }));
+      if (searchMode === "employer" && employerFuseRef.current) {
+        // Search full employer list (402K+) with no cutoff
+        const fuseResults = employerFuseRef.current.search(q).slice(0, 8);
+        const results = fuseResults.map((r) => ({ label: r.item }));
         setSearchResults(results);
         setShowDropdown(results.length > 0);
       } else if (searchMode === "role" && socFuseRef.current && market.length > 0) {
@@ -343,13 +308,13 @@ export function WageIntelligenceHub() {
         // Enrich with market data for smart sorting
         const enriched = fuseResults.map((r) => {
           const soc = r.item;
-          const marketData = market.find((m) => m.code === soc.code);
+          const marketData = market.find((m) => m.soc_code === soc.code);
           return {
             item: {
               code: soc.code,
               title: soc.title,
               n_filings: marketData?.n_filings ?? 0,
-              median_salary: marketData?.median_salary ?? 0,
+              median_salary: marketData?.market_median ?? 0,
             },
             refIndex: r.refIndex,
             score: r.score,
@@ -366,7 +331,7 @@ export function WageIntelligenceHub() {
         setShowDropdown(results.length > 0);
       }
     },
-    [searchMode, rankings, market]
+    [searchMode, market]
   );
 
   // Re-run search when mode switches
