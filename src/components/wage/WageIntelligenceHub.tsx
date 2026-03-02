@@ -162,7 +162,7 @@ function EmptyStateRole({ onQuickPick }: { onQuickPick: (soc: SocOption) => void
                 <p className="text-sm font-medium text-[var(--foreground)]">{soc.title}</p>
                 <p className="text-xs text-[var(--muted-foreground)] font-mono">{soc.code}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-white transition-colors" />
+              <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors" />
             </button>
           ))}
         </div>
@@ -196,7 +196,7 @@ function EmptyStateEmployer({
               className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-left group"
             >
               <p className="text-sm font-medium text-[var(--foreground)] truncate pr-2">{name}</p>
-              <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-white transition-colors shrink-0" />
+              <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors shrink-0" />
             </button>
           ))}
         </div>
@@ -463,7 +463,7 @@ export function WageIntelligenceHub() {
     <div className="space-y-8">
 
       {/* ── Hero + Dual-mode Search ──────────────────────────────────────── */}
-      <FadeIn>
+      <FadeIn className="relative z-[100]">
         <GlassCard variant="accent" padding="lg">
           <div className="space-y-4">
             <div>
@@ -489,7 +489,7 @@ export function WageIntelligenceHub() {
                         "flex items-center gap-1.5 px-3 py-3 text-xs font-semibold transition-all whitespace-nowrap",
                         searchMode === id
                           ? "text-blue-300 bg-blue-500/10"
-                          : "text-[var(--muted-foreground)] hover:text-white hover:bg-white/[0.04]"
+                          : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
                       )}
                       aria-pressed={searchMode === id}
                     >
@@ -581,7 +581,7 @@ export function WageIntelligenceHub() {
                       "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                       visaType === vt
                         ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                        : "text-[var(--muted-foreground)] hover:text-white border border-transparent hover:border-white/[0.08]"
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-transparent hover:border-white/[0.08]"
                     )}
                   >
                     {vt}
@@ -730,8 +730,8 @@ export function WageIntelligenceHub() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                   activeTab === id
-                    ? "bg-white/[0.1] text-white shadow-sm"
-                    : "text-[var(--muted-foreground)] hover:text-white hover:bg-white/[0.04]"
+                    ? "bg-blue-500/20 text-blue-300 shadow-sm"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -860,51 +860,53 @@ export function WageIntelligenceHub() {
       {/* ── EMPTY STATE — nothing selected ──────────────────────────────── */}
       {!selectedEmployer && !selectedSoc && (
         <FadeIn>
-          <div className="space-y-8">
-            {searchMode === "employer" ? (
-              <EmptyStateEmployer onQuickPick={selectEmployer} availableEmployers={allEmployers} />
-            ) : (
-              <EmptyStateRole onQuickPick={selectSoc} />
-            )}
-            {socGroupStats.length > 0 && (
-              <GlassCard variant="elevated" padding="lg">
-                <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
-                  Salary Overview by Occupation Group
-                  <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)] font-mono">FY2025 · H-1B median</span>
-                </p>
-                <div className="space-y-2.5">
-                  {socGroupStats.map((g, i) => {
-                    const maxMedian = socGroupStats[0].median;
-                    const barWidth = (g.median / maxMedian) * 100;
-                    return (
-                      <div key={g.group_code} className="flex items-center gap-3">
-                        <span className="text-xs font-mono text-[rgba(255,255,255,0.25)] w-4 shrink-0">{i + 1}</span>
-                        <span className="w-44 text-sm text-[var(--foreground)] truncate shrink-0">{g.group_title}</span>
-                        <div className="flex-1 h-5 rounded-sm bg-white/[0.04] overflow-hidden">
-                          <motion.div
-                            initial={{ scaleX: 0 }}
-                            animate={{ scaleX: 1 }}
-                            transition={{ duration: 0.5, delay: i * 0.05, ease: EASING }}
-                            className="h-full bg-gradient-to-r from-blue-600/60 to-purple-600/60 rounded-sm"
-                            style={{ width: `${barWidth}%`, transformOrigin: "left" }}
-                          />
-                        </div>
-                        <span className="w-24 text-right text-sm font-mono font-semibold text-white shrink-0">
-                          {formatCurrency(g.median)}
-                        </span>
-                        <span className="hidden sm:block w-20 text-right text-xs text-[var(--muted-foreground)] shrink-0">
-                          {formatCompact(g.employers)} employers
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-4 text-[10px] text-[var(--muted-foreground)]">
-                  Source: H-1B employer filings · Fiscal year 2025
-                </p>
-              </GlassCard>
-            )}
-          </div>
+          {searchMode === "employer" ? (
+            <EmptyStateEmployer onQuickPick={selectEmployer} availableEmployers={allEmployers} />
+          ) : (
+            <EmptyStateRole onQuickPick={selectSoc} />
+          )}
+        </FadeIn>
+      )}
+
+      {/* ── Salary Overview (always visible when data available) ────────── */}
+      {socGroupStats.length > 0 && (
+        <FadeIn>
+          <GlassCard variant="elevated" padding="lg">
+            <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
+              Salary Overview by Occupation Group
+              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)] font-mono">FY2025 · H-1B median</span>
+            </p>
+            <div className="space-y-2.5">
+              {socGroupStats.map((g, i) => {
+                const maxMedian = socGroupStats[0].median;
+                const barWidth = (g.median / maxMedian) * 100;
+                return (
+                  <div key={g.group_code} className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-[var(--muted-foreground)] w-4 shrink-0">{i + 1}</span>
+                    <span className="w-44 text-sm text-[var(--foreground)] truncate shrink-0">{g.group_title}</span>
+                    <div className="flex-1 h-5 rounded-sm bg-white/[0.04] overflow-hidden">
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 0.5, delay: i * 0.05, ease: EASING }}
+                        className="h-full bg-gradient-to-r from-blue-600/60 to-purple-600/60 rounded-sm"
+                        style={{ width: `${barWidth}%`, transformOrigin: "left" }}
+                      />
+                    </div>
+                    <span className="w-24 text-right text-sm font-mono font-semibold text-[var(--foreground)] shrink-0">
+                      {formatCurrency(g.median)}
+                    </span>
+                    <span className="hidden sm:block w-20 text-right text-xs text-[var(--muted-foreground)] shrink-0">
+                      {formatCompact(g.employers)} employers
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-[10px] text-[var(--muted-foreground)]">
+              Source: H-1B employer filings · Fiscal year 2025
+            </p>
+          </GlassCard>
         </FadeIn>
       )}
 

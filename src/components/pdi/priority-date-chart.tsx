@@ -417,40 +417,43 @@ export function PriorityDateChart({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
-            margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
+            margin={{ top: 8, right: 16, bottom: 24, left: 4 }}
           >
             <defs>
               <linearGradient id="fillDffAct" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.12} />
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="fillFadAct" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.08} />
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.10} />
                 <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
               </linearGradient>
             </defs>
 
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.04)"
-              vertical={false}
+              stroke="rgba(128,128,160,0.15)"
+              horizontal={true}
+              vertical={true}
             />
 
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-              tickLine={false}
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
+              tickLine={{ stroke: "rgba(128,128,160,0.2)" }}
               ticks={yearTicks}
               tickFormatter={(m: string) => m.slice(0, 4)}
+              label={{ value: "Year", position: "insideBottom", offset: -12, fill: "#6b7280", fontSize: 11 }}
             />
             <YAxis
               domain={yDomain}
               tickFormatter={fmtDateTick}
-              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }}
-              axisLine={false}
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
               tickLine={false}
-              width={52}
+              width={62}
+              label={{ value: "Cutoff Date", angle: -90, position: "insideLeft", offset: 10, fill: "#6b7280", fontSize: 11 }}
             />
 
             <Tooltip
@@ -481,14 +484,14 @@ export function PriorityDateChart({
               dataKey="dffActual"
               name="DFF (Actual)"
               stroke="#3b82f6"
-              strokeWidth={2}
+              strokeWidth={2.5}
               dot={false}
               connectNulls
               activeDot={{
-                r: 3,
+                r: 5,
                 fill: "#3b82f6",
-                stroke: "rgba(59,130,246,0.3)",
-                strokeWidth: 5,
+                stroke: "rgba(59,130,246,0.4)",
+                strokeWidth: 8,
               }}
               isAnimationActive={false}
             />
@@ -497,14 +500,14 @@ export function PriorityDateChart({
               dataKey="fadActual"
               name="FAD (Actual)"
               stroke="#f59e0b"
-              strokeWidth={2}
+              strokeWidth={2.5}
               dot={false}
               connectNulls
               activeDot={{
-                r: 3,
+                r: 5,
                 fill: "#f59e0b",
-                stroke: "rgba(245,158,11,0.3)",
-                strokeWidth: 5,
+                stroke: "rgba(245,158,11,0.4)",
+                strokeWidth: 8,
               }}
               isAnimationActive={false}
             />
@@ -520,10 +523,10 @@ export function PriorityDateChart({
               dot={false}
               connectNulls
               activeDot={{
-                r: 3,
+                r: 5,
                 fill: "#60a5fa",
-                stroke: "rgba(96,165,250,0.3)",
-                strokeWidth: 5,
+                stroke: "rgba(96,165,250,0.4)",
+                strokeWidth: 8,
               }}
               animationDuration={600}
               animationEasing="ease-in-out"
@@ -538,10 +541,10 @@ export function PriorityDateChart({
               dot={false}
               connectNulls
               activeDot={{
-                r: 3,
+                r: 5,
                 fill: "#fbbf24",
-                stroke: "rgba(251,191,36,0.3)",
-                strokeWidth: 5,
+                stroke: "rgba(251,191,36,0.4)",
+                strokeWidth: 8,
               }}
               animationDuration={600}
               animationEasing="ease-in-out"

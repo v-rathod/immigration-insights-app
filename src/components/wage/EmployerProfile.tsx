@@ -246,23 +246,24 @@ export function EmployerProfile({
 
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <AreaChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
                 <defs>
                   <linearGradient id="empGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,160,0.15)" vertical={true} />
                 <XAxis
                   dataKey="fiscal_year"
-                  tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "var(--font-geist-mono)" }}
-                  axisLine={false}
+                  tick={{ fill: "#9ca3af", fontSize: 11, fontFamily: "var(--font-geist-mono)" }}
+                  axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
                   tickLine={false}
+                  label={{ value: "Fiscal Year", position: "insideBottom", offset: -12, fill: "#6b7280", fontSize: 11 }}
                 />
                 <YAxis
-                  tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "var(--font-geist-mono)" }}
-                  axisLine={false}
+                  tick={{ fill: "#9ca3af", fontSize: 11, fontFamily: "var(--font-geist-mono)" }}
+                  axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
                   tickLine={false}
                   width={72}
                   tickFormatter={(v) => `$${Math.round(v / 1000)}K`}
@@ -281,7 +282,7 @@ export function EmployerProfile({
                   strokeWidth={2}
                   fill="url(#empGrad)"
                   dot={false}
-                  activeDot={{ r: 4, fill: "#3b82f6", stroke: "#fff", strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: "#3b82f6", stroke: "rgba(59,130,246,0.4)", strokeWidth: 8 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -352,7 +353,7 @@ export function EmployerProfile({
 
                     {/* Arrow */}
                     {onSelectSoc && (
-                      <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-white transition-colors shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors shrink-0" />
                     )}
                   </motion.div>
                 );

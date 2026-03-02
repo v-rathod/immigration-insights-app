@@ -83,7 +83,7 @@ export function SrsTrendChart({
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            margin={{ top: 4, right: 16, bottom: 24, left: 4 }}
           >
             <defs>
               <linearGradient id="fillFilings" x1="0" y1="0" x2="0" y2="1">
@@ -102,22 +102,25 @@ export function SrsTrendChart({
 
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.04)"
-              vertical={false}
+              stroke="rgba(128,128,160,0.15)"
+              horizontal={true}
+              vertical={true}
             />
 
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-              tickLine={false}
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
+              tickLine={{ stroke: "rgba(128,128,160,0.2)" }}
               interval="preserveStartEnd"
+              label={{ value: "Month", position: "insideBottom", offset: -12, fill: "#6b7280", fontSize: 11 }}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }}
-              axisLine={false}
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
               tickLine={false}
-              width={36}
+              width={40}
+              label={{ value: "Filings", angle: -90, position: "insideLeft", offset: 10, fill: "#6b7280", fontSize: 11 }}
             />
 
             <Tooltip content={<CustomTooltip />} />
@@ -136,7 +139,7 @@ export function SrsTrendChart({
               strokeWidth={2}
               fill="url(#fillFilings)"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: "#3b82f6", stroke: "rgba(59,130,246,0.4)", strokeWidth: 8 }}
             />
             <Area
               type="monotone"
@@ -146,7 +149,7 @@ export function SrsTrendChart({
               strokeWidth={2}
               fill="url(#fillApprovals)"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: "#10b981", stroke: "rgba(16,185,129,0.4)", strokeWidth: 8 }}
             />
             <Area
               type="monotone"

@@ -102,7 +102,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
       className={cn("w-full", className)}
     >
       <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={chartData} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
+        <AreaChart data={chartData} margin={{ top: 10, right: 16, left: 8, bottom: 24 }}>
           <defs>
             {/* P25–P75 band fill */}
             <linearGradient id="wageGradientBand" x1="0" y1="0" x2="0" y2="1">
@@ -124,20 +124,21 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.04)"
-            vertical={false}
+            stroke="rgba(128,128,160,0.15)"
+            vertical={true}
           />
           <XAxis
             dataKey="year"
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
-            axisLine={false}
+            tick={{ fill: "#9ca3af", fontSize: 11 }}
+            axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
             tickLine={false}
+            label={{ value: "Year", position: "insideBottom", offset: -12, fill: "#6b7280", fontSize: 11 }}
           />
           <YAxis
             domain={[yMin, yMax]}
             tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
-            axisLine={false}
+            tick={{ fill: "#9ca3af", fontSize: 11 }}
+            axisLine={{ stroke: "rgba(128,128,160,0.2)" }}
             tickLine={false}
             width={52}
           />
@@ -180,7 +181,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
             strokeWidth={2.5}
             fill="url(#wageGradientMedian)"
             dot={false}
-            activeDot={{ r: 4, fill: "#3b82f6", strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: "#3b82f6", stroke: "rgba(59,130,246,0.4)", strokeWidth: 8 }}
             name="Market Median"
           />
 

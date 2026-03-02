@@ -128,16 +128,20 @@ export function EmployerDetailCard({
               {employer.months_active_24m} months active
             </span>
           )}
-          {trendIcon && (
-            <span className={cn("flex items-center gap-1", trendColor)}>
+          {trendIcon && trend != null && !isNaN(trend) && (
+            <span
+              className={cn("flex items-center gap-1 cursor-help", trendColor)}
+              title={`Approval rate change over the past 12 months vs the prior 12 months: ${trend > 0 ? "+" : ""}${(trend * 100).toFixed(0)}%. Positive means improving; negative means declining.`}
+            >
               {(() => {
                 const Icon = trendIcon;
                 return <Icon className="h-3 w-3" />;
               })()}
-              Trend:{" "}
-              {trend != null && !isNaN(trend)
-                ? `${trend > 0 ? "+" : ""}${(trend * 100).toFixed(0)}%`
-                : "—"}
+              Approval trend:{" "}
+              <span className="font-semibold">
+                {`${trend > 0 ? "+" : ""}${(trend * 100).toFixed(0)}%`}
+              </span>
+              <span className="text-[var(--muted-foreground)] font-normal">(12m vs prior 12m)</span>
             </span>
           )}
         </div>

@@ -114,7 +114,7 @@ function LeaderRow({
 
       {/* Name */}
       <div className="w-44 shrink-0 min-w-0">
-        <p className="text-sm font-medium truncate text-[var(--foreground)] group-hover:text-white transition-colors">
+        <p className="text-sm font-medium truncate text-[var(--foreground)] transition-colors">
           {stat.employer_name}
         </p>
         <p className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
