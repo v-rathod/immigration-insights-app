@@ -608,7 +608,7 @@ export function WageIntelligenceHub() {
               <div>
                 <h3 className="text-base font-bold text-[var(--foreground)]">{selectedEmployer}</h3>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  H-1B salary history · Click any role below to explore market benchmarks
+                  H-1B salary history · Top roles ranked by latest fiscal year
                 </p>
               </div>
             </div>
@@ -618,10 +618,6 @@ export function WageIntelligenceHub() {
             trend={trends}
             rankings={rankings}
             visaType="H-1B"
-            onSelectSoc={(soc) => {
-              setSearchMode("role");
-              selectSoc(soc);
-            }}
           />
         </div>
       )}

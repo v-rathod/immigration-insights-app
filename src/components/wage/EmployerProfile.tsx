@@ -25,7 +25,6 @@ import {
   TrendingDown,
   Flame,
   Building2,
-  ChevronRight,
   Briefcase,
   Minus,
 } from "lucide-react";
@@ -52,7 +51,6 @@ interface EmployerProfileProps {
   trend: EmployerSalaryTrend[];
   rankings: EmployerWageRanking[];
   visaType?: "H-1B" | "PERM";
-  onSelectSoc?: (soc: { code: string; title: string }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,7 +120,6 @@ export function EmployerProfile({
   trend,
   rankings,
   visaType = "H-1B",
-  onSelectSoc,
 }: EmployerProfileProps) {
   const series = useMemo(() => {
     // Filter out years with implausible salary values before rendering the chart
@@ -138,8 +135,8 @@ export function EmployerProfile({
   );
 
   const roles = useMemo(
-    () => getEmployerRoles(rankings, employerName).slice(0, 8),
-    [rankings, employerName]
+    () => getEmployerRoles(rankings, employerName, visaType).slice(0, 8),
+    [rankings, employerName, visaType]
   );
 
   if (!stats || series.length === 0) {
@@ -311,13 +308,7 @@ export function EmployerProfile({
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: i * 0.04 }}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.02]",
-                      onSelectSoc && "hover:border-white/[0.12] hover:bg-white/[0.04] cursor-pointer transition-all group"
-                    )}
-                    onClick={() =>
-                      onSelectSoc?.({ code: role.soc_code, title: role.soc_title })
-                    }
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.02]"
                   >
                     {/* Rank */}
                     <span className="w-5 text-right text-[10px] font-mono text-[rgba(255,255,255,0.25)] shrink-0">
@@ -351,20 +342,14 @@ export function EmployerProfile({
                       {Math.round(premium)}% mkt
                     </span>
 
-                    {/* Arrow */}
-                    {onSelectSoc && (
-                      <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] transition-colors shrink-0" />
-                    )}
                   </motion.div>
                 );
               })}
             </div>
 
-            {onSelectSoc && (
-              <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
-                Click any role to see the full market benchmark for that occupation
-              </p>
-            )}
+            <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
+              To compare a role across all employers, switch to Job Role search above
+            </p>
           </GlassCard>
         )}
       </div>

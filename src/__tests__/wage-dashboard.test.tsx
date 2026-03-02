@@ -17,6 +17,7 @@ import {
   computePercentile,
   getTopStates,
   getSocList,
+  getEmployerRoles,
 } from "../lib/data/wage";
 
 // ── Shared mock data ──────────────────────────────────────────────────────
@@ -203,6 +204,99 @@ describe("wage data helpers", () => {
     expect(list).toHaveLength(1);
     expect(list[0].code).toBe("15-1252");
     expect(list[0].title).toBe("Software Developers");
+  });
+});
+
+// ── getEmployerRoles tests ────────────────────────────────────────────────
+
+describe("getEmployerRoles", () => {
+  // Baseline: two H-1B roles at Cognizant in FY2025 (latest), plus a stale
+  // FY2024 row for a role that had 200 filings — it must NOT surface.
+  const ROLES_RANKINGS = [
+    // FY2025 — latest year
+    {
+      soc_code: "15-1252", soc_title: "Software Developers",
+      employer_name: "Cognizant", fiscal_year: 2025, n_filings: 800,
+      median_salary: 100000, mean_salary: 102000, p25_salary: 90000,
+      p75_salary: 115000, prevailing_wage_median: 90000,
+      wage_premium_pct: 11, wage_vs_pw_pct: 9, oews_national_median: 95000,
+      visa_type: "H-1B", job_title_top: "Developer", worksite_state_top: "NJ",
+    },
+    {
+      soc_code: "15-1132", soc_title: "Software QA Engineers",
+      employer_name: "Cognizant", fiscal_year: 2025, n_filings: 120,
+      median_salary: 90000, mean_salary: 91000, p25_salary: 82000,
+      p75_salary: 100000, prevailing_wage_median: 85000,
+      wage_premium_pct: 6, wage_vs_pw_pct: 4, oews_national_median: 88000,
+      visa_type: "H-1B", job_title_top: "QA Analyst", worksite_state_top: "NJ",
+    },
+    // FY2024 — stale year, should NOT appear in results
+    {
+      soc_code: "17-2061", soc_title: "Sales Engineers",
+      employer_name: "Cognizant", fiscal_year: 2024, n_filings: 8,
+      median_salary: 75000, mean_salary: 76000, p25_salary: 70000,
+      p75_salary: 82000, prevailing_wage_median: 70000,
+      wage_premium_pct: 7, wage_vs_pw_pct: 5, oews_national_median: 72000,
+      visa_type: "H-1B", job_title_top: "Sales Engineer", worksite_state_top: "NJ",
+    },
+    // PERM row in latest year — should be excluded when visaType = H-1B
+    {
+      soc_code: "15-1252", soc_title: "Software Developers",
+      employer_name: "Cognizant", fiscal_year: 2025, n_filings: 50,
+      median_salary: 105000, mean_salary: 106000, p25_salary: 95000,
+      p75_salary: 118000, prevailing_wage_median: 92000,
+      wage_premium_pct: 14, wage_vs_pw_pct: 12, oews_national_median: 95000,
+      visa_type: "PERM", job_title_top: "Developer", worksite_state_top: "NJ",
+    },
+    // Duplicate soc_code in FY2025 with FEWER filings — dedup should keep 800
+    {
+      soc_code: "15-1252", soc_title: "Software Developers",
+      employer_name: "Cognizant", fiscal_year: 2025, n_filings: 200,
+      median_salary: 98000, mean_salary: 99000, p25_salary: 88000,
+      p75_salary: 110000, prevailing_wage_median: 88000,
+      wage_premium_pct: 11, wage_vs_pw_pct: 9, oews_national_median: 95000,
+      visa_type: "H-1B", job_title_top: "Sr. Developer", worksite_state_top: "CA",
+    },
+  ];
+
+  it("returns only latest fiscal year rows — stale year roles are excluded", () => {
+    const roles = getEmployerRoles(ROLES_RANKINGS, "Cognizant", "H-1B");
+    const years = roles.map((r) => r.fiscal_year);
+    expect(Math.max(...years)).toBe(2025);
+    expect(years.every((y) => y === 2025)).toBe(true);
+    // The FY2024 "Sales Engineers" row must not appear
+    expect(roles.find((r) => r.soc_title === "Sales Engineers")).toBeUndefined();
+  });
+
+  it("deduplicates by soc_code — keeps highest n_filings row", () => {
+    const roles = getEmployerRoles(ROLES_RANKINGS, "Cognizant", "H-1B");
+    const swDevRows = roles.filter((r) => r.soc_code === "15-1252");
+    expect(swDevRows).toHaveLength(1);
+    expect(swDevRows[0].n_filings).toBe(800); // 800 > 200
+  });
+
+  it("filters by visaType when provided", () => {
+    const h1b = getEmployerRoles(ROLES_RANKINGS, "Cognizant", "H-1B");
+    const perm = getEmployerRoles(ROLES_RANKINGS, "Cognizant", "PERM");
+    expect(h1b.every((r) => r.visa_type === "H-1B")).toBe(true);
+    expect(perm.every((r) => r.visa_type === "PERM")).toBe(true);
+  });
+
+  it("returns all visa types when visaType is omitted", () => {
+    const all = getEmployerRoles(ROLES_RANKINGS, "Cognizant");
+    // Both H-1B and PERM rows for soc 15-1252 collapse to one (highest filings) + QA row
+    expect(all.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("sorts results by n_filings descending", () => {
+    const roles = getEmployerRoles(ROLES_RANKINGS, "Cognizant", "H-1B");
+    for (let i = 0; i < roles.length - 1; i++) {
+      expect(roles[i].n_filings).toBeGreaterThanOrEqual(roles[i + 1].n_filings);
+    }
+  });
+
+  it("returns empty array for unknown employer", () => {
+    expect(getEmployerRoles(ROLES_RANKINGS, "Unknown Corp", "H-1B")).toHaveLength(0);
   });
 });
 

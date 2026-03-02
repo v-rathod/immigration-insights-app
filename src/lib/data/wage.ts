@@ -425,21 +425,40 @@ export function getTopWageGrowers(
     .slice(0, topN);
 }
 
-/** All SOC roles for a given employer from the rankings table (FY latest).
- * Only includes roles with sufficient filings and a plausible salary value.
+/** All SOC roles for a given employer from the rankings table.
+ * Filters to the latest fiscal year only, optionally by visa type,
+ * deduplicates by soc_code (keeps highest-filing row), and requires
+ * sufficient filings and a plausible salary value.
  */
 export function getEmployerRoles(
   rankings: EmployerWageRanking[],
-  employerName: string
+  employerName: string,
+  visaType?: string
 ): EmployerWageRanking[] {
-  return rankings
-    .filter(
-      (r) =>
-        r.employer_name === employerName &&
-        r.n_filings >= WAGE_SANITY.MIN_FILINGS_RANKING &&
-        r.median_salary >= WAGE_SANITY.SALARY_FLOOR
-    )
-    .sort((a, b) => b.n_filings - a.n_filings);
+  const employerRows = rankings.filter(
+    (r) =>
+      r.employer_name === employerName &&
+      (visaType == null || r.visa_type === visaType) &&
+      r.n_filings >= WAGE_SANITY.MIN_FILINGS_RANKING &&
+      r.median_salary >= WAGE_SANITY.SALARY_FLOOR
+  );
+  if (employerRows.length === 0) return [];
+
+  // Restrict to the latest fiscal year so stale/lower-count years don't
+  // surface irrelevant roles (e.g. a role with 8 filings 3 years ago ranking
+  // above current top roles with hundreds of filings).
+  const latestYear = Math.max(...employerRows.map((r) => r.fiscal_year));
+  const latestRows = employerRows.filter((r) => r.fiscal_year === latestYear);
+
+  // Deduplicate by soc_code — keep the row with the highest n_filings in
+  // case the same SOC code appears more than once in the latest year.
+  const seen = new Map<string, EmployerWageRanking>();
+  for (const row of latestRows) {
+    const existing = seen.get(row.soc_code);
+    if (!existing || row.n_filings > existing.n_filings) seen.set(row.soc_code, row);
+  }
+
+  return Array.from(seen.values()).sort((a, b) => b.n_filings - a.n_filings);
 }
 
 /**
