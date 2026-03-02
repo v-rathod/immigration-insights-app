@@ -27,7 +27,6 @@ import {
   Building2,
   Briefcase,
   Minus,
-  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatCompact } from "@/lib/utils/format";
@@ -51,6 +50,10 @@ interface EmployerProfileProps {
   employerName: string;
   trend: EmployerSalaryTrend[];
   rankings: EmployerWageRanking[];
+  /** Employer-centric role profiles (top 500 employers × top-25 roles by filings).
+   * When provided, these replace `rankings` for the "Top Roles" section.
+   * Falls back to `rankings` if omitted (backwards-compatible). */
+  roleProfiles?: EmployerWageRanking[];
   visaType?: "H-1B" | "PERM";
 }
 
@@ -120,6 +123,7 @@ export function EmployerProfile({
   employerName,
   trend,
   rankings,
+  roleProfiles,
   visaType = "H-1B",
 }: EmployerProfileProps) {
   const series = useMemo(() => {
@@ -135,9 +139,17 @@ export function EmployerProfile({
     [trend, employerName, visaType]
   );
 
+  // Prefer employer_role_profiles (employer-centric, ranked by filing count) over
+  // employer_wage_rankings (SOC-centric, ranked by salary) — the latter only includes
+  // an employer where it ranks in the top-25 by salary for a SOC, which causes large
+  // IT consulting firms to show just 1-2 roles despite having thousands of filings.
   const roles = useMemo(
-    () => getEmployerRoles(rankings, employerName, visaType).slice(0, 8),
-    [rankings, employerName, visaType]
+    () => getEmployerRoles(
+      roleProfiles && roleProfiles.length > 0 ? roleProfiles : rankings,
+      employerName,
+      visaType
+    ).slice(0, 8),
+    [roleProfiles, rankings, employerName, visaType]
   );
 
   if (!stats || series.length === 0) {
@@ -288,7 +300,7 @@ export function EmployerProfile({
         </GlassCard>
 
         {/* ── Top roles table ─────────────────────────────────────────── */}
-        {roles.length >= 3 && (
+        {roles.length > 0 && (
           <GlassCard variant="elevated" padding="lg">
             <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
               Top Roles at {employerName}
@@ -351,22 +363,6 @@ export function EmployerProfile({
             <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
               To compare a role across all employers, switch to Job Role search above
             </p>
-          </GlassCard>
-        )}
-
-        {/* ── Limited data notice ─────────────────────────────────────── */}
-        {roles.length > 0 && roles.length < 3 && (
-          <GlassCard variant="elevated" padding="md" className="border border-amber-500/[0.2] bg-amber-500/[0.03]">
-            <div className="flex gap-3">
-              <Info className="h-4 w-4 text-amber-400/80 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-amber-400 mb-1">Limited Role Data Available</p>
-                <p className="text-[11px] text-[var(--muted-foreground)]">
-                  Data for {employerName}'s roles is limited ({roles.length} {roles.length === 1 ? "role" : "roles"} in FY{roles[0]?.fiscal_year}).
-                  Use the Job Role search above to explore this employer's market competitiveness across specific occupations.
-                </p>
-              </div>
-            </div>
           </GlassCard>
         )}
       </div>

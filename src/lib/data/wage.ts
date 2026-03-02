@@ -119,6 +119,16 @@ export async function loadEmployerWageRankings(): Promise<EmployerWageRanking[]>
   return Array.isArray(raw) ? raw : [];
 }
 
+/**
+ * Employer-centric role breakdown: top 500 H-1B employers × their top 25 roles
+ * by filing count. Use this for EmployerProfile's "Top Roles" section instead of
+ * loadEmployerWageRankings() which is SOC-centric (top employers per SOC by salary).
+ */
+export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]> {
+  const raw = await loadDashboardData('wage', 'employer_role_profiles') as EmployerWageRanking[];
+  return Array.isArray(raw) ? raw : [];
+}
+
 export async function loadEmployerSalaryTrend(): Promise<EmployerSalaryTrend[]> {
   const raw = await loadDashboardData('wage', 'employer_salary_trend') as EmployerSalaryTrend[];
   return Array.isArray(raw) ? raw : [];

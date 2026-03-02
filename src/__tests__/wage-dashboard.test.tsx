@@ -144,6 +144,13 @@ vi.mock("../lib/data/wage", async () => {
       { employer_name: "Google LLC", fiscal_year: 2020, visa_type: "H-1B", mean_salary: 160000, median_salary: 155000 },
       { employer_name: "Google LLC", fiscal_year: 2025, visa_type: "H-1B", mean_salary: 190000, median_salary: 185000 },
     ]),
+    loadEmployerSearchIndex: vi.fn().mockResolvedValue([
+      { employer_name: "Google LLC", total_filings: 50000, n_soc_codes: 5, latest_median_salary: 185000, latest_year: 2025 },
+      { employer_name: "Microsoft Corp", total_filings: 40000, n_soc_codes: 4, latest_median_salary: 175000, latest_year: 2025 },
+    ]),
+    loadEmployerRoleProfiles: vi.fn().mockResolvedValue([
+      { soc_code: "15-1252", soc_title: "Software Developers", employer_name: "Google LLC", fiscal_year: 2025, n_filings: 1200, mean_salary: 190000, median_salary: 185000, p25_salary: 165000, p75_salary: 210000, prevailing_wage_median: 140000, wage_premium_pct: 32.1, wage_vs_pw_pct: 28.5, oews_national_median: 126000, visa_type: "H-1B", job_title_top: "Software Engineer", worksite_state_top: "CA" },
+    ]),
   };
 });
 

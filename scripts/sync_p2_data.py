@@ -395,6 +395,69 @@ def sync_wage_dashboard():
             size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
             print(f"    ✓ employer_salary_trend: {n:,} rows (top 300) → {size_kb:.0f} KB")
 
+        # ── 4c. employer_role_profiles — employer-centric role breakdown ─────
+        # Top 500 employers × their top 25 H-1B roles by filing count.
+        # This is the CORRECT data source for EmployerProfile's "Top Roles" section.
+        # employer_wage_rankings.json is SOC-centric (top employers per SOC) which
+        # causes large firms like Cognizant to appear for only 2 of their 33 roles.
+        erp = esp[
+            (esp["visa_type"] == "H-1B")
+            & esp["employer_name"].notna()
+        ].copy()
+
+        # Identify top 500 employers by cumulative H-1B filings from yearly table
+        if not esy.empty:
+            top_500_by_filings = (
+                esy[esy["visa_type"] == "H-1B"]
+                .groupby("employer_name")["total_filings"]
+                .sum()
+                .nlargest(500)
+                .index.tolist()
+            )
+        else:
+            # Fallback: use all employers present in profiles
+            top_500_by_filings = erp["employer_name"].unique().tolist()
+
+        erp = erp[erp["employer_name"].isin(top_500_by_filings)].copy()
+
+        # For each employer use their own latest available year (not a global benchmark)
+        latest_year_per_emp = (
+            erp.groupby("employer_name")["fiscal_year"].max().reset_index()
+            .rename(columns={"fiscal_year": "latest_year"})
+        )
+        erp = erp.merge(latest_year_per_emp, on="employer_name")
+        erp = erp[erp["fiscal_year"] == erp["latest_year"]].drop(columns=["latest_year"])
+
+        # Drop roles with implausibly few filings or missing salary
+        erp = erp[(erp["n_filings"] >= 2) & erp["median_salary"].notna()]
+
+        # Rank by filing count per employer, keep top 25
+        erp = erp.sort_values(["employer_name", "n_filings"], ascending=[True, False])
+        erp_top = erp.groupby("employer_name").head(25).reset_index(drop=True)
+
+        # Enrich and round
+        erp_top["soc_title"] = erp_top["soc_code"].map(soc_map).fillna("")
+        erp_cols = [
+            "employer_name", "soc_code", "soc_title", "fiscal_year", "n_filings",
+            "mean_salary", "median_salary", "p25_salary", "p75_salary",
+            "prevailing_wage_median", "wage_premium_pct", "wage_vs_pw_pct",
+            "oews_national_median", "visa_type", "job_title_top", "worksite_state_top",
+        ]
+        erp_cols = [c for c in erp_cols if c in erp_top.columns]
+        erp_out = erp_top[erp_cols].copy()
+        for col in ["mean_salary", "median_salary", "p25_salary", "p75_salary",
+                    "prevailing_wage_median", "oews_national_median"]:
+            if col in erp_out.columns:
+                erp_out[col] = erp_out[col].fillna(0).round(0).astype(int)
+        for col in ["wage_premium_pct", "wage_vs_pw_pct"]:
+            if col in erp_out.columns:
+                erp_out[col] = erp_out[col].fillna(0).round(1)
+
+        n_employers = erp_out["employer_name"].nunique()
+        n = df_to_json(erp_out, out_dir / "employer_role_profiles.json")
+        size_kb = (out_dir / "employer_role_profiles.json").stat().st_size / 1024
+        print(f"    ✓ employer_role_profiles: {n:,} rows ({n_employers} employers × top-25 roles) → {size_kb:.0f} KB")
+
 
 def write_manifest():
     """Write a build manifest with timestamps and sizes."""

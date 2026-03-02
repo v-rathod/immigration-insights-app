@@ -54,6 +54,7 @@ import {
   loadEmployerWageRankings,
   loadEmployerSalaryTrend,
   loadEmployerSearchIndex,
+  loadEmployerRoleProfiles,
   getSocList,
   getEmployerList,
   getNationalBenchmark,
@@ -217,6 +218,7 @@ export function WageIntelligenceHub() {
   const [rankings, setRankings] = useState<EmployerWageRanking[]>([]);
   const [trends, setTrends] = useState<EmployerSalaryTrend[]>([]);
   const [searchIndex, setSearchIndex] = useState<EmployerSearchIndex[]>([]);
+  const [roleProfiles, setRoleProfiles] = useState<EmployerWageRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -240,13 +242,14 @@ export function WageIntelligenceHub() {
   useEffect(() => {
     async function load() {
       try {
-        const [nat, sts, mkt, rnk, trd, searchIdx] = await Promise.all([
+        const [nat, sts, mkt, rnk, trd, searchIdx, rolePro] = await Promise.all([
           loadSalaryBenchmarksNational(),
           loadSalaryBenchmarksStates(),
           loadSocSalaryMarket(),
           loadEmployerWageRankings(),
           loadEmployerSalaryTrend(),
           loadEmployerSearchIndex(),
+          loadEmployerRoleProfiles(),
         ]);
         setNational(nat);
         setStates(sts);
@@ -254,6 +257,7 @@ export function WageIntelligenceHub() {
         setRankings(rnk);
         setTrends(trd);
         setSearchIndex(searchIdx);
+        setRoleProfiles(rolePro);
 
         // Build job category Fuse index — search by title only (no code knowledge required)
         const socList = getSocList(mkt);
@@ -635,6 +639,7 @@ export function WageIntelligenceHub() {
             employerName={selectedEmployer}
             trend={trends}
             rankings={rankings}
+            roleProfiles={roleProfiles}
             visaType="H-1B"
           />
         </div>
