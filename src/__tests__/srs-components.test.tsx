@@ -372,27 +372,6 @@ describe("EmployerDetailCard", () => {
     render(<EmployerDetailCard employer={makeSrs({ n_36m: 150 })} />);
     expect(screen.getByText("150")).toBeDefined();
   });
-
-  it("shows WARN alert when risk flagged", () => {
-    const risk: EmployerRiskFeature = {
-      employer_key: "acme",
-      total_warn_events: 3,
-      total_employees_affected: 500,
-      states: "['CA', 'NY']",
-      employer_name_raw: "Acme",
-      employer_id: "abc123",
-      is_warn_flagged: true,
-    };
-
-    render(<EmployerDetailCard employer={makeSrs()} risk={risk} />);
-    expect(screen.getByText("WARN Act Alert")).toBeDefined();
-    expect(screen.getByText(/3 layoff events/)).toBeDefined();
-  });
-
-  it("hides WARN alert when no risk", () => {
-    render(<EmployerDetailCard employer={makeSrs()} />);
-    expect(screen.queryByText("WARN Act Alert")).toBeNull();
-  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

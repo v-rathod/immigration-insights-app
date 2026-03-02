@@ -19,14 +19,13 @@ import { cn } from "@/lib/utils";
 const SRS_HIGHLIGHTS = [
   { label: "Employers Scored", value: "70,206", accent: "text-emerald-400" },
   { label: "ML-Verified", value: "1,695", accent: "text-purple-400" },
-  { label: "WARN Flagged", value: "668", accent: "text-rose-400" },
 ];
 
 const SRS_FEATURES = [
   "Bayesian-adjusted approval rates",
   "Wage competitiveness vs. OEWS",
-  "WARN Act layoff risk signals",
   "ML-verified scores (XGBoost)",
+  "Sustainability & job diversity tracking",
 ];
 
 // ---------------------------------------------------------------------------

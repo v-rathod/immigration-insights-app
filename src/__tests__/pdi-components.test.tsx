@@ -271,14 +271,12 @@ describe("SrsTeaser", () => {
     render(<SrsTeaser />);
     expect(screen.getByText("70,206")).toBeInTheDocument();
     expect(screen.getByText("1,695")).toBeInTheDocument();
-    expect(screen.getByText("668")).toBeInTheDocument();
   });
 
   it("renders stat labels", () => {
     render(<SrsTeaser />);
     expect(screen.getByText("Employers Scored")).toBeInTheDocument();
     expect(screen.getByText("ML-Verified")).toBeInTheDocument();
-    expect(screen.getByText("WARN Flagged")).toBeInTheDocument();
   });
 
   it("renders feature checklist", () => {
@@ -290,7 +288,7 @@ describe("SrsTeaser", () => {
       screen.getByText("Wage competitiveness vs. OEWS")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("WARN Act layoff risk signals")
+      screen.getByText("Sustainability & job diversity tracking")
     ).toBeInTheDocument();
     expect(
       screen.getByText("ML-verified scores (XGBoost)")

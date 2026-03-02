@@ -286,11 +286,10 @@ export default function SrsDashboardPage() {
             <p className="pt-1">
               Employers with 10+ cases in 36 months also receive an
               <strong> ML-verified score</strong> from a machine learning classifier trained on
-              1.67M green card application outcomes. WARN Act layoff events are flagged as risk
-              signals.
+              1.67M green card application outcomes.
             </p>
             <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-2">
-              Source: Dept. of Labor employer filings (FY2015–2025) · Bureau of Labor Statistics · WARN Act notices
+              Source: Dept. of Labor employer filings (FY2015–2025) · Bureau of Labor Statistics
             </p>
           </div>
         </details>

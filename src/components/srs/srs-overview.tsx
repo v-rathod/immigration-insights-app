@@ -11,7 +11,6 @@ import {
   Building2,
   Award,
   BarChart3,
-  AlertTriangle,
   Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -63,13 +62,7 @@ export function SrsOverview({ stats, className }: SrsOverviewProps) {
             icon={BarChart3}
           />
         </StaggerItem>
-        <StaggerItem>
-          <StatCard
-            label="WARN Flagged"
-            value={stats.warnFlaggedCount}
-            icon={AlertTriangle}
-          />
-        </StaggerItem>
+        {/* WARN Flagged stat reserved for future release */}
       </StaggerContainer>
 
       {/* Tier Distribution */}

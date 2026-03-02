@@ -13,7 +13,6 @@ import {
   DollarSign,
   MapPin,
   Briefcase,
-  AlertTriangle,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -182,28 +181,7 @@ export function EmployerDetailCard({
         ))}
       </div>
 
-      {/* Risk Alert */}
-      {risk?.is_warn_flagged && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4"
-        >
-          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
-          <div>
-            <div className="text-sm font-medium text-amber-400">
-              WARN Act Alert
-            </div>
-            <div className="text-xs text-[var(--muted-foreground)] mt-1">
-              {risk.total_warn_events} layoff event
-              {risk.total_warn_events !== 1 ? "s" : ""} affecting{" "}
-              {formatNumber(risk.total_employees_affected)} employees in{" "}
-              {risk.states?.replace(/[\[\]']/g, "")}
-            </div>
-          </div>
-        </motion.div>
-      )}
+      {/* WARN Act alert reserved for future release */}
     </motion.div>
   );
 }
