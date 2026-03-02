@@ -255,7 +255,7 @@ export function WageIntelligenceHub() {
         setTrends(trd);
         setSearchIndex(searchIdx);
 
-        // Build SOC Fuse index — search by title only (no SOC code knowledge required)
+        // Build job category Fuse index — search by title only (no code knowledge required)
         const socList = getSocList(mkt);
         socFuseRef.current = new Fuse(socList, {
           keys: ["title"],
@@ -399,7 +399,7 @@ export function WageIntelligenceHub() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Derived values for selected SOC ──────────────────────────────────────
+  // ── Derived values for selected job category ─────────────────────────────
   const socCode = selectedSoc?.code ?? "";
   const latestMarket = useMemo(
     () => (socCode ? getLatestMarket(market, socCode, visaType) : null),
@@ -557,7 +557,7 @@ export function WageIntelligenceHub() {
                           </p>
                           {result.sub && (
                             <p className="text-xs font-mono text-[var(--muted-foreground)]">
-                              SOC {result.sub}
+                              Code: {result.sub}
                             </p>
                           )}
                         </div>
@@ -569,7 +569,7 @@ export function WageIntelligenceHub() {
               </AnimatePresence>
             </div>
 
-            {/* Visa type toggle — only show when SOC is selected */}
+            {/* Visa type toggle — only show when job category is selected */}
             {selectedSoc && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-[var(--muted-foreground)]">Visa type:</span>
@@ -589,7 +589,7 @@ export function WageIntelligenceHub() {
                 ))}
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
                   <Info className="h-3 w-3" />
-                  <span>SOC {socCode}</span>
+                  <span>Job category: {socCode}</span>
                 </div>
               </div>
             )}
@@ -626,7 +626,7 @@ export function WageIntelligenceHub() {
         </div>
       )}
 
-      {/* ── SOC SELECTED — Market detail view ───────────────────────────── */}
+      {/* ── JOB CATEGORY SELECTED — Market detail view ────────────────────── */}
       {selectedSoc && (
         <div className="space-y-8">
           <AnimatePresence>
@@ -830,7 +830,7 @@ export function WageIntelligenceHub() {
           {socGroupStats.length > 0 && (
             <GlassCard variant="default" padding="md">
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-3">
-                Market Context — {selectedSoc.title} vs Related Fields
+                Market Context — {selectedSoc.title} vs Related Job Categories
               </p>
               <div className="space-y-2">
                 {socGroupStats.slice(0, 6).map((g) => {

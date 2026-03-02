@@ -101,11 +101,11 @@ export function sortEmployerResults(
 }
 
 /**
- * Smart sort for wage search results (SOC/roles).
+ * Smart sort for wage search results (job categories/roles).
  *
  * Combines:
  * - Text relevance (Fuse score)
- * - Demand/volume (number of filings for the SOC)
+ * - Demand/volume (number of filings for the job category)
  * - Salary level (median salary as significance signal)
  *
  * Weights:

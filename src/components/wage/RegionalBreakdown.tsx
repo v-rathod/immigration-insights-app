@@ -1,7 +1,7 @@
 /**
  * RegionalBreakdown — Horizontal ranked bar chart for top-paying states.
  *
- * Shows the top-N states for the selected SOC code by median salary,
+ * Shows the top-N states for the selected job category code by median salary,
  * with a gradient bar from low (blue) to high (purple) tones.
  */
 "use client";

@@ -78,7 +78,7 @@ const DASHBOARDS = [
     title: "Occupation Demand",
     description:
       "High-demand job types, hiring trends, and wage premiums by occupation",
-    href: "/dashboard/soc-demand/",
+    href: "/dashboard/job-demand/",
     gradient: "from-indigo-500 to-blue-400",
   },
   {
