@@ -44,18 +44,18 @@ const TECH_STACK = [
 
 const DATA_SOURCES = [
   {
-    name: "DOL PERM & LCA",
-    description: "1.7M PERM + 9.6M LCA records — employer filings, wages, job classifications",
+    name: "Dept. of Labor (DOL)",
+    description: "1.7M employer sponsorship records + 9.6M work visa applications — job classifications, wages, and approval rates",
     icon: Database,
   },
   {
-    name: "DOS Visa Bulletin",
-    description: "14K+ historical cutoff dates — priority date movement tracking since 2011",
+    name: "State Dept. Visa Bulletin",
+    description: "14K+ historical priority date cutoffs — tracks how the employment-based visa queue moves each month since 2011",
     icon: BarChart3,
   },
   {
-    name: "BLS OEWS",
-    description: "446K wage records — salary benchmarks by occupation, area, and percentile",
+    name: "Bureau of Labor Statistics (BLS)",
+    description: "446K national wage records — salary benchmarks by job type, geographic area, and income percentile",
     icon: Globe2,
   },
   {
@@ -229,8 +229,8 @@ export default function AboutPage() {
             Data Sources
           </h2>
           <p className="mb-6 text-sm text-[var(--muted-foreground)]">
-            Compass processes data from five official U.S. government sources,
-            totaling 18.5M+ records across 46 artifact tables.
+            NorthStar processes data from five official U.S. government sources,
+            totaling 18.5M+ records across 46 data tables.
           </p>
         </FadeIn>
         <StaggerContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

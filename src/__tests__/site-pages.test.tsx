@@ -116,9 +116,9 @@ describe("Footer", () => {
 
   it("renders data source badges", () => {
     render(<Footer />);
-    expect(screen.getByText("DOL PERM/LCA")).toBeInTheDocument();
-    expect(screen.getByText("DOS Visa Bulletin")).toBeInTheDocument();
-    expect(screen.getByText("BLS OEWS")).toBeInTheDocument();
+    expect(screen.getByText("Dept. of Labor")).toBeInTheDocument();
+    expect(screen.getByText("State Dept. Visa Bulletin")).toBeInTheDocument();
+    expect(screen.getByText("Bureau of Labor Statistics")).toBeInTheDocument();
     expect(screen.getByText("USCIS")).toBeInTheDocument();
     expect(screen.getByText("DHS")).toBeInTheDocument();
   });
@@ -257,8 +257,8 @@ describe("AboutPage", () => {
   it("renders data sources section", () => {
     render(<AboutPage />);
     expect(screen.getByText("Data Sources")).toBeInTheDocument();
-    expect(screen.getByText("DOL PERM & LCA")).toBeInTheDocument();
-    expect(screen.getByText("DOS Visa Bulletin")).toBeInTheDocument();
+    expect(screen.getByText("Dept. of Labor (DOL)")).toBeInTheDocument();
+    expect(screen.getByText("State Dept. Visa Bulletin")).toBeInTheDocument();
   });
 
   it("renders the three-repo pipeline", () => {

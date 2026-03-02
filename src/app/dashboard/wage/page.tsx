@@ -31,9 +31,10 @@ export default function WageDashboardPage() {
             Wage Competitiveness
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] max-w-2xl">
-            Explore H-1B and PERM salary benchmarks across 1,800+ occupations.
-            Compare your offer against market percentiles, track 10-year wage
-            trends, and identify top-paying employers and states.
+            See what employers actually pay — by role, by company, and by
+            location. Compare your offer against market salary ranges, track
+            10-year pay trends, and find which companies offer the most
+            competitive compensation for sponsored workers.
           </p>
         </div>
 

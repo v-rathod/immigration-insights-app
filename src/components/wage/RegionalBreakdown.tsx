@@ -88,9 +88,9 @@ export function RegionalBreakdown({ states, className }: RegionalBreakdownProps)
               {formatCurrency(state.median)}
             </span>
 
-            {/* P75 hint */}
+            {/* 75th pct hint */}
             <span className="hidden sm:block w-20 text-right text-[10px] font-mono text-[var(--muted-foreground)] shrink-0">
-              P75 {formatCurrency(state.p75)}
+              75th% {formatCurrency(state.p75)}
             </span>
           </motion.div>
         );
@@ -98,7 +98,7 @@ export function RegionalBreakdown({ states, className }: RegionalBreakdownProps)
 
       <div className="pt-2 border-t border-white/[0.06]">
         <p className="text-[10px] text-[var(--muted-foreground)]">
-          Source: BLS OEWS · Annual salary · Sorted by median
+          Source: U.S. Bureau of Labor Statistics · Annual salary · Sorted by median
         </p>
       </div>
     </motion.div>

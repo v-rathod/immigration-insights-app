@@ -248,7 +248,7 @@ export default function SrsDashboardPage() {
               Search for an employer above to see their Sponsor Reliability Score
             </p>
             <p className="mt-1 text-xs text-[var(--muted-foreground)]/60">
-              70,000+ employers with PERM sponsorship history
+              70,000+ employers with green card sponsorship history
             </p>
           </div>
         </FadeIn>
@@ -264,7 +264,7 @@ export default function SrsDashboardPage() {
           <div className="px-4 pb-4 space-y-2">
             <p>
               The <strong>Sponsor Reliability Score (SRS)</strong> evaluates employers based on
-              their PERM labor certification history. Scores range from 0–100 with three
+              their green card sponsorship history. Scores range from 0–100 with three
               sub-components:
             </p>
             <ul className="list-disc pl-5 space-y-1">
@@ -273,22 +273,22 @@ export default function SrsDashboardPage() {
                 accounting for case volume and national baseline
               </li>
               <li>
-                <strong>Wage Competitiveness (30%)</strong> — Offered wage vs. OEWS
-                median for matched SOC codes
+                <strong>Wage Competitiveness (30%)</strong> — Offered wage vs. national median
+                wage for matched job categories
               </li>
               <li>
                 <strong>Sustainability (20%)</strong> — Consistency over time: months
-                active, SOC breadth, site diversity, trend stability
+                active, job category breadth, site diversity, trend stability
               </li>
             </ul>
             <p className="pt-1">
               Employers with 10+ cases in 36 months also receive an
-              <strong> ML-verified score</strong> from an XGBoost classifier trained on
-              1.67M PERM case outcomes. WARN Act layoff events are flagged as risk
+              <strong> ML-verified score</strong> from a machine learning classifier trained on
+              1.67M green card application outcomes. WARN Act layoff events are flagged as risk
               signals.
             </p>
             <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-2">
-              Source: DOL PERM (FY2015–2025) · BLS OEWS · DOL WARN Act
+              Source: Dept. of Labor employer filings (FY2015–2025) · Bureau of Labor Statistics · WARN Act notices
             </p>
           </div>
         </details>

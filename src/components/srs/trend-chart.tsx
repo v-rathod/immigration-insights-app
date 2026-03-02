@@ -75,7 +75,7 @@ export function SrsTrendChart({
           Filing Trends
         </h3>
         <p className="text-xs text-[var(--muted-foreground)] mt-1">
-          Monthly PERM filings, approvals, and denials for {employerName}
+          Monthly green card sponsorship filings, approvals, and denials for {employerName}
         </p>
       </div>
 

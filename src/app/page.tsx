@@ -70,14 +70,14 @@ const DASHBOARDS = [
   {
     title: "Wage Competitiveness",
     description:
-      "Compare your offered wage to OEWS percentiles and employer benchmarks",
+      "See how your salary offer compares to market pay ranges and what top employers actually pay by role and location",
     href: "/dashboard/wage/",
     gradient: "from-rose-500 to-pink-400",
   },
   {
-    title: "SOC Demand",
+    title: "Occupation Demand",
     description:
-      "High-demand occupations, hiring trends, and wage premiums by SOC code",
+      "High-demand job types, hiring trends, and wage premiums by occupation",
     href: "/dashboard/soc-demand/",
     gradient: "from-indigo-500 to-blue-400",
   },

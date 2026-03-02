@@ -728,7 +728,7 @@ export function WageIntelligenceHub() {
                     <div>
                       <h3 className="text-base font-semibold text-[var(--foreground)]">10-Year Wage Trend</h3>
                       <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                        {selectedSoc.title} · {visaType} · Market median with P25–P75 band
+                        {selectedSoc.title} · {visaType} · Median salary with middle 50% range
                       </p>
                     </div>
                     <MarketTrendChart data={marketTrendData} visaType={visaType} userWage={userProfile?.wageOffered} />
@@ -751,7 +751,7 @@ export function WageIntelligenceHub() {
                           {(["p10", "p25", "median", "p75", "p90"] as const).map((key) => (
                             <div key={key} className="text-center">
                               <p className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] font-semibold">
-                                {key === "median" ? "P50" : key.toUpperCase()}
+                                {{ p10: "10th", p25: "25th", median: "Median", p75: "75th", p90: "90th" }[key] ?? key}
                               </p>
                               <p className="text-sm font-mono font-bold text-[var(--foreground)] mt-1">
                                 {formatCurrency(nationalBenchmark[key])}
@@ -761,7 +761,7 @@ export function WageIntelligenceHub() {
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] pt-1">
                           <Info className="h-3 w-3" />
-                          Source: Bureau of Labor Statistics OEWS survey · Annual wages
+                          Source: U.S. Bureau of Labor Statistics · Annual wages
                         </div>
                       </>
                     ) : (
@@ -874,7 +874,7 @@ export function WageIntelligenceHub() {
                   })}
                 </div>
                 <p className="mt-4 text-[10px] text-[var(--muted-foreground)]">
-                  Source: employer_salary_profiles (P2 Meridian) · H-1B fiscal year 2025
+                  Source: H-1B employer filings · Fiscal year 2025
                 </p>
               </GlassCard>
             )}

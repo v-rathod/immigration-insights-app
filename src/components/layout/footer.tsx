@@ -45,9 +45,9 @@ const FOOTER_LINKS = [
 ] as const;
 
 const DATA_SOURCES = [
-  "DOL PERM/LCA",
-  "DOS Visa Bulletin",
-  "BLS OEWS",
+  "Dept. of Labor",
+  "State Dept. Visa Bulletin",
+  "Bureau of Labor Statistics",
   "USCIS",
   "DHS",
 ];

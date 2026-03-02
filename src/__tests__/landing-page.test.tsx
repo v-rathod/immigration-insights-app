@@ -131,7 +131,7 @@ describe("Landing Page", () => {
       "EB Category Comparison",
       "Geographic Heatmaps",
       "Wage Competitiveness",
-      "SOC Demand",
+      "Occupation Demand",
       "Processing Speed",
       "Backlog Visualization",
     ];

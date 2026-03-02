@@ -245,10 +245,10 @@ export function WageGrowthLeaderboard({
             Employer
           </span>
           <span className="flex-1 hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-            {mode === "cagr" ? "5yr CAGR relative" : mode === "yoy" ? "latest YoY relative" : "filing volume"}
+            {mode === "cagr" ? "5-year salary growth" : mode === "yoy" ? "latest year-over-year" : "filing volume"}
           </span>
           <span className="w-16 text-right text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] shrink-0">
-            {mode === "cagr" ? "CAGR" : mode === "yoy" ? "YoY" : "Filings"}
+            {mode === "cagr" ? "Growth" : mode === "yoy" ? "YoY" : "Filings"}
           </span>
           <span className="w-3.5 shrink-0" />
         </div>
@@ -268,7 +268,7 @@ export function WageGrowthLeaderboard({
         </div>
 
         <p className="mt-4 text-[10px] text-[var(--muted-foreground)]">
-          Source: LCA/PERM filings via DoL · Min. {visaType === "H-1B" ? "5 years data, 30+ annual filings" : "5 years data, 30+ annual filings"} · 🔥 = 3+ consecutive years of raises
+          Source: U.S. Department of Labor employer filings · Based on employers with 5+ years of data and 30+ annual applications · 🔥 = 3+ consecutive years of raises
         </p>
       </GlassCard>
     </FadeIn>

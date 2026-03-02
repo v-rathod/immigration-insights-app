@@ -54,12 +54,12 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-purple-400/60" />
-          <span className="text-xs text-[var(--muted-foreground)]">P75</span>
+          <span className="text-xs text-[var(--muted-foreground)]">75th percentile</span>
           <span className="ml-auto text-xs font-mono text-white">{formatCurrency(d.p75)}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-blue-400/40" />
-          <span className="text-xs text-[var(--muted-foreground)]">P25</span>
+          <span className="text-xs text-[var(--muted-foreground)]">25th percentile</span>
           <span className="ml-auto text-xs font-mono text-white">{formatCurrency(d.p25)}</span>
         </div>
       </div>
@@ -209,7 +209,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
       <div className="mt-2 flex items-center gap-4 px-2">
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-px w-6 border-t-2 border-purple-400/50 border-dashed" />
-          <span className="text-xs text-[var(--muted-foreground)]">P25–P75 range</span>
+          <span className="text-xs text-[var(--muted-foreground)]">Middle 50% range</span>
         </div>
         {userWage && userWage > 0 && (
           <div className="flex items-center gap-1.5">

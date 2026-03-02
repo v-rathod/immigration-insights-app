@@ -186,7 +186,7 @@ export function EmployerProfile({
             </StaggerItem>
             <StaggerItem>
               <GrowthBadge
-                label="5yr CAGR"
+                label="5-Yr Growth"
                 value={
                   stats.cagr_5yr != null ? `${stats.cagr_5yr > 0 ? "+" : ""}${stats.cagr_5yr}%` : "—"
                 }
@@ -232,7 +232,7 @@ export function EmployerProfile({
             </div>
             {stats.cagr_5yr != null && (
               <div className={cn("text-xs font-mono font-bold px-3 py-1.5 rounded-full border", cagrColor, "border-current bg-current/10")}>
-                {stats.cagr_5yr > 0 ? "+" : ""}{stats.cagr_5yr}% CAGR
+                {stats.cagr_5yr > 0 ? "+" : ""}{stats.cagr_5yr}% / yr avg
               </div>
             )}
           </div>

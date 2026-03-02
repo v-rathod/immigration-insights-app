@@ -465,8 +465,7 @@ export default function VisaBulletinPage() {
               </li>
             </ul>
             <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-1">
-              Source: DOS Visa Bulletin (FY2015&ndash;FY2025) &middot; P2 Meridian
-              forecast model
+              Source: State Dept. Visa Bulletin (FY2015&ndash;FY2025) · NorthStar forecast model
             </p>
           </div>
         </details>
