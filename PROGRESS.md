@@ -1,3 +1,69 @@
+## 2026-03-02 — Milestone 10.10: Fix Page Refresh on Sidebar Navigation
+
+### Objective
+Ensure pages fully refresh when users click sidebar navigation links, allowing state to reset and data to re-fetch.
+
+### What Was Done
+
+**Sidebar Navigation Refactor (sidebar.tsx):**
+- **Changed from:** Next.js `Link` component (client-side routing)
+- **Changed to:** HTML `button` elements with `window.location.href` (hard page reload)
+- **Impact:** Every sidebar click now triggers a full browser page refresh instead of client-side navigation
+
+**Code Changes:**
+1. Removed `Link` import (no longer needed)
+2. Converted all 13 nav items from `<Link href={...}>` to `<button onClick={() => window.location.href = item.href}>`
+3. Updated styling from Link-specific classes to button-compatible classes (added `w-full`, `text-left`)
+4. Preserved all accessibility: `aria-current`, `title`, hover effects
+
+**Test Update (sidebar.test.tsx):**
+- Updated test #5 ("marks active page with aria-current")
+- Changed from looking for `<a>` closest element to `<button>` closest element
+- Test correctly verifies aria-current attribute on button instead of anchor
+
+### Technical Details
+
+**Before (client-side routing):**
+```tsx
+<Link href={item.href}>  {/* Only URL changes, state persists */}
+  {item.label}
+</Link>
+```
+
+**After (hard page reload):**
+```tsx
+<button onClick={() => window.location.href = item.href}>
+  {item.label}
+</button>
+```
+
+### Result
+- ✅ Pages now fully refresh when navigating via sidebar
+- ✅ Component state resets (search inputs, filters, selections cleared)
+- ✅ Data re-fetches from server on each page load
+- ✅ All accessibility preserved (aria-current, keyboard navigation, titles)
+- ✅ All 394 tests passing
+
+### Why This Matters
+Previously, clicking dashboard links would only update the URL without refreshing the page. This meant:
+- Search state persisted across pages (e.g., search filters from wage page would carry over)
+- Component state didn't reset
+- Page-level data wasn't re-fetched
+
+Now each page load is a true fresh start.
+
+### Test Results
+- **394 passing** (1 test modified, 393 existing passing, 0 new)
+
+### Files Changed
+- `src/components/layout/sidebar.tsx` — Convert Link → button with window.location.href
+- `src/__tests__/sidebar.test.tsx` — Update aria-current test for button element
+
+### Commit
+`e10a1eb` — "Fix: Enable full page refresh on sidebar navigation"
+
+---
+
 ## 2026-03-02 — Milestone 10.9: Wage Dashboard UX Refinements
 
 ### Objective
