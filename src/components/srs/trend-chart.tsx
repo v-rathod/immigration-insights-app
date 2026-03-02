@@ -138,7 +138,7 @@ export function SrsTrendChart({
               stroke="#3b82f6"
               strokeWidth={2}
               fill="url(#fillFilings)"
-              dot={false}
+              dot={{ fill: "#3b82f6", r: 3 }}
               activeDot={{ r: 5, fill: "#3b82f6", stroke: "rgba(59,130,246,0.4)", strokeWidth: 8 }}
             />
             <Area
@@ -148,7 +148,7 @@ export function SrsTrendChart({
               stroke="#10b981"
               strokeWidth={2}
               fill="url(#fillApprovals)"
-              dot={false}
+              dot={{ fill: "#10b981", r: 3 }}
               activeDot={{ r: 5, fill: "#10b981", stroke: "rgba(16,185,129,0.4)", strokeWidth: 8 }}
             />
             <Area
@@ -158,7 +158,7 @@ export function SrsTrendChart({
               stroke="#f43f5e"
               strokeWidth={1.5}
               fill="url(#fillDenials)"
-              dot={false}
+              dot={{ fill: "#f43f5e", r: 2.5 }}
               activeDot={{ r: 4, strokeWidth: 0 }}
             />
           </AreaChart>

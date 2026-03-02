@@ -153,7 +153,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
             strokeDasharray="4 2"
             strokeOpacity={0.5}
             fill="url(#wageGradientBand)"
-            dot={false}
+            dot={{ fill: "#8b5cf6", r: 2.5 }}
             activeDot={false}
             name="P75"
             legendType="none"
@@ -168,7 +168,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
             strokeOpacity={0.4}
             fill="white"
             fillOpacity={0}
-            dot={false}
+            dot={{ fill: "#3b82f6", r: 2.5 }}
             activeDot={false}
             name="P25"
             legendType="none"
@@ -180,7 +180,7 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
             stroke="#3b82f6"
             strokeWidth={2.5}
             fill="url(#wageGradientMedian)"
-            dot={false}
+            dot={{ fill: "#3b82f6", r: 3 }}
             activeDot={{ r: 5, fill: "#3b82f6", stroke: "rgba(59,130,246,0.4)", strokeWidth: 8 }}
             name="Market Median"
           />

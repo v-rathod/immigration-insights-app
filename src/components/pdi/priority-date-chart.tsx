@@ -485,7 +485,7 @@ export function PriorityDateChart({
               name="DFF (Actual)"
               stroke="#3b82f6"
               strokeWidth={2.5}
-              dot={false}
+              dot={{ fill: "#3b82f6", r: 3 }}
               connectNulls
               activeDot={{
                 r: 5,
@@ -501,7 +501,7 @@ export function PriorityDateChart({
               name="FAD (Actual)"
               stroke="#f59e0b"
               strokeWidth={2.5}
-              dot={false}
+              dot={{ fill: "#f59e0b", r: 3 }}
               connectNulls
               activeDot={{
                 r: 5,
@@ -520,7 +520,7 @@ export function PriorityDateChart({
               stroke="#60a5fa"
               strokeWidth={2}
               strokeDasharray="6 3"
-              dot={false}
+              dot={{ fill: "#60a5fa", r: 3 }}
               connectNulls
               activeDot={{
                 r: 5,
@@ -538,7 +538,7 @@ export function PriorityDateChart({
               stroke="#fbbf24"
               strokeWidth={2}
               strokeDasharray="6 3"
-              dot={false}
+              dot={{ fill: "#fbbf24", r: 3 }}
               connectNulls
               activeDot={{
                 r: 5,
