@@ -307,14 +307,13 @@ def sync_wage_dashboard():
             & (esp["n_filings"] >= 5)
             & (esp["median_salary"].notna())
             & (esp["employer_name"].notna())
-            & (esp["visa_type"] == "H-1B")
         ].copy()
 
-        # Top 25 employers per SOC by median_salary
+        # Top 50 employers per SOC by median_salary (includes both H-1B and PERM)
         esp_benchmark = esp_benchmark.sort_values(
             ["soc_code", "median_salary"], ascending=[True, False]
         )
-        esp_top = esp_benchmark.groupby("soc_code").head(25).reset_index(drop=True)
+        esp_top = esp_benchmark.groupby("soc_code").head(50).reset_index(drop=True)
 
         # Keep essential columns only
         cols = [
