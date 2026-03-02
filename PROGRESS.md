@@ -1,3 +1,60 @@
+## 2026-03-02 — Milestone 10.4: Top Roles Data Source Fix (employer_role_profiles.json)
+
+### Objective
+Fix the root cause of the "Top Roles" section showing only 2 stale/misleading roles for major employers like Cognizant (which has 33 unique H-1B roles and 11K+ annual filings). Prior workaround was smart-visibility (hide section if <3 roles) — this milestone fixes the underlying data pipeline.
+
+### Root Cause
+`employer_wage_rankings.json` is a **SOC-centric** table (top-25 employers per SOC by median salary). Large IT consulting firms only appear in the 1-2 SOC codes where they happen to rank in the top-25 nationally by salary — typically niche roles, not their dominant ones.
+
+Cognizant example:
+- `employer_wage_rankings.json`: 2 roles (Sales Engineers 8 filings, Web Designers 6 filings)
+- `employer_salary_profiles.parquet` (P2 source): 33 roles, 11,091 filings — top role Computer Systems Engineers with 7,959 filings (71% of all H-1B filings)
+
+### What Was Done
+
+**1. New P2 sync output — `employer_role_profiles.json` (`sync_p2_data.py`):**
+- Added section `4c` in `sync_wage_dashboard()` that creates an **employer-centric** role breakdown
+- Top 500 H-1B employers (by cumulative filings from `employer_salary_yearly.parquet`) × top-25 roles per employer (ranked by `n_filings` in latest available year)
+- Lower filing threshold: `n_filings >= 2` (vs `>= 5` for SOC-centric rankings)
+- Each employer uses their own `max(fiscal_year)` — not a global benchmark year
+- Output: 2,516 rows, 485 employers, 1,014 KB
+
+**2. `wage.ts` — new loader:**
+- Added `loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]>` loading from `employer_role_profiles.json`
+- Reuses the same `EmployerWageRanking` type (identical schema, different semantics)
+
+**3. `EmployerProfile.tsx` — prefer new data source:**
+- Added `roleProfiles?: EmployerWageRanking[]` prop
+- Roles derived from: `roleProfiles.length > 0 ? roleProfiles : rankings` (fallback to rankings for backward compat)
+- Reverted `{roles.length >= 3}` guard back to `{roles.length > 0}`
+- Removed temporary "Limited Role Data Available" amber info box
+- Removed unused `Info` import
+
+**4. `WageIntelligenceHub.tsx` — loads and passes new data:**
+- `loadEmployerRoleProfiles()` added to the `Promise.all` initial load
+- `roleProfiles` state wired through to `<EmployerProfile roleProfiles={roleProfiles} />`
+
+**5. Tests — mocks updated:**
+- Added `loadEmployerSearchIndex` mock (prevents unexpected Promise.all rejections)
+- Added `loadEmployerRoleProfiles` mock returning a sample role row
+- Confirmed `roleProfiles = []` fallback is `length > 0` check (not `??`) to avoid empty-array bypass
+
+### Test Results
+- **395 passing** (unchanged count — mock updates only, no new tests needed)
+
+### Files Changed
+- `scripts/sync_p2_data.py` — new `4c. employer_role_profiles` section
+- `public/data/dashboards/wage/employer_role_profiles.json` — new JSON (485 employers × top-25 roles)
+- `src/lib/data/wage.ts` — `loadEmployerRoleProfiles()` loader
+- `src/components/wage/EmployerProfile.tsx` — `roleProfiles` prop, fallback logic, removed info box
+- `src/components/wage/WageIntelligenceHub.tsx` — loads `loadEmployerRoleProfiles`, passes to EmployerProfile
+- `src/__tests__/wage-dashboard.test.tsx` — add `loadEmployerSearchIndex` + `loadEmployerRoleProfiles` mocks
+
+### Commit
+`5ecf659`
+
+---
+
 ## 2026-03-01 — Milestone 10.3: Top Roles Bug Fixes + Context Preservation
 
 ### Objective
@@ -388,7 +445,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.3 — 2026-03-01)
+## Quick Reference (Current State as of Milestone 10.4 — 2026-03-02)
 
 | Metric | Value |
 |--------|-------|
@@ -399,7 +456,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
 | Tests | **395 passing** across 20 test files |
-| P2 data synced | ✅ 34 JSON files via `sync_p2_data.py` |
+| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (added `employer_role_profiles.json`) |
 | Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
@@ -535,6 +592,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.1 | 2026-03-01 | Smart Visibility + UX Polish | UI jargon removal; employer search z-index; smart sorting; full 402K+ employer search index; smart visibility (CTA placeholders) |
 | 10.2 | 2026-03-01 | Chart Axes + UI Defect Fixes | All charts: visible axes, `#9ca3af` ticks, `rgba(128,128,160,0.15)` grid, `bottom: 24` margin, activeDot r:5 glow; hover text contrast `group-hover:text-white` → foreground var; tab active state readable both themes; dropdown z-[100]; salary overview always visible; trend label with tooltip; 391 tests; commit 0be551e |
 | 10.3 | 2026-03-01 | Top Roles Bug Fixes + Context Preservation | `getEmployerRoles`: latest year only, visaType filter, soc_code dedup — eliminates stale/irrelevant roles; removed `onSelectSoc` from EmployerProfile (role rows static, employer context preserved); 6 new tests; 395 tests; commit 72302de |
+| 10.4 | 2026-03-02 | Top Roles Data Source Fix | Root-cause fix: new `employer_role_profiles.json` (employer-centric, top-25 roles by filings, 485 employers); was using SOC-centric `employer_wage_rankings` causing Cognizant to show 2 of 33 roles; sync script + new loader + EmployerProfile updated; 395 tests; commit 5ecf659 |
 
 ---
 
