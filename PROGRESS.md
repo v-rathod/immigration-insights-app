@@ -1,3 +1,39 @@
+## 2026-03-01 — Milestone 10.3: Top Roles Bug Fixes + Context Preservation
+
+### Objective
+Fix two bugs in the Wage Intelligence Hub's EmployerProfile component: (1) irrelevant/stale roles surfacing as "top roles" (e.g. "Sales Engineers" with 8 FY2024 filings appearing above current-year roles with 800+ filings at Cognizant), and (2) clicking a role row navigating away from the employer context to a global job category view.
+
+### What Was Done
+
+**Bug 1 — `getEmployerRoles` returning wrong roles (`wage.ts`):**
+- Added `visaType` parameter (optional, default no filter) — prevents H-1B and PERM rows from being mixed
+- Filter to `max(fiscal_year)` before ranking — eliminates stale low-count rows from older years that previously dominated due to higher raw filing counts
+- Deduplicate by `soc_code` (keep highest `n_filings` per SOC in the latest year) — prevents the same role appearing twice from different row variants
+
+**Bug 2 — Role click replacing employer context (`EmployerProfile.tsx` + `WageIntelligenceHub.tsx`):**
+- Removed `onSelectSoc` prop from `EmployerProfile` entirely — role rows are now static (non-clickable)
+- Updated footer hint: "Click any role to see..." → "To compare a role across all employers, switch to Job Role search above"
+- Removed `onSelectSoc` from `WageIntelligenceHub` `<EmployerProfile>` call
+- Updated subtitle: "Click any role below to explore market benchmarks" → "Top roles ranked by latest fiscal year"
+- Removed unused `ChevronRight` import from `EmployerProfile.tsx`
+
+**Tests added (`wage-dashboard.test.tsx`):**
+- 6 new `getEmployerRoles` tests: latest-year filtering, soc_code deduplication, visaType filtering, sort order, unknown employer edge case
+
+### Test Results
+- **395 passing** (6 new tests, up from 391)
+
+### Files Changed
+- `src/lib/data/wage.ts` — `getEmployerRoles` rewrite
+- `src/components/wage/EmployerProfile.tsx` — remove onSelectSoc, pass visaType, static rows
+- `src/components/wage/WageIntelligenceHub.tsx` — remove onSelectSoc prop + subtitle update
+- `src/__tests__/wage-dashboard.test.tsx` — 6 new getEmployerRoles tests
+
+### Commit
+`72302de`
+
+---
+
 ## 2026-03-01 — Milestone 10.2: Chart Axes + UI Defect Fixes
 
 ### Objective
@@ -352,7 +388,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.2 — 2026-03-01)
+## Quick Reference (Current State as of Milestone 10.3 — 2026-03-01)
 
 | Metric | Value |
 |--------|-------|
@@ -362,7 +398,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **391 passing** across 20 test files |
+| Tests | **395 passing** across 20 test files |
 | P2 data synced | ✅ 34 JSON files via `sync_p2_data.py` |
 | Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
@@ -498,6 +534,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10 | 2026-03-01 | P2 Employer Name Normalization | dim_employer as canonical source for all employer data; data integrity tests; 391 tests |
 | 10.1 | 2026-03-01 | Smart Visibility + UX Polish | UI jargon removal; employer search z-index; smart sorting; full 402K+ employer search index; smart visibility (CTA placeholders) |
 | 10.2 | 2026-03-01 | Chart Axes + UI Defect Fixes | All charts: visible axes, `#9ca3af` ticks, `rgba(128,128,160,0.15)` grid, `bottom: 24` margin, activeDot r:5 glow; hover text contrast `group-hover:text-white` → foreground var; tab active state readable both themes; dropdown z-[100]; salary overview always visible; trend label with tooltip; 391 tests; commit 0be551e |
+| 10.3 | 2026-03-01 | Top Roles Bug Fixes + Context Preservation | `getEmployerRoles`: latest year only, visaType filter, soc_code dedup — eliminates stale/irrelevant roles; removed `onSelectSoc` from EmployerProfile (role rows static, employer context preserved); 6 new tests; 395 tests; commit 72302de |
 
 ---
 
