@@ -71,6 +71,7 @@ export class RagSearchEngine {
   /**
    * Search across Q&A pairs and chunks.
    * Q&A matches are prioritized (they have pre-computed answers).
+   * Within each type, results are sorted by relevance score.
    */
   search(query: string, options?: { topic?: RagTopic; limit?: number }): SearchResult[] {
     if (!this.chunkIndex || !this.qaIndex) return [];
@@ -106,9 +107,12 @@ export class RagSearchEngine {
       });
     }
 
-    // Sort by score (highest first), QA pairs first at same score
+    // Sort: QA results first (always higher priority), then by score within each type
     results.sort((a, b) => {
-      if (a.type !== b.type) return a.type === "qa" ? -1 : 1;
+      // QA results always come first
+      if (a.type === "qa" && b.type === "chunk") return -1;
+      if (a.type === "chunk" && b.type === "qa") return 1;
+      // Within same type, sort by relevance score (higher = better)
       return b.score - a.score;
     });
 

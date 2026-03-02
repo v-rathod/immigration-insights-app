@@ -35,6 +35,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sortEmployerResults, sortSocResults } from "@/lib/search/smart-sort";
 import { formatCurrency, formatNumber, formatCompact } from "@/lib/utils/format";
 import { secureGet } from "@/lib/security";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -289,23 +290,83 @@ export function WageIntelligenceHub() {
         setShowDropdown(false);
         return;
       }
-      if (searchMode === "employer" && employerFuseRef.current) {
-        const results = employerFuseRef.current
-          .search(q)
-          .slice(0, 8)
-          .map((r) => ({ label: r.item as string }));
+      
+      if (searchMode === "employer" && employerFuseRef.current && rankings.length > 0) {
+        const fuseResults = employerFuseRef.current.search(q).slice(0, 20); // Get more for better re-scoring
+        
+        // Look up full ranking data for smart sorting
+        const enriched = fuseResults.map((r) => {
+          const employerName = r.item;
+          const rankingData = rankings.find(
+            (rk) => rk.employer_name.toUpperCase() === employerName.toUpperCase()
+          );
+          return {
+            item: {
+              employer_id: rankingData?.employer_id ?? "",
+              employer_name: employerName,
+              scope: "overall",
+              soc_code: null,
+              n_12m: 0,
+              n_24m: 0,
+              n_36m: rankingData?.n_filings ?? 0,
+              approval_rate_24m: 0,
+              denial_rate_24m: 0,
+              wage_ratio_med: 0,
+              wage_ratio_p75: 0,
+              outcome_subscore: 0,
+              wage_subscore: 0,
+              sustainability_subscore: 0,
+              srs: rankingData?.avg_salary
+                ? (rankingData.avg_salary / 200000) * 100
+                : null,
+              srs_tier: "Unrated" as const,
+              months_active_24m: 0,
+              soc_breadth_24m: 0,
+              site_breadth_24m: 0,
+              approval_rate_trend_12v12: null,
+              outcome_volatility: null,
+              last_refreshed_at: "",
+            } as any,
+            refIndex: r.refIndex,
+            score: r.score,
+          };
+        });
+        
+        // Smart sort by relevance + volume + salary
+        const sorted = sortEmployerResults(enriched, q).slice(0, 8);
+        const results = sorted.map((emp) => ({ label: emp.employer_name }));
         setSearchResults(results);
         setShowDropdown(results.length > 0);
-      } else if (searchMode === "role" && socFuseRef.current) {
-        const results = socFuseRef.current
-          .search(q)
-          .slice(0, 8)
-          .map((r) => ({ label: r.item.title, sub: r.item.code }));
+      } else if (searchMode === "role" && socFuseRef.current && market.length > 0) {
+        const fuseResults = socFuseRef.current.search(q).slice(0, 20); // Get more for better re-scoring
+        
+        // Enrich with market data for smart sorting
+        const enriched = fuseResults.map((r) => {
+          const soc = r.item;
+          const marketData = market.find((m) => m.code === soc.code);
+          return {
+            item: {
+              code: soc.code,
+              title: soc.title,
+              n_filings: marketData?.n_filings ?? 0,
+              median_salary: marketData?.median_salary ?? 0,
+            },
+            refIndex: r.refIndex,
+            score: r.score,
+          };
+        });
+        
+        // Smart sort by relevance + demand + salary
+        const sorted = sortSocResults(enriched, q).slice(0, 8);
+        const results = sorted.map((soc) => ({
+          label: soc.title,
+          sub: soc.code,
+        }));
         setSearchResults(results);
         setShowDropdown(results.length > 0);
       }
     },
-    [searchMode]
+    [searchMode, rankings, market]
   );
 
   // Re-run search when mode switches

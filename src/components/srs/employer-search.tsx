@@ -10,6 +10,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import Fuse from "fuse.js";
 import { Search, X, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sortEmployerResults } from "@/lib/search/smart-sort";
 import type { SponsorReliabilityScore } from "@/types/p2-artifacts";
 import { srsTierColor, srsTierBg } from "@/lib/utils/format";
 
@@ -68,11 +69,14 @@ export function EmployerSearch({
       }
 
       debounceRef.current = setTimeout(() => {
-        const hits = fuse
-          .search(value, { limit: MAX_RESULTS })
-          .map((r) => r.item);
-        setResults(hits);
-        setIsOpen(hits.length > 0);
+        // Search with Fuse (keep scores for sorting)
+        const hits = fuse.search(value, { limit: MAX_RESULTS * 2 }); // Get more, then trim after sort
+        
+        // Apply smart sorting that combines text relevance + volume + quality
+        const sorted = sortEmployerResults(hits, value).slice(0, MAX_RESULTS);
+        
+        setResults(sorted);
+        setIsOpen(sorted.length > 0);
       }, DEBOUNCE_MS);
     },
     [fuse]
