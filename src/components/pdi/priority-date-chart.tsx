@@ -262,7 +262,18 @@ export function PriorityDateChart({
       }
     }
 
-    return [...map.values()].sort((a, b) => a.month.localeCompare(b.month));
+    // Filter to last 10 years + next 2 years
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 10;
+    const endYear = currentYear + 2;
+    const filtered = [...map.values()]
+      .filter((d) => {
+        const year = parseInt(d.month.slice(0, 4), 10);
+        return year >= startYear && year <= endYear;
+      })
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    return filtered;
   }, [dffTrends, fadTrends, dffForecast, fadForecast, dffExtrapolation, fadExtrapolation]);
 
   const pdTs = useMemo(
