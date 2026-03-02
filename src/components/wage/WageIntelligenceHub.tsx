@@ -536,7 +536,7 @@ export function WageIntelligenceHub() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-white/[0.12] bg-black/90 backdrop-blur-xl shadow-2xl overflow-hidden"
+                    className="absolute top-full left-0 right-0 mt-2 z-[9999] rounded-xl border border-white/[0.12] bg-[var(--card)] backdrop-blur-xl shadow-2xl overflow-y-auto max-h-96"
                     role="listbox"
                   >
                     {searchResults.map((result, i) => (
