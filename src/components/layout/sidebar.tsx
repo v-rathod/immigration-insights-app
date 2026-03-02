@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Compass,
@@ -127,11 +126,14 @@ export function Sidebar() {
             <ul className="space-y-0.5">
               {items.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={sanitizeUrl(item.href)}
+                  <button
+                    onClick={() => {
+                      // Hard refresh using window.location for full page reload
+                      window.location.href = item.href;
+                    }}
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
-                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200",
+                      "group w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 text-left",
                       isActive(item.href)
                         ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] font-medium"
                         : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
@@ -151,7 +153,7 @@ export function Sidebar() {
                     {!collapsed && (
                       <span className="truncate">{item.label}</span>
                     )}
-                  </Link>
+                  </button>
                 </li>
               ))}
             </ul>

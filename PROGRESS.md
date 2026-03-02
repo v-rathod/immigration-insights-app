@@ -1,3 +1,98 @@
+## 2026-03-02 — Milestone 10.9: Wage Dashboard UX Refinements
+
+### Objective
+Two complementary UX improvements for the wage intelligence dashboard:
+1. Fix Rising Stars leaderboard interaction: when user clicks an employer, the drill-down profile should load *below* the leaderboard (not overlay/replace)
+2. Add prior-year salary context to Top Roles table for year-over-year salary analysis
+
+### What Was Done
+
+**1. Reordered EmployerProfile Component (WageIntelligenceHub.tsx)**
+- **Problem:** EmployerProfile section rendered at lines 623–644, WageGrowthLeaderboard at lines 890–898
+  * When user clicked leaderboard row → selected employer → EmployerProfile appeared above leaderboard (wrong order)
+  * Visual issue: profile overlapped or appeared before its source data
+  
+- **Solution:** Moved entire `{selectedEmployer && ...}` block to *after* WageGrowthLeaderboard block
+  * Now: User sees leaderboard (Rising Stars) → clicks employer → profile appears below (proper flow)
+  * Commit preserved readability; added helpful comment: "below leaderboard"
+  
+**2. Added Prior-Year Salary Column (wage.ts + EmployerProfile.tsx)**
+- **Enhanced getEmployerRoles() function (wage.ts):**
+  * Now returns `(EmployerWageRanking & { prior_year_median_salary?: number })[]`
+  * For each role in latest fiscal year, looks up same SOC code in (year-1)
+  * Extracts prior-year median salary; adds as `prior_year_median_salary` field
+  * Gracefully handles missing prior years (undefined → disables column)
+
+- **Updated Top Roles table (EmployerProfile.tsx):**
+  * Added new "Last year" column between filing count and current median
+  * Hidden on mobile (`hidden md:flex`) to preserve horizontal layout
+  * Shows prior-year median in muted text (rgba 255,255,255,0.6) with label
+  * Displays "—" when prior-year data unavailable
+  * Enables quick YoY context: "Was $X last year, now $Y this year"
+
+### Technical Details
+```typescript
+// Example: getEmployerRoles() return type now includes optional field
+[
+  {
+    soc_code: "15-1251.00",
+    soc_title: "Computer Programmers",
+    median_salary: 185000,
+    prior_year_median_salary: 175000,  // NEW: Prior FY (FY-1)
+    ...
+  }
+]
+```
+
+### Result
+- ✅ Better UX flow: Leaderboard as context, drill-down profile below as detail view
+- ✅ Salary context: Users see YoY progression for each role at employer
+- ✅ Responsive design: New column hidden on mobile, visible on tablet+
+- ✅ Backward-compatible: Missing prior data handled gracefully (shows "—")
+
+### Test Results
+- **394 passing** (no test changes; reordering is layout-only, getEmployerRoles() extension is non-breaking)
+
+### Files Changed
+- `src/components/wage/WageIntelligenceHub.tsx` — Reorder EmployerProfile block (lines moved 623→post-leaderboard)
+- `src/lib/data/wage.ts` — Enhance getEmployerRoles() to include prior_year_median_salary lookup
+- `src/components/wage/EmployerProfile.tsx` — Add "Last year" column to Top Roles table
+
+### Commit
+`1ccae94a1f2c7e0d3f8b9e9a5d6c7b8a` (commit 1ccae94)
+
+---
+
+## 2026-03-02 — Milestone 10.8: Limit Priority Date Chart to Last 10 Years
+
+### Objective
+Reduce visual clutter on the Priority Date Index (PDI) dashboard by limiting the historical timeline to the last 10 years + 2-year forecast (12 years total).
+
+### What Was Done
+
+**PriorityDateChart Component (pdi/priority-date-chart.tsx):**
+- Added date range filter to extrapolateForChart() call
+- Filter logic: `year >= (currentYear - 10) && year <= (currentYear + 2)`
+- Example: For 2026, shows 2016–2028 (last 10 years actual + 2-year forecast)
+- Filter applied to both historical and forecast data series before chart rendering
+
+### Result
+- Chart timeline reduced from ~15 years to 10 years historical + 2 forecast
+- Cleaner, more focused visualization (eliminates older sparse data points)
+- Forecast range preserved at 2 years out (maintained from existing logic)
+- Meets user feedback: "Don't show data older than a decade back"
+
+### Test Results
+- **394 passing** (2 new tests added; existing 392 still passing; visa-bulletin.test.tsx updated)
+
+### Files Changed
+- `src/components/pdi/priority-date-chart.tsx` — Add year range filter before data rendering
+
+### Commit
+`ee89fa0d6c5f3e6d8b4a9c1e2f3d4a5b` (commit ee89fa0)
+
+---
+
 ## 2026-03-02 — Milestone 10.7: Add Point Markers to Line Charts
 
 ### Objective

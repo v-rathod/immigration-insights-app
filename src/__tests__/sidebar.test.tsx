@@ -86,7 +86,7 @@ describe("Sidebar", () => {
     // Home should be active since we mocked pathname as "/"
     const homeLinks = await screen.findAllByText("Home");
     const activeLink = homeLinks.find(
-      (el) => el.closest("a")?.getAttribute("aria-current") === "page"
+      (el) => el.closest("button")?.getAttribute("aria-current") === "page"
     );
     expect(activeLink).toBeDefined();
   });
