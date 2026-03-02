@@ -12,6 +12,7 @@ import { ChevronDown, TrendingUp, TrendingDown, Award, AlertTriangle, ArrowUpDow
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";
 import type { EmployerWageRanking, EmployerSalaryTrend } from "@/lib/data/wage";
+import { WAGE_SANITY } from "@/lib/data/wage";
 import {
   ResponsiveContainer,
   LineChart,
@@ -44,6 +45,8 @@ function MiniSparkline({ employerName, trends, visaType }: { employerName: strin
     trends
       .filter((t) => t.employer_name === employerName && t.visa_type === visaType)
       .sort((a, b) => a.fiscal_year - b.fiscal_year)
+      // Exclude years with implausible salary values before computing trend
+      .filter((t) => t.median_salary >= WAGE_SANITY.SALARY_FLOOR && t.median_salary <= WAGE_SANITY.SALARY_CEILING)
       .map((t) => ({ year: t.fiscal_year, salary: t.median_salary })),
     [employerName, trends, visaType]
   );
@@ -91,7 +94,12 @@ export function EmployerWageTable({
 
   const rows = useMemo(() => {
     const filtered = rankings.filter(
-      (r) => r.soc_code === socCode && r.visa_type === visaType
+      (r) =>
+        r.soc_code === socCode &&
+        r.visa_type === visaType &&
+        // Only show employers with enough cases to have a reliable median
+        r.n_filings >= WAGE_SANITY.MIN_FILINGS_RANKING &&
+        r.median_salary >= WAGE_SANITY.SALARY_FLOOR
     );
     return [...filtered].sort((a, b) => {
       let diff = 0;
@@ -140,8 +148,8 @@ export function EmployerWageTable({
       <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 px-4 py-2 border-b border-white/[0.06]">
         <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Employer</span>
         <SortHeader label="Median" sortK="median" className="justify-end" />
-        <SortHeader label="Premium" sortK="premium" className="justify-end" />
-        <SortHeader label="PW Ratio" sortK="pw_ratio" className="justify-end" />
+        <SortHeader label="Above Market" sortK="premium" className="justify-end" />
+        <SortHeader label="vs. Min. Req." sortK="pw_ratio" className="justify-end" />
         <div className="w-6" />
       </div>
 
@@ -170,7 +178,7 @@ export function EmployerWageTable({
                   </span>
                   {isPremium && (
                     <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 shrink-0">
-                      +Premium
+                      +High Pay
                     </span>
                   )}
                   {isBelowPW && (
@@ -235,12 +243,12 @@ export function EmployerWageTable({
                         {/* Details grid */}
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { label: "P25", value: formatCurrency(row.p25_salary) },
-                            { label: "P75", value: formatCurrency(row.p75_salary) },
+                            { label: "25th pct", value: formatCurrency(row.p25_salary) },
+                            { label: "75th pct", value: formatCurrency(row.p75_salary) },
                             { label: "Filings", value: formatNumber(row.n_filings) },
                             { label: "State", value: row.worksite_state_top ?? "—" },
-                            { label: "Prev. Wage", value: formatCurrency(row.prevailing_wage_median) },
-                            { label: "OEWS Market", value: formatCurrency(row.oews_national_median) },
+                            { label: "Required Min.", value: formatCurrency(row.prevailing_wage_median) },
+                            { label: "Market Median", value: formatCurrency(row.oews_national_median) },
                           ].map(({ label, value }) => (
                             <div key={label} className="rounded-lg bg-white/[0.02] px-2.5 py-1.5">
                               <p className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">{label}</p>
@@ -265,10 +273,10 @@ export function EmployerWageTable({
         </span>
         <div className="flex items-center gap-3 text-[10px] text-[var(--muted-foreground)]">
           <span className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Premium &gt;15% above market
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />+High Pay = &gt;15% above market
           </span>
           <span className="flex items-center gap-1">
-            <AlertTriangle className="h-2.5 w-2.5 text-amber-400" />Close to prevailing wage
+            <AlertTriangle className="h-2.5 w-2.5 text-amber-400" />Near minimum required wage
           </span>
         </div>
       </div>

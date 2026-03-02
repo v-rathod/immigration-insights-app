@@ -59,6 +59,35 @@ export interface EmployerSalaryTrend {
 }
 
 // ---------------------------------------------------------------------------
+// Data quality thresholds
+// ---------------------------------------------------------------------------
+
+/**
+ * Sanity bounds applied throughout the wage analytics layer.
+ * Guards against DOL data artifacts (zero/low salaries from rounding errors),
+ * low-volume anomalies that inflate growth rates, and impossible year-over-year
+ * swings that distort rankings.
+ */
+export const WAGE_SANITY = {
+  /** Annual salary floor — below this is almost certainly a DOL data artifact */
+  SALARY_FLOOR: 30_000,
+  /** Annual salary ceiling — beyond this is excluded from growth calculations */
+  SALARY_CEILING: 600_000,
+  /** Max plausible 5-year annualized growth rate (25%/yr ≈ salary triples in 5 yrs) */
+  CAGR_MAX_PCT: 25,
+  /** Min plausible 5-year annualized change (−10%/yr) */
+  CAGR_MIN_PCT: -10,
+  /** Max single-year salary jump before treating as a data artifact */
+  YOY_MAX_PCT: 40,
+  /** Min single-year salary change before treating as a data artifact */
+  YOY_MIN_PCT: -30,
+  /** Minimum employer filings for a ranking row to be shown */
+  MIN_FILINGS_RANKING: 5,
+  /** Minimum filings for a SOC market data point to count in trend charts */
+  MIN_FILINGS_MARKET: 10,
+} as const;
+
+// ---------------------------------------------------------------------------
 // Loaders
 // ---------------------------------------------------------------------------
 
@@ -99,14 +128,23 @@ export function getNationalBenchmark(
   return benchmarks.find((b) => b.soc_code === socCode && b.area_code === '99') ?? null;
 }
 
-/** Get market trend series for a SOC + visa type, sorted by year. */
+/** Get market trend series for a SOC + visa type, sorted by year.
+ * Filters out data points with implausible salary values or insufficient volume.
+ */
 export function getMarketTrend(
   market: SocSalaryMarket[],
   socCode: string,
   visaType: string = 'H-1B'
 ): SocSalaryMarket[] {
   return market
-    .filter((m) => m.soc_code === socCode && m.visa_type === visaType)
+    .filter(
+      (m) =>
+        m.soc_code === socCode &&
+        m.visa_type === visaType &&
+        m.market_median >= WAGE_SANITY.SALARY_FLOOR &&
+        // If filing count is available, require a minimum to avoid noise
+        (m.n_filings == null || m.n_filings >= WAGE_SANITY.MIN_FILINGS_MARKET)
+    )
     .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
@@ -122,7 +160,8 @@ export function getLatestMarket(
 
 /**
  * YoY growth % for market median of a SOC.
- * Returns null if not enough history.
+ * Returns null if there is insufficient history, a gap year between data points,
+ * or the computed rate falls outside the credible range.
  */
 export function getYoyGrowth(
   market: SocSalaryMarket[],
@@ -134,7 +173,12 @@ export function getYoyGrowth(
   const latest = series[series.length - 1];
   const prior = series[series.length - 2];
   if (!prior.market_median || prior.market_median === 0) return null;
-  return Math.round(((latest.market_median - prior.market_median) / prior.market_median) * 1000) / 10;
+  // Require consecutive calendar years — a gap inflates the apparent rate
+  if (latest.fiscal_year !== prior.fiscal_year + 1) return null;
+  const yoy = Math.round(((latest.market_median - prior.market_median) / prior.market_median) * 1000) / 10;
+  // Rates outside this range are almost always data corrections, not real change
+  if (yoy > WAGE_SANITY.YOY_MAX_PCT || yoy < WAGE_SANITY.YOY_MIN_PCT) return null;
+  return yoy;
 }
 
 /**
@@ -267,39 +311,64 @@ export function getEmployerTrend(
     .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
-/** Compute growth statistics for a single employer. */
+/** Compute growth statistics for a single employer.
+ * Applies data quality filtering before computing any metrics:
+ *  - Drops years with salaries outside the plausible range
+ *  - Requires consecutive calendar years for YoY (no gap-year inflation)
+ *  - Nullifies CAGR and YoY if outside credible bounds
+ *  - Only credits streak for consecutive calendar years
+ */
 export function computeEmployerGrowth(
   trend: EmployerSalaryTrend[],
   employerName: string,
   visaType = 'H-1B'
 ): EmployerGrowthStats | null {
-  const series = getEmployerTrend(trend, employerName, visaType);
+  const raw = getEmployerTrend(trend, employerName, visaType);
+  if (raw.length === 0) return null;
+
+  // Drop years with implausible salary values (DOL data artifacts)
+  const series = raw.filter(
+    (r) =>
+      r.median_salary >= WAGE_SANITY.SALARY_FLOOR &&
+      r.median_salary <= WAGE_SANITY.SALARY_CEILING
+  );
   if (series.length === 0) return null;
 
   const latest = series[series.length - 1];
   const latestMedian = latest.median_salary;
   const latestYear = latest.fiscal_year;
 
-  // YoY: compare last two years
+  // YoY: require consecutive calendar years — a year gap inflates the apparent rate
   let yoy_latest: number | null = null;
   if (series.length >= 2) {
     const prior = series[series.length - 2];
-    if (prior.median_salary > 0) {
-      yoy_latest = Math.round(((latestMedian - prior.median_salary) / prior.median_salary) * 1000) / 10;
+    if (prior.median_salary > 0 && latest.fiscal_year === prior.fiscal_year + 1) {
+      const raw_yoy = Math.round(((latestMedian - prior.median_salary) / prior.median_salary) * 1000) / 10;
+      // Clamp to credible range — outliers are usually data corrections or re-filings
+      if (raw_yoy >= WAGE_SANITY.YOY_MIN_PCT && raw_yoy <= WAGE_SANITY.YOY_MAX_PCT) {
+        yoy_latest = raw_yoy;
+      }
     }
   }
 
-  // 5-yr CAGR: find row y-5
+  // 5-yr CAGR: require the exact base year AND both endpoints within salary range
   let cagr_5yr: number | null = null;
   const base5 = series.find((r) => r.fiscal_year === latestYear - 5);
-  if (base5 && base5.median_salary > 0) {
-    cagr_5yr = Math.round(((Math.pow(latestMedian / base5.median_salary, 1 / 5) - 1) * 100) * 10) / 10;
+  if (base5 && base5.median_salary >= WAGE_SANITY.SALARY_FLOOR) {
+    const raw_cagr = Math.round(((Math.pow(latestMedian / base5.median_salary, 1 / 5) - 1) * 100) * 10) / 10;
+    // Rates outside this band almost always reflect a bad base-year value
+    if (raw_cagr >= WAGE_SANITY.CAGR_MIN_PCT && raw_cagr <= WAGE_SANITY.CAGR_MAX_PCT) {
+      cagr_5yr = raw_cagr;
+    }
   }
 
-  // Streak: consecutive years of salary increases ending at latest
+  // Streak: only count consecutive calendar years of median salary increases
   let streak = 0;
   for (let i = series.length - 1; i >= 1; i--) {
-    if (series[i].median_salary > series[i - 1].median_salary) streak++;
+    if (
+      series[i].fiscal_year === series[i - 1].fiscal_year + 1 &&
+      series[i].median_salary > series[i - 1].median_salary
+    ) streak++;
     else break;
   }
 
@@ -342,30 +411,40 @@ export function getTopWageGrowers(
     .slice(0, topN);
 }
 
-/** All SOC roles for a given employer from the rankings table (FY latest). */
+/** All SOC roles for a given employer from the rankings table (FY latest).
+ * Only includes roles with sufficient filings and a plausible salary value.
+ */
 export function getEmployerRoles(
   rankings: EmployerWageRanking[],
   employerName: string
 ): EmployerWageRanking[] {
   return rankings
-    .filter((r) => r.employer_name === employerName)
+    .filter(
+      (r) =>
+        r.employer_name === employerName &&
+        r.n_filings >= WAGE_SANITY.MIN_FILINGS_RANKING &&
+        r.median_salary >= WAGE_SANITY.SALARY_FLOOR
+    )
     .sort((a, b) => b.n_filings - a.n_filings);
 }
 
 /**
  * Compute YoY % annotations for each year in a series.
  * Returns the series with an added `yoy_pct` field.
+ * Only annotates consecutive calendar years and clamps to the credible range.
  */
 export function annotateWithYoy(
   series: EmployerSalaryTrend[]
 ): Array<EmployerSalaryTrend & { yoy_pct: number | null }> {
   return series.map((row, i) => {
     if (i === 0) return { ...row, yoy_pct: null };
-    const prior = series[i - 1].median_salary;
-    if (!prior) return { ...row, yoy_pct: null };
-    return {
-      ...row,
-      yoy_pct: Math.round(((row.median_salary - prior) / prior) * 1000) / 10,
-    };
+    const prior = series[i - 1];
+    if (!prior.median_salary || prior.median_salary === 0) return { ...row, yoy_pct: null };
+    // Skip gap years — the apparent change would be multi-year, not single-year
+    if (row.fiscal_year !== prior.fiscal_year + 1) return { ...row, yoy_pct: null };
+    const yoy = Math.round(((row.median_salary - prior.median_salary) / prior.median_salary) * 1000) / 10;
+    // Suppress implausible swings (usually data corrections or re-classifications)
+    if (yoy > WAGE_SANITY.YOY_MAX_PCT || yoy < WAGE_SANITY.YOY_MIN_PCT) return { ...row, yoy_pct: null };
+    return { ...row, yoy_pct: yoy };
   });
 }

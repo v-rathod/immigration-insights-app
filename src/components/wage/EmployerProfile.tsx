@@ -38,6 +38,7 @@ import {
   getEmployerTrend,
   getEmployerRoles,
   annotateWithYoy,
+  WAGE_SANITY,
   type EmployerSalaryTrend,
   type EmployerWageRanking,
 } from "@/lib/data/wage";
@@ -123,10 +124,13 @@ export function EmployerProfile({
   visaType = "H-1B",
   onSelectSoc,
 }: EmployerProfileProps) {
-  const series = useMemo(
-    () => annotateWithYoy(getEmployerTrend(trend, employerName, visaType)),
-    [trend, employerName, visaType]
-  );
+  const series = useMemo(() => {
+    // Filter out years with implausible salary values before rendering the chart
+    const validated = getEmployerTrend(trend, employerName, visaType).filter(
+      (r) => r.median_salary >= WAGE_SANITY.SALARY_FLOOR && r.median_salary <= WAGE_SANITY.SALARY_CEILING
+    );
+    return annotateWithYoy(validated);
+  }, [trend, employerName, visaType]);
 
   const stats = useMemo(
     () => computeEmployerGrowth(trend, employerName, visaType),
@@ -222,12 +226,15 @@ export function EmployerProfile({
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">
-                H-1B Salary Trend
+                {visaType} Salary Trend
               </p>
               <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
                 Median annual salary · FY{series[0]?.fiscal_year}–FY{series[series.length - 1]?.fiscal_year}
                 {" · "}
                 {formatCompact(stats.total_filings)} filings (latest yr)
+                {(series.length < 5 || stats.total_filings < 30) && (
+                  <span className="ml-1 text-amber-400/80">· Limited data — treat with caution</span>
+                )}
               </p>
             </div>
             {stats.cagr_5yr != null && (

@@ -169,8 +169,15 @@ export function WageGrowthLeaderboard({
 
   // Sort based on mode
   const sorted = useMemo((): EmployerGrowthStats[] => {
-    if (mode === "cagr") return [...growers].sort((a, b) => (b.cagr_5yr ?? 0) - (a.cagr_5yr ?? 0));
-    if (mode === "yoy") return [...growers].sort((a, b) => (b.yoy_latest ?? 0) - (a.yoy_latest ?? 0));
+    // In growth modes, exclude entries without a valid metric so only meaningful data is ranked
+    if (mode === "cagr")
+      return [...growers]
+        .filter((s) => s.cagr_5yr != null)
+        .sort((a, b) => (b.cagr_5yr ?? 0) - (a.cagr_5yr ?? 0));
+    if (mode === "yoy")
+      return [...growers]
+        .filter((s) => s.yoy_latest != null)
+        .sort((a, b) => (b.yoy_latest ?? 0) - (a.yoy_latest ?? 0));
     return [...growers].sort((a, b) => b.total_filings - a.total_filings);
   }, [growers, mode]);
 
