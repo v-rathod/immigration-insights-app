@@ -379,30 +379,56 @@ export default function VisaBulletinPage() {
         </FadeIn>
       )}
 
-      {/* Prediction Cards */}
-      {hasData && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <PredictionCard
-            type="dff"
-            label="Date for Filing"
-            sublabel="File I-485 (Adjustment of Status)"
-            pdi={dffPdi}
-            velocity={velocityStats.dff}
-            hasPriorityDate={!!priorityDate}
-            isOptimistic={isOptimistic}
-            delay={0.15}
-          />
-          <PredictionCard
-            type="fad"
-            label="Final Action"
-            sublabel="Green Card Approval"
-            pdi={fadPdi}
-            velocity={velocityStats.fad}
-            hasPriorityDate={!!priorityDate}
-            isOptimistic={isOptimistic}
-            delay={0.2}
-          />
-        </div>
+      {/* Prediction Cards — only meaningful once a priority date is provided.
+           Smart-visibility rule: never render a widget whose only output is
+           "enter your data above". Show a CTA instead until input exists. */}
+      {hasData && !priorityDate && (
+        <FadeIn delay={0.15}>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-blue-500/[0.15] bg-blue-500/[0.02] py-8 text-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 mb-1">
+              <Target className="h-5 w-5 text-blue-400/70" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm font-medium text-[var(--foreground)]">
+              Enter your priority date to see predictions
+            </p>
+            <p className="text-xs text-[var(--muted-foreground)]/70 max-w-xs">
+              You&apos;ll see exactly when your Filing and Final Action dates are
+              expected to become current
+            </p>
+          </div>
+        </FadeIn>
+      )}
+      {hasData && !!priorityDate && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="prediction-cards"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            className="grid gap-3 sm:grid-cols-2"
+          >
+            <PredictionCard
+              type="dff"
+              label="Date for Filing"
+              sublabel="File I-485 (Adjustment of Status)"
+              pdi={dffPdi}
+              velocity={velocityStats.dff}
+              hasPriorityDate={!!priorityDate}
+              isOptimistic={isOptimistic}
+              delay={0}
+            />
+            <PredictionCard
+              type="fad"
+              label="Final Action"
+              sublabel="Green Card Approval"
+              pdi={fadPdi}
+              velocity={velocityStats.fad}
+              hasPriorityDate={!!priorityDate}
+              isOptimistic={isOptimistic}
+              delay={0.05}
+            />
+          </motion.div>
+        </AnimatePresence>
       )}
 
       {/* Velocity Stats Strip */}

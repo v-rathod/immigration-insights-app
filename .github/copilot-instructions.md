@@ -295,6 +295,43 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 
 ---
 
+## Smart Visibility Principle (MANDATORY)
+
+**Never render a widget whose only possible output is a "please provide input" message.** If a component requires user input to be meaningful, hide it entirely until that input exists and replace it with a single, clear call-to-action instead.
+
+### Rules
+
+| Widget type | Visibility rule |
+|-------------|----------------|
+| **Input-gated results** (predictions, personal forecasts, scores for a specific selection) | Hidden until required input is present. Show a tasteful CTA placeholder. |
+| **Always-useful context** (aggregate stats, historical charts, search boxes, overview bars) | Always visible — they provide value independently of user input. |
+| **State-dependent details** (score gauges, trend charts, detail cards for a selected entity) | Rendered only after the relevant entity is selected. Show a rich empty state below the search/select control. |
+
+### Implementation pattern
+
+```tsx
+{/* BAD — widget that shows "enter your data above" */}
+{hasData && <PredictionCard hasPriorityDate={!!pd} ... />}
+
+{/* GOOD — hide the widget; show CTA; reveal on input */}
+{hasData && !pd && (
+  <div className="... rounded-2xl border border-dashed border-blue-500/[0.15] py-8 text-center">
+    <Target className="h-5 w-5 text-blue-400/70" />
+    <p>Enter your priority date to see predictions</p>
+  </div>
+)}
+{hasData && !!pd && <PredictionCard ... />}
+```
+
+### Applied so far
+
+| Page | Widget | Trigger |
+|------|--------|---------|
+| `/dashboard/visa-bulletin` | DFF + FAD Prediction Cards | Hidden until priority date is entered; animated reveal on input |
+| `/dashboard/employer` | Score gauge, detail card, trend chart | Hidden until employer is selected; rich empty state with icon guides next action |
+
+---
+
 ## Important P2 Context (from Meridian)
 
 ### Data Scale

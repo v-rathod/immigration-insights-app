@@ -480,17 +480,18 @@ describe("VisaBulletinPage", () => {
     expect(dateInput).toBeInTheDocument();
   });
 
-  it("shows prompt to enter PD in prediction cards", async () => {
+  it("shows call-to-action when no PD entered (smart visibility)", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    // "Date for Filing" appears in both chart legend and prediction card
-    const dffMatches = await screen.findAllByText("Date for Filing");
-    expect(dffMatches.length).toBeGreaterThanOrEqual(1);
-    const fadMatches = screen.getAllByText("Final Action");
-    expect(fadMatches.length).toBeGreaterThanOrEqual(1);
-    // Both cards show prompt when no PD entered
-    const prompts = screen.getAllByText("Enter your priority date above");
-    expect(prompts.length).toBe(2);
+    await screen.findByText("Priority Date Movement");
+    // CTA placeholder shown instead of prediction cards
+    expect(
+      screen.getByText("Enter your priority date to see predictions")
+    ).toBeInTheDocument();
+    // Individual prediction card sublabels not rendered yet
+    expect(
+      screen.queryByText("File I-485 (Adjustment of Status)")
+    ).not.toBeInTheDocument();
   });
 
   it("shows unified Priority Date Movement chart", async () => {
@@ -553,19 +554,25 @@ describe("VisaBulletinPage", () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
     await screen.findByText("Your PD");
+    // CTA visible before PD entry
+    expect(
+      screen.getByText("Enter your priority date to see predictions")
+    ).toBeInTheDocument();
 
     const dateInput = document.querySelector(
       'input[type="date"]'
     ) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
 
-    // Predictions should appear (2015-06-01 is within EB2/IND/DFF range)
-    // The prompt "Enter your priority date above" should be gone
+    // CTA disappears; prediction cards now visible
     await waitFor(() => {
       expect(
-        screen.queryAllByText("Enter your priority date above")
-      ).toHaveLength(0);
+        screen.queryByText("Enter your priority date to see predictions")
+      ).not.toBeInTheDocument();
     });
+    expect(
+      screen.getByText("File I-485 (Adjustment of Status)")
+    ).toBeInTheDocument();
   });
 
   it("shows estimated prediction for PD beyond model window", async () => {
@@ -618,13 +625,16 @@ describe("VisaBulletinPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders sublabels for prediction cards", async () => {
+  it("renders sublabels for prediction cards after entering PD", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
+    await screen.findByText("Your PD");
+    const dateInput = document.querySelector(
+      'input[type="date"]'
+    ) as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
     await screen.findByText("File I-485 (Adjustment of Status)");
-    expect(
-      screen.getByText("Green Card Approval")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
   });
 
   it("renders optimistic/realistic toggle switch", async () => {
@@ -633,34 +643,54 @@ describe("VisaBulletinPage", () => {
     // Toggle switch should be present (starts in optimistic state)
     const toggle = await screen.findByRole("switch");
     expect(toggle).toHaveAttribute("aria-checked", "true");
-    // Mode badges show "Optimistic" on prediction cards
-    const badges = screen.getAllByText("Optimistic");
-    expect(badges.length).toBeGreaterThanOrEqual(1);
+    // Enter PD to reveal prediction cards with mode badges
+    const dateInput = document.querySelector(
+      'input[type="date"]'
+    ) as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
+    await waitFor(() => {
+      const badges = screen.getAllByText("Optimistic");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   it("toggling to Realistic shows realistic badges on cards", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    const toggle = await screen.findByRole("switch");
+    // Enter PD to reveal prediction cards first
+    await screen.findByText("Your PD");
+    const dateInput = document.querySelector(
+      'input[type="date"]'
+    ) as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
+    await screen.findByText("File I-485 (Adjustment of Status)");
+    // Now toggle to Realistic
+    const toggle = screen.getByRole("switch");
     fireEvent.click(toggle);
-    // Re-query after state update to get fresh DOM reference
     await waitFor(() => {
       expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
     });
-    const badges = screen.getAllByText("Realistic");
-    expect(badges.length).toBeGreaterThanOrEqual(1);
+    await waitFor(() => {
+      const badges = screen.getAllByText("Realistic");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
   });
 
-  it("both prediction cards always visible regardless of toggle", async () => {
+  it("both prediction cards visible when PD entered, persist through toggle", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    // Both cards visible in default (optimistic) state
+    // Enter PD to reveal prediction cards
+    await screen.findByText("Your PD");
+    const dateInput = document.querySelector(
+      'input[type="date"]'
+    ) as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
+    // Both cards visible after PD entry
     await screen.findByText("File I-485 (Adjustment of Status)");
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
-    // Toggle
+    // Toggle — cards persist
     const toggle = screen.getByRole("switch");
     fireEvent.click(toggle);
-    // Both cards still visible after toggling to realistic
     expect(
       screen.getByText("File I-485 (Adjustment of Status)")
     ).toBeInTheDocument();
