@@ -1,3 +1,45 @@
+## 2026-03-02 — Milestone 10.6: Fix Missing PERM Data in Wage Rankings
+
+### Objective
+Fix the wage dashboard showing zero employers when selecting PERM visa type. H-1B showed 25 employers for Software Developers, but PERM showed 0.
+
+### Root Cause
+The data sync script (`sync_p2_data.py`) was explicitly filtering to **only H-1B** visa type when creating `employer_wage_rankings.json`:
+```python
+& (esp["visa_type"] == "H-1B")  # <-- This excluded all PERM records
+```
+
+This was a hard-coded filter that limited the rankings to H-1B only, preventing PERM employers from appearing.
+
+### What Was Done
+
+**1. Updated sync script (`sync_p2_data.py`):**
+- **Removed** the `& (esp["visa_type"] == "H-1B")` filter on line 310
+- **Increased** top employers per SOC from 25 → 50 to accommodate both visa types
+- Result: Rankings now include both H-1B and PERM employers, sorted by salary
+
+**2. Regenerated data (`public/data/dashboards/wage/employer_wage_rankings.json`):**
+- Total visa types: 3,912 H-1B records + 760 PERM records
+- Software Developers example: 47 H-1B + 3 PERM (was 25 H-1B + 0 PERM before)
+- All SOCs now show available PERM employers when they exist
+
+### Impact
+- Users switching to PERM visa type no longer see "0 active employers"
+- Data is now representative of actual P2 employer distribution by visa type
+- Wage comparisons across H-1B and PERM are now possible
+
+### Test Results
+- **394 passing** (all tests, no changes needed)
+
+### Files Changed
+- `scripts/sync_p2_data.py` — Removed visa_type H-1B filter, increased limit from 25 → 50
+- `public/data/dashboards/wage/employer_wage_rankings.json` — Regenerated with 4,672 total rows (was 1,501)
+
+### Commit
+`f4c66fab941d9958cdedeccaea5e2edcb20ca66d`
+
+---
+
 ## 2026-03-02 — Milestone 10.5: Wage Dashboard UX + Data Quality (100-Employer Minimum Threshold)
 
 ### Objective
@@ -498,7 +540,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
 | Tests | **395 passing** across 20 test files |
-| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (includes `employer_role_profiles.json`) |
+| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (includes `employer_role_profiles.json` + both H-1B/PERM in `employer_wage_rankings.json`) |
 | Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
@@ -511,7 +553,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
-| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is the sole source of truth; occupation groups filtered by ≥100 employers |
+| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is sole source of truth; occupation groups ≥100 employers minimum; employer_wage_rankings includes both H-1B and PERM visa types |
 
 ### Quick Commands
 ```bash
@@ -636,6 +678,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.3 | 2026-03-01 | Top Roles Bug Fixes + Context Preservation | `getEmployerRoles`: latest year only, visaType filter, soc_code dedup — eliminates stale/irrelevant roles; removed `onSelectSoc` from EmployerProfile (role rows static, employer context preserved); 6 new tests; 395 tests; commit 72302de |
 | 10.4 | 2026-03-02 | Top Roles Data Source Fix | Root-cause fix: new `employer_role_profiles.json` (employer-centric, top-25 roles by filings, 485 employers); was using SOC-centric `employer_wage_rankings` causing Cognizant to show 2 of 33 roles; sync script + new loader + EmployerProfile updated; 395 tests; commit 5ecf659 |
 | 10.5 | 2026-03-02 | Wage Dashboard UX + Data Quality | Reorder page sections (Salary Overview pushed down after Rising Stars); apply 100-employer minimum threshold to occupation groups for statistical significance; updated test mock to generate 122+ synthetic employers; all 395 tests passing; commit daceb738 |
+| 10.6 | 2026-03-02 | Fix Missing PERM Data in Wage Rankings | Removed H-1B-only filter from sync script; now includes both H-1B (3,912) and PERM (760) employers in rankings; increased per-SOC limit from 25 → 50; Software Developers now shows 47 H-1B + 3 PERM (was 25 + 0); 394 tests passing; commit f4c66fab |
 
 ---
 
