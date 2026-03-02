@@ -619,32 +619,6 @@ export function WageIntelligenceHub() {
         </GlassCard>
       </FadeIn>
 
-      {/* ── EMPLOYER SELECTED — Profile view ────────────────────────────── */}
-      {selectedEmployer && (
-        <div className="space-y-6">
-          <FadeIn>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0">
-                <Building2 className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-[var(--foreground)]">{selectedEmployer}</h3>
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  H-1B salary history · Top roles ranked by latest fiscal year
-                </p>
-              </div>
-            </div>
-          </FadeIn>
-          <EmployerProfile
-            employerName={selectedEmployer}
-            trend={trends}
-            rankings={rankings}
-            roleProfiles={roleProfiles}
-            visaType="H-1B"
-          />
-        </div>
-      )}
-
       {/* ── JOB CATEGORY SELECTED — Market detail view ────────────────────── */}
       {selectedSoc && (
         <div className="space-y-8">
@@ -896,6 +870,32 @@ export function WageIntelligenceHub() {
             selectEmployer(name);
           }}
         />
+      )}
+
+      {/* ── EMPLOYER SELECTED — Profile view (below leaderboard) ───────── */}
+      {selectedEmployer && (
+        <div className="space-y-6">
+          <FadeIn>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0">
+                <Building2 className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[var(--foreground)]">{selectedEmployer}</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  H-1B salary history · Top roles ranked by latest fiscal year
+                </p>
+              </div>
+            </div>
+          </FadeIn>
+          <EmployerProfile
+            employerName={selectedEmployer}
+            trend={trends}
+            rankings={rankings}
+            roleProfiles={roleProfiles}
+            visaType="H-1B"
+          />
+        </div>
       )}
 
     </div>

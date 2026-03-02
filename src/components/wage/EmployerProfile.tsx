@@ -344,6 +344,14 @@ export function EmployerProfile({
                       {formatCompact(role.n_filings)} filings
                     </span>
 
+                    {/* Prior Year Median (hidden on mobile) */}
+                    <div className="hidden md:flex flex-col items-end">
+                      <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
+                      <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
+                        {(role as any).prior_year_median_salary ? formatCurrency((role as any).prior_year_median_salary) : "—"}
+                      </span>
+                    </div>
+
                     {/* Median */}
                     <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
                       {formatCurrency(role.median_salary)}

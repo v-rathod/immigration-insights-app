@@ -444,7 +444,7 @@ export function getEmployerRoles(
   rankings: EmployerWageRanking[],
   employerName: string,
   visaType?: string
-): EmployerWageRanking[] {
+): (EmployerWageRanking & { prior_year_median_salary?: number })[] {
   const employerRows = rankings.filter(
     (r) =>
       r.employer_name === employerName &&
@@ -468,7 +468,21 @@ export function getEmployerRoles(
     if (!existing || row.n_filings > existing.n_filings) seen.set(row.soc_code, row);
   }
 
-  return Array.from(seen.values()).sort((a, b) => b.n_filings - a.n_filings);
+  // Enhance with prior-year median salary for comparison
+  const priorYear = latestYear - 1;
+  const priorYearMap = new Map<string, number>();
+  employerRows
+    .filter((r) => r.fiscal_year === priorYear)
+    .forEach((r) => {
+      priorYearMap.set(r.soc_code, r.median_salary);
+    });
+
+  return Array.from(seen.values())
+    .map((role) => ({
+      ...role,
+      prior_year_median_salary: priorYearMap.get(role.soc_code),
+    }))
+    .sort((a, b) => b.n_filings - a.n_filings);
 }
 
 /**
