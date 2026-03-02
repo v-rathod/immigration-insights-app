@@ -1,3 +1,223 @@
+## 2026-03-01 — Milestone 10: P2 Employer Name Normalization + P3 Data Integrity Tests
+
+### Objective
+Fix employer name deduplication end-to-end: multiple raw variants of the same employer ("GOOGLE INC", "Google Inc.", "GOOGLE LLC") were appearing as separate autocomplete results in P3. Implement proper entity resolution in P2 so all downstream artifacts and P3 JSON use canonical Title Case names.
+
+### Problem Diagnosed
+- `dim_employer` was **already correct** (canonical "Google", "Google Public Sector") — built with SHA1 normalization
+- `employer_salary_profiles`, `employer_salary_yearly` stored raw LCA `employer_name` values without joining back to `dim_employer` canonical names
+- `employer_monthly_metrics` had a similar residual raw name issue
+- Root cause: builders aggregated `employer_name=("employer_name", "first")` from raw LCA data, losing the canonical name during groupby
+
+### What Was Done
+
+**P2 — `src/normalize/mappings.py` (fully implemented)**
+- `normalize_employer_name()`: lowercase → strip punctuation → remove legal suffixes (corporation/inc/llc/llp/ltd/limited/co/plc…) → collapse whitespace
+- `normalize_soc_code()`: handles "15-1252.00"→"15-1252", "151252"→"15-1252", "15125200"→"15-1252"
+- `normalize_country_code()`: maps 20+ variants → ISO-3166 alpha-3 ("CHINA-mainland born"→"CHN", "All Chargeability Areas…"→"ROW")
+- `normalize_visa_category()`: EB-2/eb2/EB2 NIW→"EB2", H1B/h1b/H-1B→"H-1B" etc.
+- `title_case_employer_name()`: lowercase normalized → Title Case display
+
+**P2 — `scripts/make_employer_salary_profiles.py` (canonical name replacement)**
+- `_canonical_employer_names()`: two-pass post-build replacement:
+  - Pass 1: `employer_id` → canonical name from `dim_employer` (for PERM-sourced employers)
+  - Pass 2: fallback `normalize_employer_name()` + title_case for LCA-only employers not in `dim_employer`
+- Applied to **both** `employer_salary_profiles` and `employer_salary_yearly` before writing parquet
+- Logs: `canonical_name_dedup_profiles` and `canonical_name_dedup_yearly` reduction counts
+
+**P2 — Artifacts rebuilt**
+- `employer_salary_profiles.parquet` — 2,524,521 rows, canonical employer names
+- `employer_salary_yearly.parquet` — 1,432,611 rows, canonical employer names
+- `employer_monthly_metrics.parquet` — rebuilt (already joined dim_employer, re-run for freshness)
+
+**P2 — New tests (72 tests)**
+- `tests/test_normalization_mappings.py` — 57 pure unit tests for all 4 normalize functions
+- `tests/test_employer_name_normalization.py` — 15 integration tests verifying canonical names in actual artifacts
+
+**P3 — Artifacts synced**
+- `employer_salary_trend.json` — now shows "Google" (single entry, not "GOOGLE INC" / "Google LLC" / etc.)
+- `employer_wage_rankings.json` — canonical names throughout
+- All 34 public/data JSON files refreshed
+
+**P3 — New tests (15 tests)**
+- `src/__tests__/employer-normalization.test.ts` — data integrity tests using `fs.readFileSync` to read public JSON directly
+  - Checks: no raw Google variants, top-50 employers not ALL-CAPS, canonical 'Google' present, cross-file contract
+
+### Results
+| Metric | Value |
+|--------|-----------|
+| Affected artifacts | 3 rebuilt (`employer_salary_profiles`, `employer_salary_yearly`, `employer_monthly_metrics`) |
+| P2 new tests | **72** (57 unit + 15 integration) |
+| P3 new tests | **15** (data integrity) |
+| P3 total tests | **381 passing** (20 test files) |
+| TypeScript | ✅ clean (0 errors) |
+| Example improvement | "Google" variants: 12 → 1 in `employer_salary_yearly` |
+
+### Files Created / Modified
+- (P2) `src/normalize/mappings.py` — complete implementation (was all TODOs)
+- (P2) `scripts/make_employer_salary_profiles.py` — canonical name replacement step
+- (P2) `tests/test_normalization_mappings.py` — new
+- (P2) `tests/test_employer_name_normalization.py` — new
+- (P3) `src/__tests__/employer-normalization.test.ts` — new
+- (P3) `public/data/dashboards/wage/*.json` — refreshed via sync
+- (P3) `public/data/dims/dim_employer.json` — refreshed
+
+### Next Steps
+- Dashboard 3: EB Category Comparison (`category_movement_metrics`)
+- Dashboard 4: Geographic Heatmaps (`worksite_geo_metrics`)
+- Dashboard 6: SOC Demand (`soc_demand_metrics`)
+- /setup user input form (Phase 2 remaining item)
+
+---
+
+## 2026-02-28 — Milestone 9.1: Wage Hub — Dual-Mode Search Redesign
+
+### Objective
+Fundamental UX redesign of the Wage Intelligence Hub: employer-first dual-mode search, rich employer profile with YoY trend chart, and a "Rising Stars" salary-growth leaderboard.
+
+### What Was Done
+
+**Employer-first search (`WageIntelligenceHub.tsx` — full rewrite)**
+- Default search mode: **By Employer** (not SOC — users don't know SOC codes)
+- Mode tab switcher `[By Employer] [By Role]` embedded inline in the search bar
+- Two Fuse.js indices: `employerFuseRef` (employer names from `employer_salary_trend`) + `socFuseRef` (SOC titles only — no codes required)
+- Employer mode placeholder: "Search by company name (e.g. Google, Amazon, Deloitte)…"
+- Role mode placeholder: "Search by job title (e.g. Software Developer, Data Scientist)…"
+- `switchModeAndClear()` clears selection and re-focuses input on mode switch
+- `selectEmployer()` / `selectSoc()` handlers with mutual exclusion
+- `EmptyStateEmployer` → smart fallback to actual top employers from trend data
+- `EmptyStateRole` → popular SOC quick picks (title only, no code required)
+- `EmployerProfile` → `onSelectSoc` callback switches mode to "role" and drills into SOC detail
+
+**New types in `EmployerSalaryTrend` interface**
+- Added `n_soc_codes?: number` and `employer_id?: string | number` fields that exist in the actual JSON
+
+**EmployerProfile component (`src/components/wage/EmployerProfile.tsx` — new)**
+- 4-up growth badge grid: Median Salary | 5yr CAGR | Last YoY | Consecutive Raise Streak
+- Recharts `AreaChart` — multi-year H-1B salary trend with `url(#empGrad)` fill gradient
+- `SalaryTooltip` showing FY + salary + YoY% delta
+- Top roles table: from `employer_wage_rankings`, shows SOC top job title + state + filings + median + premium%; click row → drill into SOC
+
+**WageGrowthLeaderboard component (`src/components/wage/WageGrowthLeaderboard.tsx` — new)**
+- "Rising Stars" always-visible bottom section (renders when `trends.length > 0` and qualifying employers found)
+- Mode toggle: 5yr Growth | Latest YoY | Filing Volume
+- H-1B | PERM visa type toggle
+- Animated rank bars, 🏆 trophy icon for #1, 🔥 fire icon for streak ≥ 3
+- Click row → triggers `onSelectEmployer` which switches hub to employer mode
+- Employer filter: `minYears=5`, `minFilings=30` (ensures meaningful CAGR)
+
+**Employer helpers added to `src/lib/data/wage.ts`**
+- `EmployerGrowthStats` interface (employer_name, latest_median, cagr_5yr, yoy_latest, streak, total_filings, n_soc_codes)
+- `getEmployerList()` — unique employers sorted by filing volume
+- `getEmployerTrend()` — year series for one employer + visa type
+- `computeEmployerGrowth()` — CAGR over 5yr, last YoY%, consecutive raise streak
+- `getTopWageGrowers()` — top N by 5yr CAGR with min filters
+- `getEmployerRoles()` — SOC breakdown per employer from rankings
+- `annotateWithYoy()` — adds `yoy_pct` field to each row in a series
+
+**Tests updated (`src/__tests__/wage-dashboard.test.tsx`)**
+- Added helper `switchToRoleMode()` test helper
+- Tests now reflect dual-mode: employer default → role mode → SOC drill-down
+- New tests: mode toggle buttons visible, employer empty state heading, role mode placeholder
+- Fixed: removed stale SOC-only test assumptions
+
+### Results
+| Metric | Value |
+|--------|-------|
+| New components | 2 (EmployerProfile, WageGrowthLeaderboard) |
+| New wage.ts helpers | 7 (EmployerGrowthStats + 6 functions) |
+| Tests | **366 passing** (19 test files) |
+| TypeScript | ✅ clean (0 new errors) |
+
+### Files Modified/Created
+- `src/components/wage/WageIntelligenceHub.tsx` — Full rewrite (dual-mode search, employer flow, leaderboard)
+- `src/components/wage/EmployerProfile.tsx` — New (~250 lines)
+- `src/components/wage/WageGrowthLeaderboard.tsx` — New (~280 lines)
+- `src/lib/data/wage.ts` — Extended with employer helpers + EmployerSalaryTrend fields
+- `src/__tests__/wage-dashboard.test.tsx` — Updated tests (366 total)
+
+---
+
+## 2026-02-28 — Milestone 9: Wage Intelligence Hub (Dashboard 5 — Wage Competitiveness)
+
+### Objective
+Completely rebuild the wage dashboard using all 5 new P2 wage artifacts. Design a state-of-the-art searchable/filterable wage intelligence page matching the quality bar of PDC and SRS dashboards.
+
+### What Was Done
+
+**P2 Data Pipeline (sync_p2_data.py)**
+- Fixed `NameError: state_codes not defined` by deriving state codes dynamically from `dim_area` (area_type == "STATE")
+- Added `sync_wage_dashboard()` function producing 5 optimized JSON slices from P2 Parquet artifacts:
+  - `salary_benchmarks_national.json` (141 KB, 831 rows) — national P10/P25/median/P75/P90 per SOC
+  - `salary_benchmarks_states.json` (2.1 MB, 12,236 rows) — top-15 states per SOC
+  - `soc_salary_market.json` (2.2 MB, 10,427 rows) — H-1B & PERM market medians FY2008–2025
+  - `employer_wage_rankings.json` (1.1 MB, 2,736 rows) — top-25 employers per SOC per year
+  - `employer_salary_trend.json` (529 KB, 2,492 rows) — multi-year employer salary trends
+
+**Data Layer (`src/lib/data/wage.ts` — fully rewritten)**
+- 5 typed loaders: `loadSalaryBenchmarksNational`, `loadSalaryBenchmarksStates`, `loadSocSalaryMarket`, `loadEmployerWageRankings`, `loadEmployerSalaryTrend`
+- 8 pure helper functions: `getNationalBenchmark`, `getMarketTrend`, `getLatestMarket`, `getYoyGrowth`, `computePercentile`, `getTopStates`, `getSocList`, `getSocGroupStats`
+- New types: `SalaryBenchmark`, `SocSalaryMarket`, `EmployerWageRanking`, `EmployerSalaryTrend`, `SocGroupStat`
+
+**Sub-components (src/components/wage/)**
+- `MarketTrendChart.tsx` — 10-year area chart with P25/P75 band, user wage reference line, Recharts gradient fills
+- `PercentileLadder.tsx` — Horizontal P10→P90 gradient bar with staggered animation and user wage pin
+- `EmployerWageTable.tsx` — Sortable ranked table with expandable rows, inline sparklines, premium badges
+- `RegionalBreakdown.tsx` — Animated horizontal bar chart for top-paying states
+
+**Hub Component (`src/components/wage/WageIntelligenceHub.tsx` — ~788 lines)**
+- Fuse.js SOC search with dropdown autocomplete
+- `VisaType` toggle (H-1B | PERM) shown only after SOC selection
+- Default state (no SOC): Popular quick-pick grid + `getSocGroupStats` horizontal bar chart
+- SOC selected: 4 stat cards → 4 tabs (Trend | Distribution | Employers | Regional)
+- Conditional personal context card: only shown if user has `wageOffered` in localStorage profile AND benchmark exists
+- Uses `secureGet` for localStorage access; `computePercentile` for personalized annotation
+
+**Route (`src/app/dashboard/wage/page.tsx` — rewritten)**
+- Next.js server component with `export const metadata`
+- Breadcrumb navigation + gradient page title
+
+**Old components deleted**: `WageDashboardPage.tsx`, `WageDistributionChart.tsx`, `WageDrilldownCard.tsx`, `WageSearchBar.tsx`
+
+**Tests (`src/__tests__/wage-dashboard.test.tsx` — full rewrite)**
+- 24 tests across 4 describe blocks: wage data helpers (9), WageIntelligenceHub (7), PercentileLadder (4), RegionalBreakdown (2)
+- Fixed ESM import ordering issues (vi.mock hoisting with MOCK_* const TDZ)
+- Fixed: vi.mock factory uses inline data to avoid temporal dead zone
+- Fixed: `vi.clearAllMocks()` removed from beforeEach (was resetting mockResolvedValue)
+- Fixed: `NumberTicker` mock added to prevent MotionValue objects being rendered as React children
+- Fixed: RegionalBreakdown CSS selector → `getAllByText` pattern
+- Fixed: `getByText("Software Developers")` → `getAllByText` (appears in multiple places)
+
+### Results
+| Metric | Value |
+|--------|-------|
+| New JSON artifacts | 5 (total: ~6 MB for wage dashboard) |
+| New components | 5 (WageIntelligenceHub + 4 sub-components) |
+| Data helper functions | 8 |
+| Tests added | 24 (total: **362 passing**) |
+| TypeScript | ✅ clean (no new errors) |
+
+### Files Created/Modified
+- `scripts/sync_p2_data.py` — Fixed + added `sync_wage_dashboard()`
+- `src/lib/data/wage.ts` — Fully rewritten (5 loaders + 8 helpers + types)
+- `src/components/wage/WageIntelligenceHub.tsx` — New (~788 lines)
+- `src/components/wage/MarketTrendChart.tsx` — New
+- `src/components/wage/PercentileLadder.tsx` — New
+- `src/components/wage/EmployerWageTable.tsx` — New
+- `src/components/wage/RegionalBreakdown.tsx` — New
+- `src/app/dashboard/wage/page.tsx` — Rewritten
+- `src/__tests__/wage-dashboard.test.tsx` — Full rewrite (24 tests)
+- `public/data/dashboards/wage/` — 5 new JSON files
+
+### Next Steps
+1. Dashboard 3: EB Category Comparison (`category_movement_metrics`)
+2. Dashboard 4: Geographic Heatmaps (`worksite_geo_metrics`)
+3. Dashboard 6: SOC Demand (`soc_demand_metrics`)
+4. Dashboard 7: Processing Speed (`processing_times_trends`, `fact_uscis_approvals`)
+5. Dashboard 8: Backlog Visualization (`backlog_estimates`, `queue_depth_estimates`)
+
+---
+
 ## 2026-02-27 — Milestone 8.4: Full P2 Artifact Sync & RAG/QA Expansion
 
 ### Objective
@@ -35,30 +255,31 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 8.3 — 2026-02-27)
+## Quick Reference (Current State as of Milestone 10 — 2026-03-01)
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 3 — 8 Dashboards (2/8) + Phase 5 — RAG Q&A ✅ |
+| **Current Phase** | Phase 3 — 8 Dashboards (3/8) + Phase 5 — RAG Q&A ✅ |
 | Framework | Next.js 16.1.6 (App Router, static export) |
 | TypeScript | 5.x (strict mode) |
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **338 passing** across 18 test files |
-| P2 data synced | ✅ 28 JSON files via `sync_p2_data.py` |
-| Pages scaffolded | 8 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/_not-found`) |
-| Components | 25 custom (layout, UI, SRS, PDI, providers) |
+| Tests | **381 passing** across 20 test files |
+| P2 data synced | ✅ 34 JSON files via `sync_p2_data.py` |
+| Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
+| Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Ask** (RAG Q&A) |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → Personal |
-| Dashboards built | **2 / 8** (SRS ✅, Visa Bulletin/PDC ✅) |
+| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅) |
 | Personalized panels | 0 / 5 |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
+| **Data quality** | ✅ Canonical employer names (no ALL-CAPS variants) in all wage JSON files |
 
 ### Quick Commands
 ```bash
@@ -121,7 +342,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 - [x] 2. Sponsor Reliability Score (SRS) — employer search, score gauge, detail card, trend chart, methodology
 - [ ] 3. EB Category Comparison — movement metrics across EB1/EB2/EB3
 - [ ] 4. Geographic Heatmaps — worksite distribution via react-simple-maps
-- [ ] 5. Wage Competitiveness — salary benchmarks, OEWS comparison
+- [x] 5. Wage Competitiveness — WageIntelligenceHub with Fuse.js SOC search, 5 P2 artifacts, 4 tabs, personal context card
 - [ ] 6. SOC Demand — occupation demand metrics across time windows
 - [ ] 7. Processing Speed — USCIS approval trends, processing times
 - [ ] 8. Backlog Visualization — backlog estimates, queue depth charts

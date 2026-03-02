@@ -57,9 +57,8 @@ DASHBOARD_ARTIFACTS = {
     "geographic": [
         "worksite_geo_metrics.parquet",
     ],
-    "wage": [
-        "salary_benchmarks.parquet",
-    ],
+    # wage handled by sync_wage_dashboard() below for smart aggregations
+    # "wage": ["salary_benchmarks.parquet"],
     "soc-demand": [
         "soc_demand_metrics.parquet",
     ],
@@ -211,6 +210,158 @@ def sync_rag():
             print(f"  ⚠ Missing: {fname}")
 
 
+def sync_wage_dashboard():
+    """
+    Sync wage dashboard artifacts with smart aggregations.
+
+    Generates 3 optimised JSON slices for the Wage Intelligence Hub:
+      1. salary_benchmarks.json  — BLS percentile distribution per SOC × metro
+                                    (joined with dim_soc/dim_area for titles)
+      2. soc_salary_market.json  — Market trend 2016-2026 per SOC × visa type
+      3. employer_wage_rankings.json — Top employers per SOC, latest 2 years
+    """
+    print("\n💰 Syncing wage dashboard (custom aggregations)...")
+    out_dir = OUT_DASHBOARDS / "wage"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Load dimension tables ──────────────────────────────────────────────
+    dim_soc = read_parquet_safe(P2_TABLES / "dim_soc.parquet")
+    soc_map = {}
+    if not dim_soc.empty:
+        soc_map = dim_soc.set_index("soc_code")["soc_title"].to_dict()
+
+    dim_area = read_parquet_safe(P2_TABLES / "dim_area.parquet")
+    area_map = {}
+    if not dim_area.empty:
+        # Prefer metro areas; fall back to state names
+        dim_area_dedup = dim_area.sort_values("ref_year", ascending=False).drop_duplicates("area_code")
+        area_map = dim_area_dedup.set_index("area_code")["area_title"].to_dict()
+
+    # ── 1. salary_benchmarks — split into national + metro slices ────────
+    sb = read_parquet_safe(P2_TABLES / "salary_benchmarks.parquet")
+    if not sb.empty:
+        sb = sb.copy()
+        sb["soc_title"] = sb["soc_code"].map(soc_map).fillna("")
+        sb["area_title"] = sb["area_code"].astype(str).map(area_map).fillna("")
+        sb = sb.dropna(subset=["median"])
+        for col in ["p10", "p25", "median", "p75", "p90"]:
+            sb[col] = sb[col].fillna(0).astype(int)
+
+        # National slice (area_code == "99") — one row per SOC, ~1800 rows
+        sb_national = sb[sb["area_code"].astype(str) == "99"].copy()
+        n = df_to_json(sb_national, out_dir / "salary_benchmarks_national.json")
+        size_kb = (out_dir / "salary_benchmarks_national.json").stat().st_size / 1024
+        print(f"    ✓ salary_benchmarks_national: {n:,} rows → {size_kb:.0f} KB")
+
+        # Top-15 states per SOC slice — compact geographic comparison dataset
+        # Derive state area codes from dim_area (area_type == "STATE") or numeric 2-digit codes
+        if not dim_area.empty and "area_type" in dim_area.columns:
+            state_codes = set(
+                dim_area[dim_area["area_type"].astype(str).str.upper() == "STATE"]["area_code"].astype(str)
+            )
+        else:
+            # Fallback: 2-digit numeric FIPS state codes 01–56 (excluding 03,07,14,43,52)
+            state_codes = {str(i).zfill(2) for i in range(1, 57)}
+        # Only keep the 15 highest-paying states per SOC, keeping file size ~1MB
+        sb_states = sb[sb["area_code"].astype(str).isin(state_codes)].copy()
+        sb_states_top = (
+            sb_states.sort_values(["soc_code", "median"], ascending=[True, False])
+            .groupby("soc_code")
+            .head(15)
+            .reset_index(drop=True)
+        )
+        n = df_to_json(sb_states_top, out_dir / "salary_benchmarks_states.json")
+        size_kb = (out_dir / "salary_benchmarks_states.json").stat().st_size / 1024
+        print(f"    ✓ salary_benchmarks_states (top-15 per SOC): {n:,} rows → {size_kb:.0f} KB")
+
+    # ── 2. soc_salary_market — H-1B + PERM trends 2016–present ───────────
+    ssm = read_parquet_safe(P2_TABLES / "soc_salary_market.parquet")
+    if not ssm.empty:
+        ssm = ssm[ssm["fiscal_year"] >= 2016].copy()
+        ssm["soc_title"] = ssm["soc_code"].map(soc_map).fillna("")
+        for col in ["market_mean", "market_median", "market_p25", "market_p75"]:
+            if col in ssm.columns:
+                ssm[col] = ssm[col].fillna(0).round(0).astype(int)
+        ssm = ssm.sort_values(["soc_code", "visa_type", "fiscal_year"])
+        n = df_to_json(ssm, out_dir / "soc_salary_market.json")
+        size_kb = (out_dir / "soc_salary_market.json").stat().st_size / 1024
+        print(f"    ✓ soc_salary_market: {n:,} rows → {size_kb:.0f} KB")
+
+    # ── 3. employer_wage_rankings — top employers per SOC (recent years) ──
+    esp = read_parquet_safe(P2_TABLES / "employer_salary_profiles.parquet")
+    if not esp.empty:
+        # Find the most complete recent year (highest row count among last 3 years)
+        all_years = sorted(esp["fiscal_year"].unique())
+        candidate_years = all_years[-4:]  # check last 4 years
+        year_counts = {
+            yr: ((esp["fiscal_year"] == yr) & (esp["n_filings"] >= 5) &
+                 esp["median_salary"].notna() & esp["employer_name"].notna()).sum()
+            for yr in candidate_years
+        }
+        # Use the year with the most complete records (not the absolute latest if sparse)
+        benchmark_year = max(year_counts, key=lambda y: year_counts[y])
+        print(f"      Using benchmark year: {benchmark_year} ({year_counts[benchmark_year]:,} rows)")
+
+        esp_benchmark = esp[
+            (esp["fiscal_year"] == benchmark_year)
+            & (esp["n_filings"] >= 5)
+            & (esp["median_salary"].notna())
+            & (esp["employer_name"].notna())
+            & (esp["visa_type"] == "H-1B")
+        ].copy()
+
+        # Top 25 employers per SOC by median_salary
+        esp_benchmark = esp_benchmark.sort_values(
+            ["soc_code", "median_salary"], ascending=[True, False]
+        )
+        esp_top = esp_benchmark.groupby("soc_code").head(25).reset_index(drop=True)
+
+        # Keep essential columns only
+        cols = [
+            "soc_code", "employer_name", "fiscal_year", "n_filings",
+            "mean_salary", "median_salary", "p25_salary", "p75_salary",
+            "prevailing_wage_median", "wage_premium_pct", "wage_vs_pw_pct",
+            "oews_national_median", "visa_type", "job_title_top", "worksite_state_top",
+        ]
+        cols = [c for c in cols if c in esp_top.columns]
+        esp_out = esp_top[cols].copy()
+        esp_out["soc_title"] = esp_out["soc_code"].map(soc_map).fillna("")
+
+        # Round wages to integers
+        for col in ["mean_salary", "median_salary", "p25_salary", "p75_salary",
+                    "prevailing_wage_median", "oews_national_median"]:
+            if col in esp_out.columns:
+                esp_out[col] = esp_out[col].fillna(0).round(0).astype(int)
+        for col in ["wage_premium_pct", "wage_vs_pw_pct"]:
+            if col in esp_out.columns:
+                esp_out[col] = esp_out[col].fillna(0).round(1)
+
+        n = df_to_json(esp_out, out_dir / "employer_wage_rankings.json")
+        size_kb = (out_dir / "employer_wage_rankings.json").stat().st_size / 1024
+        print(f"    ✓ employer_wage_rankings: {n:,} rows → {size_kb:.0f} KB")
+
+        # ── 4. employer_salary_yearly — top 300 employers' wage trend ─────
+        esy = read_parquet_safe(P2_TABLES / "employer_salary_yearly.parquet")
+        if not esy.empty:
+            # Get top employers by total filings across all time
+            top_employers = (
+                esy[esy["visa_type"] == "H-1B"]
+                .groupby("employer_name")["total_filings"]
+                .sum()
+                .nlargest(300)
+                .index.tolist()
+            )
+            esy_top = esy[
+                (esy["employer_name"].isin(top_employers))
+                & (esy["fiscal_year"] >= 2016)
+            ].copy()
+            for col in ["mean_salary", "median_salary"]:
+                esy_top[col] = esy_top[col].fillna(0).round(0).astype(int)
+            n = df_to_json(esy_top, out_dir / "employer_salary_trend.json")
+            size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
+            print(f"    ✓ employer_salary_trend: {n:,} rows → {size_kb:.0f} KB")
+
+
 def write_manifest():
     """Write a build manifest with timestamps and sizes."""
     manifest = {
@@ -264,6 +415,7 @@ def main():
         sync_rag()
     else:
         sync_dashboards(dashboard_filter)
+        sync_wage_dashboard()
         sync_dimensions()
         sync_models()
         sync_rag()

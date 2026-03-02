@@ -45,6 +45,9 @@ export function StatCard({
   className,
   format,
 }: StatCardProps) {
+  // Defensive: never allow NaN or undefined to render
+  const safeValue = typeof value !== 'number' || isNaN(value) || !isFinite(value) ? 0 : value;
+  const safeDisplay = (displayValue == null || displayValue === '' || displayValue === 'NaN' || displayValue === 'undefined' || displayValue === 'null') ? undefined : displayValue;
   return (
     <GlassCard
       variant="elevated"
@@ -58,13 +61,13 @@ export function StatCard({
             {label}
           </p>
           <div className="flex items-baseline gap-1">
-            {displayValue ? (
+            {safeDisplay ? (
               <span className="font-mono text-3xl font-bold tracking-tight text-[var(--foreground)]">
-                {prefix}{displayValue}{suffix}
+                {prefix}{safeDisplay}{suffix}
               </span>
             ) : (
               <NumberTicker
-                value={value}
+                value={safeValue}
                 format={format}
                 prefix={prefix}
                 suffix={suffix}

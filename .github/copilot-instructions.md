@@ -346,7 +346,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [x] 2. Sponsor Reliability Score (SRS)
 - [ ] 3. EB Category Comparison
 - [ ] 4. Geographic Heatmaps
-- [ ] 5. Wage Competitiveness
+- [x] 5. Wage Competitiveness
 - [ ] 6. SOC Demand
 - [ ] 7. Processing Speed
 - [ ] 8. Backlog Visualization
@@ -422,9 +422,9 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-## Current File Inventory (as of Milestone 8)
+### Current File Inventory (as of Milestone 10)
 
-### Source Files (57 files)
+### Source Files (63 files)
 
 **App Pages**
 | File | Purpose |
@@ -437,6 +437,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/app/terms/page.tsx` | Terms of Use — not legal advice, data accuracy, open source license |
 | `src/app/dashboard/employer/page.tsx` | SRS Dashboard — employer search, score gauge, detail card, trend chart, methodology |
 | `src/app/dashboard/visa-bulletin/page.tsx` | PDI Dashboard — reactive category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats, methodology |
+| `src/app/dashboard/wage/page.tsx` | Wage Intelligence Hub — dual-mode search (employer default / role), EmployerProfile drill-down, WageGrowthLeaderboard, SOC stat cards + benchmark tabs |
 | `src/app/ask/page.tsx` | Ask page — RAG-powered Q&A with 3-tier search (QA cache + chunks + cloud LLM via Groq), topic filter pills, suggested questions, AI answer button, result cards with expand/collapse |
 
 **Components — Layout**
@@ -476,6 +477,13 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/components/pdi/priority-date-chart.tsx` | Unified PriorityDateChart — single continuous timeline: historical DFF/FAD (solid lines) + forecast DFF/FAD (dashed lines) + PD reference (green); bridge logic connects last actual point to first forecast; 530 lines |
 | `src/components/pdi/index.ts` | Barrel export |
 
+**Components — Wage Intelligence**
+| File | Purpose |
+|------|------|
+| `src/components/wage/WageIntelligenceHub.tsx` | Main orchestrator — dual-mode search (`employer` default / `role`), two Fuse.js indices, EmptyStateEmployer (Top H-1B quick picks) + EmptyStateRole (popular SOC quick picks), mode-exclusive selection (selectedEmployer XOR selectedSoc), WageGrowthLeaderboard always at bottom when trend data available |
+| `src/components/wage/EmployerProfile.tsx` | Employer deep-dive — 4-up growth badges (CAGR, YoY, streak, total filings), AreaChart (FY trend), top roles table; `onSelectSoc` callback switches to role mode |
+| `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; guards `growers.length === 0 → return null` when data insufficient (requires ≥5 years + ≥30 filings) |
+
 **Components — Providers**
 | File | Purpose |
 |------|------|
@@ -487,6 +495,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/data/loader.ts` | Generic JSON fetcher — loadDashboardData, loadDimensionData, loadModelData, loadRAGData |
 | `src/lib/data/srs.ts` | SRS data loaders — field remapping (efs→srs), filterOverallScores, filterRatedEmployers, mergeMLScores, getEmployerMetrics, getEmployerRisk, computeSrsStats |
 | `src/lib/data/pdi.ts` | PDI data loader — loadPdForecasts, getForecastSeries, computePdi, getVelocitySummary, constants (charts/categories/countries/labels) |
+| `src/lib/data/wage.ts` | Wage data loaders + helpers — loadWageData, getSocBenchmarks, getEmployerRankings, getEmployerTrends, getEmployerList, computeEmployerGrowth, getTopWageGrowers, getEmployerRoles, annotateWithYoy; EmployerGrowthStats interface; EmployerSalaryTrend extended with n_soc_codes/employer_id |
 | `src/lib/search/rag-search.ts` | RAG search engine — Fuse.js over 100 chunks + 182 QA pairs, topic filtering, getTopics, getByTopic |
 | `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
 | `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
@@ -496,7 +505,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (18 files, 338 tests)**
+**Tests (20 files, 381 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -518,6 +527,8 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/site-pages.test.tsx` | 31 | Footer (7), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
+| `src/__tests__/wage-dashboard.test.tsx` | 28 | WageIntelligenceHub: default employer mode (placeholder, Top H-1B Sponsors, mode toggles), role mode flow (switch → SOC select → stat cards/tabs/clear/visa toggle), EmployerProfile, WageGrowthLeaderboard, loadWageData, getSocBenchmarks, getEmployerList, computeEmployerGrowth |
+| `src/__tests__/employer-normalization.test.ts` | 15 | Data integrity tests for canonical employer names in public JSON files: `employer_salary_trend.json` (no raw Google variants, top-50 not ALL-CAPS), `employer_wage_rankings.json` (canonical names), `dim_employer.json` (unique employer_ids), cross-file contract (no "INFOSYS LIMITED" etc.) |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |
