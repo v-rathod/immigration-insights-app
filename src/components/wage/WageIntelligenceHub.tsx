@@ -898,48 +898,6 @@ export function WageIntelligenceHub() {
         />
       )}
 
-      {/* ── Salary Overview (pushed to bottom, min 100 employers per group) ── */}
-      {socGroupStats.length > 0 && (
-        <FadeIn>
-          <GlassCard variant="elevated" padding="lg">
-            <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
-              Salary Overview by Occupation Group
-              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)] font-mono">FY2025 · H-1B median · min 100 employers</span>
-            </p>
-            <div className="space-y-2.5">
-              {socGroupStats.map((g, i) => {
-                const maxMedian = socGroupStats[0].median;
-                const barWidth = (g.median / maxMedian) * 100;
-                return (
-                  <div key={g.group_code} className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-[var(--muted-foreground)] w-4 shrink-0">{i + 1}</span>
-                    <span className="w-44 text-sm text-[var(--foreground)] truncate shrink-0">{g.group_title}</span>
-                    <div className="flex-1 h-5 rounded-sm bg-white/[0.04] overflow-hidden">
-                      <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 0.5, delay: i * 0.05, ease: EASING }}
-                        className="h-full bg-gradient-to-r from-blue-600/60 to-purple-600/60 rounded-sm"
-                        style={{ width: `${barWidth}%`, transformOrigin: "left" }}
-                      />
-                    </div>
-                    <span className="w-24 text-right text-sm font-mono font-semibold text-[var(--foreground)] shrink-0">
-                      {formatCurrency(g.median)}
-                    </span>
-                    <span className="hidden sm:block w-20 text-right text-xs text-[var(--muted-foreground)] shrink-0">
-                      {formatCompact(g.employers)} employers
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-[10px] text-[var(--muted-foreground)]">
-              Source: H-1B employer filings · Fiscal year 2025
-            </p>
-          </GlassCard>
-        </FadeIn>
-      )}
-
     </div>
   );
 }

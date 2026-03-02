@@ -366,13 +366,6 @@ describe("WageIntelligenceHub", () => {
     });
   });
 
-  it("shows occupation group overview in default state", async () => {
-    await renderHub();
-    await waitFor(() => {
-      expect(screen.getByText(/Salary Overview by Occupation Group/i)).toBeInTheDocument();
-    });
-  });
-
   it("shows Rising Stars leaderboard when trend data has qualifying employers", async () => {
     // The leaderboard requires ≥5 years + ≥30 filings per employer to qualify.
     // With 2-row mock data no employer qualifies, so the component returns null.
