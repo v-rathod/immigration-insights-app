@@ -173,6 +173,67 @@ export function sortSocResults(
 }
 
 /**
+ * Smart sort for wage search employer results.
+ *
+ * Combines:
+ * - Text relevance (Fuse score)
+ * - Volume (total_filings — more filings = more established employer)
+ * - Salary level (latest_median_salary as quality signal)
+ *
+ * Weights:
+ * - Text relevance: 45% (most important for UX)
+ * - Volume: 40% (employer size/significance)
+ * - Salary level: 15% (quality tiebreaker)
+ */
+export function sortWageEmployerResults(
+  results: FuseResultWithScore<{
+    employer_name: string;
+    total_filings: number;
+    latest_median_salary: number;
+  }>[],
+  query: string
+): Array<{
+  employer_name: string;
+  total_filings: number;
+  latest_median_salary: number;
+}> {
+  if (results.length === 0) return [];
+
+  // Find normalization bounds
+  const filings = results.map((r) => r.item.total_filings).filter((f) => f > 0);
+  const maxFilings = Math.max(...filings, 1);
+
+  const salaries = results
+    .map((r) => r.item.latest_median_salary)
+    .filter((s) => s > 0);
+  const maxSalary = Math.max(...salaries, 1);
+
+  // Compute composite rank
+  const scored = results.map((result) => {
+    // Text relevance (invert Fuse score)
+    const textRelevance = 1 - (result.score ?? 0.5);
+
+    // Volume score (higher filings = better signal)
+    const volumeScore = normalize(result.item.total_filings, 0, maxFilings);
+
+    // Salary significance
+    const salaryScore = normalize(result.item.latest_median_salary, 0, maxSalary);
+
+    // Composite
+    const composite = textRelevance * 0.45 + volumeScore * 0.4 + salaryScore * 0.15;
+
+    return {
+      item: result.item,
+      composite,
+    };
+  });
+
+  return scored
+    .sort((a, b) => b.composite - a.composite)
+    .map((s) => s.item);
+}
+
+/**
  * Smart sort for RAG search results.
  *
  * Prioritizes:

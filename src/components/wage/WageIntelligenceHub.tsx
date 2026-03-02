@@ -35,7 +35,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sortSocResults } from "@/lib/search/smart-sort";
+import { sortSocResults, sortWageEmployerResults } from "@/lib/search/smart-sort";
 import { formatCurrency, formatNumber, formatCompact } from "@/lib/utils/format";
 import { secureGet } from "@/lib/security";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -298,8 +298,26 @@ export function WageIntelligenceHub() {
       
       if (searchMode === "employer" && employerFuseRef.current) {
         // Search full employer list (402K+) with no cutoff
-        const fuseResults = employerFuseRef.current.search(q).slice(0, 8);
-        const results = fuseResults.map((r) => ({ label: r.item }));
+        const fuseResults = employerFuseRef.current.search(q).slice(0, 20);
+        
+        // Enrich with wage data for smart sorting
+        const enriched = fuseResults.map((r) => {
+          const name = r.item;
+          const empData = searchIndex.find((e) => e.employer_name === name);
+          return {
+            item: {
+              employer_name: name,
+              total_filings: empData?.total_filings ?? 0,
+              latest_median_salary: empData?.latest_median_salary ?? 0,
+            },
+            refIndex: r.refIndex,
+            score: r.score,
+          };
+        });
+        
+        // Smart sort by relevance + volume + salary
+        const sorted = sortWageEmployerResults(enriched, q).slice(0, 8);
+        const results = sorted.map((emp) => ({ label: emp.employer_name }));
         setSearchResults(results);
         setShowDropdown(results.length > 0);
       } else if (searchMode === "role" && socFuseRef.current && market.length > 0) {
@@ -331,7 +349,7 @@ export function WageIntelligenceHub() {
         setShowDropdown(results.length > 0);
       }
     },
-    [searchMode, market]
+    [searchMode, market, searchIndex]
   );
 
   // Re-run search when mode switches
