@@ -2,7 +2,7 @@
  * SrsOverview — Aggregate statistics bar + tier distribution chart.
  *
  * Displayed at the top of the SRS dashboard before employer search.
- * Shows total employers, rated count, average score, WARN flags,
+ * Shows total employers, rated count, average score,
  * and a horizontal tier distribution bar.
  */
 "use client";
