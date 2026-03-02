@@ -161,8 +161,10 @@ export default function SrsDashboardPage() {
       {/* Overview Stats */}
       <SrsOverview stats={stats} />
 
-      {/* Search Section */}
-      <FadeIn delay={0.2}>
+      {/* Search Section — z-10 ensures the autocomplete dropdown stacks above
+           the employer detail section below (sibling motion.div stacking contexts
+           default to DOM order; explicit z-index wins). */}
+      <FadeIn delay={0.2} className="relative z-10">
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2
