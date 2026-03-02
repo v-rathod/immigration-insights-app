@@ -256,9 +256,9 @@ immigration-insights-app/
 Users will enter 8 fields (priority date, country, category, employer, job title, location, wage, experience) and receive:
 
 - **A. Green Card Forecast** — Wait time, retrogression risk, PD-becomes-current projection
-- **B. Employer Insights** — SRS score, audit risk, wage comparison, WARN overlay
+- **B. Employer Insights** — SRS score, audit risk, wage comparison
 - **C. Job Market** — Similar role locations, best employers for occupation, salary analysis
-- **D. Recommendations** — Switch employer advice, EB2 vs EB3, layoff impact, start PERM early
+- **D. Recommendations** — Switch employer advice, EB2 vs EB3, start PERM early
 - **E. Visual Dashboards** — Personalized chart mosaic
 
 ## Design System — "Aurora"

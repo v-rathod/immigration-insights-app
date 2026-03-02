@@ -501,7 +501,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 |------|------|
 | `src/components/srs/employer-search.tsx` | Fuzzy search autocomplete — Fuse.js, 150ms debounce, keyboard nav, ARIA combobox, glassmorphic dropdown |
 | `src/components/srs/score-gauge.tsx` | Animated SVG arc gauge — 270° arc, Framer Motion spring, subscore breakdown bars, ML badge |
-| `src/components/srs/employer-detail-card.tsx` | Key metrics grid — approval/denial rates, cases, wage ratio, SOC/site breadth, WARN risk alert |
+| `src/components/srs/employer-detail-card.tsx` | Key metrics grid — approval/denial rates, cases, wage ratio, SOC/site breadth |
 | `src/components/srs/trend-chart.tsx` | Recharts AreaChart — monthly filings/approvals/denials with gradient fills, custom tooltip |
 | `src/components/srs/srs-overview.tsx` | Aggregate stats bar — total/rated employer counts, avg score, tier distribution stacked bar |
 | `src/components/srs/index.ts` | Barrel export |
