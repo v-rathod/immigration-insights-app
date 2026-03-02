@@ -422,7 +422,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-### Current File Inventory (as of Milestone 10)
+### Current File Inventory (as of Milestone 10.1)
 
 ### Source Files (63 files)
 
@@ -505,7 +505,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (20 files, 381 tests)**
+**Tests (20 files, 391 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -528,7 +528,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
 | `src/__tests__/wage-dashboard.test.tsx` | 28 | WageIntelligenceHub: default employer mode (placeholder, Top H-1B Sponsors, mode toggles), role mode flow (switch → SOC select → stat cards/tabs/clear/visa toggle), EmployerProfile, WageGrowthLeaderboard, loadWageData, getSocBenchmarks, getEmployerList, computeEmployerGrowth |
-| `src/__tests__/employer-normalization.test.ts` | 15 | Data integrity tests for canonical employer names in public JSON files: `employer_salary_trend.json` (no raw Google variants, top-50 not ALL-CAPS), `employer_wage_rankings.json` (canonical names), `dim_employer.json` (unique employer_ids), cross-file contract (no "INFOSYS LIMITED" etc.) |
+| `src/__tests__/employer-normalization.test.ts` | 25 | Data integrity tests for canonical employer names in public JSON files: `employer_salary_trend.json`, `employer_wage_rankings.json`, `employer_features.json`, `employer_friendliness_scores.json`, `employer_monthly_metrics.json` (no dirty ALL-CAPS multi-word names), `dim_employer.json` (unique employer_ids), cross-file contract. Uses `isDirtyAllCaps()` helper and NaN-safe `loadJson()` |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

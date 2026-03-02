@@ -1,3 +1,50 @@
+## 2026-03-01 — Milestone 10.1: dim_employer as Source of Truth for Canonical Names
+
+### Objective
+Close the root cause of employer name pollution: the `patch_dim_employer_from_fact_perm.py` script was inserting raw, un-normalized employer names (ALL-CAPS from DOL PERM source data) directly into `dim_employer` stubs. All downstream artifacts that join to `dim_employer` inherited these dirty names.
+
+### Root Cause
+`build_dim_employer.py` correctly calls `title_case_name()` when building the initial dimension — BUT `patch_dim_employer_from_fact_perm.py` runs AFTER it in the build pipeline and inserts stub rows for the ~13K employers found in `fact_perm` but not in the initial build. These stubs used `employer_name=("employer_name", "first")` from raw `fact_perm` values (e.g., "GOOGLE INC."), bypassing normalization.
+
+### Fix
+- **`scripts/patch_dim_employer_from_fact_perm.py`**: Added `_canonical()` helper importing `normalize_employer_name` + `title_case_employer_name` from `src.normalize.mappings`
+  - Applied to all stub rows before insertion
+  - Added cleanup pass sanitizing any existing ALL-CAPS multi-word names from prior patch runs
+
+### Artifacts Rebuilt
+In pipeline order (each reads canonical names from updated `dim_employer`):
+1. `dim_employer.parquet` — 256,411 rows, all Title Case, 13,277 new stubs canonicalized
+2. `employer_features.parquet` — 70,206 rows (via `src.features.run_features`)
+3. `employer_friendliness_scores.parquet` — 70,206 rows (via `src.features.run_features`)
+4. `employer_monthly_metrics.parquet` — 224,114 rows — all-caps multi-word: **6,965 → 34** (residual are legitimate spaced initials e.g. "C C T S")
+5. `employer_salary_profiles.parquet` — 2,524,521 rows
+6. `employer_salary_yearly.parquet` — 1,432,611 rows
+7. `employer_risk_features.parquet`
+
+### P3 Updates
+- All 34 JSON files re-synced
+- `employer-normalization.test.ts`: expanded from 15 → **25 tests**
+  - Added test blocks for `employer_features.json`, `employer_friendliness_scores.json`, `employer_monthly_metrics.json`
+  - Added `isDirtyAllCaps()` helper (distinguishes real all-caps from legitimate spaced initials like "C C T S")
+  - Fixed `loadJson()` to sanitize bareword `NaN` tokens (not valid JSON) before parsing
+  - Cross-file contract tests now cover all 4 employer files
+- P3 total: **391/391 passing** (was 381)
+
+### Results
+| Metric | Before | After |
+|--------|--------|-------|
+| `employer_monthly_metrics` all-caps multi-word | 6,965 | **34** |
+| `dim_employer` stub rows | 0 new (patch idempotent) | 13,277 new (properly canonicalized) |
+| P3 `employer-normalization` tests | 15 | **25** |
+| P3 total tests | 381 | **391** |
+| P2 tests | 541 | **562** |
+
+### Files Modified
+- (P2) `scripts/patch_dim_employer_from_fact_perm.py` — added `_canonical()` + cleanup pass
+- (P3) `src/__tests__/employer-normalization.test.ts` — 25 tests, `isDirtyAllCaps()`, NaN-safe `loadJson()`
+
+---
+
 ## 2026-03-01 — Milestone 10: P2 Employer Name Normalization + P3 Data Integrity Tests
 
 ### Objective
@@ -255,7 +302,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10 — 2026-03-01)
+## Quick Reference (Current State as of Milestone 10.1 — 2026-03-01)
 
 | Metric | Value |
 |--------|-------|
@@ -265,7 +312,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **381 passing** across 20 test files |
+| Tests | **391 passing** across 20 test files |
 | P2 data synced | ✅ 34 JSON files via `sync_p2_data.py` |
 | Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
@@ -279,7 +326,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
-| **Data quality** | ✅ Canonical employer names (no ALL-CAPS variants) in all wage JSON files |
+| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is the sole source of truth |
 
 ### Quick Commands
 ```bash
