@@ -1,3 +1,45 @@
+## 2026-03-02 — Milestone 10.7: Add Point Markers to Line Charts
+
+### Objective
+Improve chart readability by adding visible point markers (dots) at each data point on all line and area charts across the application.
+
+### What Was Done
+
+**1. PriorityDateChart (Visa Bulletin dashboard):**
+- Added point markers to 4 lines: DFF Actual, FAD Actual, DFF Forecast, FAD Forecast
+- Points use color-matched to the line: `#3b82f6` (DFF), `#f59e0b` (FAD Actual), `#60a5fa` (DFF Forecast), `#fbbf24` (FAD Forecast)
+- Point radius: 3 (`r: 3`)
+
+**2. MarketTrendChart (Wage dashboard):**
+- Added point markers to 3 area charts: P75 band, P25 band, Median
+- Points use their respective line colors with appropriate radius
+- P75/P25: `r: 2.5` (smaller for band visualization), Median: `r: 3`
+
+**3. SrsTrendChart (SRS dashboard):**
+- Added point markers to 3 area charts: Filings, Approvals, Denials
+- Colors match each area: `#3b82f6` (filings), `#10b981` (approvals), `#f43f5e` (denials)
+- Point radius: 3 (or 2.5 for denials)
+
+### Result
+All charts now display data point markers on every data point, making it easier to:
+- Identify exact data locations
+- Hover over points for precise values
+- See data density and granularity
+- Maintain visual consistency with hover effects
+
+### Test Results
+- **394 passing** (no changes needed to tests; rendering-only feature)
+
+### Files Changed
+- `src/components/pdi/priority-date-chart.tsx` — 4 Line components dot property updated
+- `src/components/wage/MarketTrendChart.tsx` — 3 Area components dot property updated
+- `src/components/srs/trend-chart.tsx` — 3 Area components dot property updated
+
+### Commit
+`d0cf9f8c822e1fbdf97b974afe78e197fe77f70d`
+
+---
+
 ## 2026-03-02 — Milestone 10.6: Fix Missing PERM Data in Wage Rankings
 
 ### Objective
@@ -679,6 +721,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.4 | 2026-03-02 | Top Roles Data Source Fix | Root-cause fix: new `employer_role_profiles.json` (employer-centric, top-25 roles by filings, 485 employers); was using SOC-centric `employer_wage_rankings` causing Cognizant to show 2 of 33 roles; sync script + new loader + EmployerProfile updated; 395 tests; commit 5ecf659 |
 | 10.5 | 2026-03-02 | Wage Dashboard UX + Data Quality | Reorder page sections (Salary Overview pushed down after Rising Stars); apply 100-employer minimum threshold to occupation groups for statistical significance; updated test mock to generate 122+ synthetic employers; all 395 tests passing; commit daceb738 |
 | 10.6 | 2026-03-02 | Fix Missing PERM Data in Wage Rankings | Removed H-1B-only filter from sync script; now includes both H-1B (3,912) and PERM (760) employers in rankings; increased per-SOC limit from 25 → 50; Software Developers now shows 47 H-1B + 3 PERM (was 25 + 0); 394 tests passing; commit f4c66fab |
+| 10.7 | 2026-03-02 | Add Point Markers to Line Charts | Added data point dots to all charts: PriorityDateChart (4 lines), MarketTrendChart (3 areas), SrsTrendChart (3 areas); improved readability and hover interaction; 394 tests passing; commit d0cf9f8c |
 
 ---
 
