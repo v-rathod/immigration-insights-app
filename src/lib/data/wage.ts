@@ -285,7 +285,7 @@ export function getSocGroupStats(
       median: g.medians.length > 0 ? Math.round(g.medians.reduce((s, n) => s + n, 0) / g.medians.length) : 0,
       employers: g.employers.size,
     }))
-    .filter((g) => g.median > 0)
+    .filter((g) => g.median > 0 && g.employers >= 100) // Minimum 100 employers for statistical significance
     .sort((a, b) => b.median - a.median)
     .slice(0, 12);
 }

@@ -887,13 +887,24 @@ export function WageIntelligenceHub() {
         </FadeIn>
       )}
 
-      {/* ── Salary Overview (always visible when data available) ────────── */}
+      {/* ── Rising Stars leaderboard (always visible) ───────────────────── */}
+      {trends.length > 0 && (
+        <WageGrowthLeaderboard
+          trend={trends}
+          onSelectEmployer={(name) => {
+            setSearchMode("employer");
+            selectEmployer(name);
+          }}
+        />
+      )}
+
+      {/* ── Salary Overview (pushed to bottom, min 100 employers per group) ── */}
       {socGroupStats.length > 0 && (
         <FadeIn>
           <GlassCard variant="elevated" padding="lg">
             <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
               Salary Overview by Occupation Group
-              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)] font-mono">FY2025 · H-1B median</span>
+              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)] font-mono">FY2025 · H-1B median · min 100 employers</span>
             </p>
             <div className="space-y-2.5">
               {socGroupStats.map((g, i) => {
@@ -927,17 +938,6 @@ export function WageIntelligenceHub() {
             </p>
           </GlassCard>
         </FadeIn>
-      )}
-
-      {/* ── Rising Stars leaderboard (always visible) ───────────────────── */}
-      {trends.length > 0 && (
-        <WageGrowthLeaderboard
-          trend={trends}
-          onSelectEmployer={(name) => {
-            setSearchMode("employer");
-            selectEmployer(name);
-          }}
-        />
       )}
 
     </div>
