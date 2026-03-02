@@ -1,3 +1,53 @@
+## 2026-03-01 — Milestone 10.2: Chart Axes + UI Defect Fixes
+
+### Objective
+Fix 9 UI defects reported across the Priority Date, SRS, and Wage dashboards: invisible chart axes/grids, hover text contrast issues, tab readability in light mode, dropdown z-index, and salary overview positioning.
+
+### What Was Done
+
+**Charts — All dashboards now have visible, properly labeled axes:**
+- `CartesianGrid`: `rgba(255,255,255,0.04)` → `rgba(128,128,160,0.15)` + `vertical={true}` (crosshatch grid)
+- Chart margins: `bottom: 0` → `bottom: 24` (X-axis labels no longer clipped)
+- Tick fill: `rgba(255,255,255,0.4)` → `#9ca3af` (neutral gray, readable in both themes)
+- `activeDot`: `r: 3/4` → `r: 5` with glow `strokeWidth: 8` (visible hover indicators)
+- Added axis labels: "Year", "Cutoff Date", "Fiscal Year", "Month"
+- Files: `priority-date-chart.tsx`, `srs/trend-chart.tsx`, `MarketTrendChart.tsx`, `EmployerProfile.tsx`
+
+**Hover Text Contrast:**
+- `group-hover:text-white` → `group-hover:text-[var(--foreground)]` across: WageGrowthLeaderboard (employer name), WageIntelligenceHub (chevrons + mode tabs + visa-type buttons), EmployerProfile (role chevron)
+- Problem: `text-white` is invisible on light backgrounds
+
+**Tab Active State (Wage Hub):**
+- `bg-white/[0.1] text-white` → `bg-blue-500/20 text-blue-300` — readable in both dark and light themes
+
+**Dropdown Z-Index:**
+- Hero search `<FadeIn>` gets `className="relative z-[100]"` — ensures dropdown renders above subsequent GlassCards whose `backdrop-blur-xl` creates stacking contexts
+
+**Salary Overview — moved to always-visible position:**
+- Was inside `{!selectedEmployer && !selectedSoc && (...)}` (only shown when nothing selected)
+- Now rendered as its own block after the empty state, before the Rising Stars leaderboard
+- Visible regardless of whether an employer or SOC is selected
+
+**SRS Trend Label Improvement:**
+- "Trend: X%" → "Approval trend: +X% (12m vs prior 12m)" with `title` tooltip explaining the metric
+
+### Tests
+391/391 passing (no change — all pure UI/style fixes, no logic changes)
+
+### Files Changed
+- `src/components/pdi/priority-date-chart.tsx`
+- `src/components/srs/trend-chart.tsx`
+- `src/components/srs/employer-detail-card.tsx`
+- `src/components/wage/WageIntelligenceHub.tsx`
+- `src/components/wage/WageGrowthLeaderboard.tsx`
+- `src/components/wage/EmployerProfile.tsx`
+- `src/components/wage/MarketTrendChart.tsx`
+
+### Commit
+`0be551e`
+
+---
+
 ## 2026-03-01 — Milestone 10.1: dim_employer as Source of Truth for Canonical Names
 
 ### Objective
@@ -302,7 +352,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.1 — 2026-03-01)
+## Quick Reference (Current State as of Milestone 10.2 — 2026-03-01)
 
 | Metric | Value |
 |--------|-------|
@@ -443,6 +493,11 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 8.1 | 2026-02-27 | UX Polish: Unified FAB + Ask Improvements | Merged feedback + ask into single FAB with mini-menu (Plus/X trigger → Ask NorthStar link + Send Feedback dialog); off-topic questions get natural immigration-redirect replies (4 variations); AI Answer always visible; removed P1/P2/P3 codenames from About page; 338 tests |
 | 8.2 | 2026-02-27 | Ollama Local LLM Integration | Connected Ollama (llama3.2) as real LLM backend for Tier 3 RAG; auto-detects Ollama at localhost:11434, falls back to mock; backend status shown in Ask page ("Ollama connected" / "Mock mode"); model name badge on AI answer cards; zero-result searches auto-trigger AI; 338 tests |
 | 8.3 | 2026-02-27 | Groq Cloud LLM Backend | Added Groq (free cloud Llama 3.3 70B) as primary LLM backend; 4-backend cascade: Groq → OpenAI → Ollama → Mock; env-var config via `NEXT_PUBLIC_GROQ_API_KEY`; Ask page shows "Groq connected"; `.env.local.example` template; 338 tests |
+| 9 | 2026-02-28 | Wage Intelligence Hub | Wage Competitiveness dashboard (Dashboard 5); 5 P2 artifacts; WageIntelligenceHub + EmployerProfile + WageGrowthLeaderboard + MarketTrendChart; Fuse.js SOC/employer dual-mode search; 4 tabs; 391 tests |
+| 9.1 | 2026-02-28 | Wage Hub Dual-Mode Redesign | Employer-first default; rich EmployerProfile with YoY trend chart; Rising Stars leaderboard (5-yr CAGR); EmptyState quick-picks |
+| 10 | 2026-03-01 | P2 Employer Name Normalization | dim_employer as canonical source for all employer data; data integrity tests; 391 tests |
+| 10.1 | 2026-03-01 | Smart Visibility + UX Polish | UI jargon removal; employer search z-index; smart sorting; full 402K+ employer search index; smart visibility (CTA placeholders) |
+| 10.2 | 2026-03-01 | Chart Axes + UI Defect Fixes | All charts: visible axes, `#9ca3af` ticks, `rgba(128,128,160,0.15)` grid, `bottom: 24` margin, activeDot r:5 glow; hover text contrast `group-hover:text-white` → foreground var; tab active state readable both themes; dropdown z-[100]; salary overview always visible; trend label with tooltip; 391 tests; commit 0be551e |
 
 ---
 
