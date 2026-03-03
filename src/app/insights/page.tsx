@@ -373,7 +373,7 @@ function GreenCardPanel({
 
         {/* Chart */}
         {hasChartData && (
-          <GlassCard variant="elevated" padding="lg">
+          <GlassCard variant="elevated" padding="none">
             <div className="h-[420px] w-full">
               <PriorityDateChart
                 dffForecast={dffSeries}
