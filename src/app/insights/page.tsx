@@ -1173,7 +1173,7 @@ export default function InsightsPage() {
       </FadeIn>
 
       {/* ── Panels ───────────────────────────────────────────────────────── */}
-      <StaggerContainer>
+      <StaggerContainer className="space-y-16">
         {/* Divider */}
         <StaggerItem>
           <div className="flex items-center gap-3">
