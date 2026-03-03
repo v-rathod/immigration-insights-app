@@ -73,12 +73,14 @@ describe("Sidebar", () => {
     }
   });
 
-  it("renders Insights group with PDI and SRS", async () => {
+  it("renders Insights group with PDI, SRS, and Approvals", async () => {
     renderSidebar();
     const pdiItems = await screen.findAllByText("Priority Date Cortex");
     expect(pdiItems.length).toBeGreaterThanOrEqual(1);
     const srsItems = await screen.findAllByText("Sponsor Score");
     expect(srsItems.length).toBeGreaterThanOrEqual(1);
+    const approvalItems = await screen.findAllByText("Approvals");
+    expect(approvalItems.length).toBeGreaterThanOrEqual(1);
   });
 
   it("marks active page with aria-current", async () => {

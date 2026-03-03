@@ -1,0 +1,93 @@
+{
+  "period": "Last 10 Fiscal Years (PERM)",
+  "data_source": "PERM Labor Certification",
+  "total_cases": 1023108,
+  "total_approved": 930362,
+  "total_denied": 45751,
+  "avg_approval_rate": 95.28999999999999,
+  "min_approval_rate": 93.18,
+  "max_approval_rate": 98.14,
+  "trend": "increasing",
+  "yearly_breakdown": [
+    {
+      "fiscal_year": 2017,
+      "APPROVED": 87609,
+      "DENIED": 6413,
+      "total_cases": 97603,
+      "approval_rate_pct": 93.18,
+      "denial_rate_pct": 6.82
+    },
+    {
+      "fiscal_year": 2018,
+      "APPROVED": 109550,
+      "DENIED": 6255,
+      "total_cases": 119776,
+      "approval_rate_pct": 94.6,
+      "denial_rate_pct": 5.4
+    },
+    {
+      "fiscal_year": 2019,
+      "APPROVED": 93865,
+      "DENIED": 5535,
+      "total_cases": 102655,
+      "approval_rate_pct": 94.43,
+      "denial_rate_pct": 5.57
+    },
+    {
+      "fiscal_year": 2020,
+      "APPROVED": 86056,
+      "DENIED": 4213,
+      "total_cases": 94019,
+      "approval_rate_pct": 95.33,
+      "denial_rate_pct": 4.67
+    },
+    {
+      "fiscal_year": 2021,
+      "APPROVED": 100552,
+      "DENIED": 4141,
+      "total_cases": 108264,
+      "approval_rate_pct": 96.04,
+      "denial_rate_pct": 3.96
+    },
+    {
+      "fiscal_year": 2022,
+      "APPROVED": 94485,
+      "DENIED": 4573,
+      "total_cases": 104600,
+      "approval_rate_pct": 95.38,
+      "denial_rate_pct": 4.62
+    },
+    {
+      "fiscal_year": 2023,
+      "APPROVED": 102286,
+      "DENIED": 6364,
+      "total_cases": 116427,
+      "approval_rate_pct": 94.14,
+      "denial_rate_pct": 5.86
+    },
+    {
+      "fiscal_year": 2024,
+      "APPROVED": 102036,
+      "DENIED": 5031,
+      "total_cases": 114550,
+      "approval_rate_pct": 95.3,
+      "denial_rate_pct": 4.7
+    },
+    {
+      "fiscal_year": 2025,
+      "APPROVED": 137753,
+      "DENIED": 2615,
+      "total_cases": 147056,
+      "approval_rate_pct": 98.14,
+      "denial_rate_pct": 1.86
+    },
+    {
+      "fiscal_year": 2026,
+      "APPROVED": 16170,
+      "DENIED": 611,
+      "total_cases": 18158,
+      "approval_rate_pct": 96.36,
+      "denial_rate_pct": 3.64
+    }
+  ]
+}

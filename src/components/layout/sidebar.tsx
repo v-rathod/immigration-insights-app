@@ -19,6 +19,7 @@ import {
   X,
   Calendar,
   Shield,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Compass },
   { href: "/dashboard/visa-bulletin", label: "Priority Date Cortex", icon: Calendar, group: "Insights" },
   { href: "/dashboard/employer", label: "Sponsor Score", icon: Shield, group: "Insights" },
+  { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Insights" },
   { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Dashboards" },
   { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Dashboards" },
   { href: "/dashboard/wage", label: "Wages", icon: DollarSign, group: "Dashboards" },

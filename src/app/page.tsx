@@ -95,6 +95,13 @@ const DASHBOARDS = [
     href: "/dashboard/backlog/",
     gradient: "from-fuchsia-500 to-purple-400",
   },
+  {
+    title: "Approval & Denial Trends",
+    description:
+      "19-year PERM approval pulse, administration effects, cross-track comparison, and YoY velocity",
+    href: "/dashboard/approvals/",
+    gradient: "from-green-500 to-emerald-400",
+  },
 ];
 
 const VALUE_PROPS = [

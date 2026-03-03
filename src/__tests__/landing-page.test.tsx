@@ -123,7 +123,7 @@ describe("Landing Page", () => {
     expect(await screen.findByText("Forecast Series")).toBeInTheDocument();
   });
 
-  it("renders all 8 dashboard cards", async () => {
+  it("renders all 9 dashboard cards", async () => {
     renderLanding();
     const dashboards = [
       "Visa Bulletin Trends",
@@ -134,6 +134,7 @@ describe("Landing Page", () => {
       "Occupation Demand",
       "Processing Speed",
       "Backlog Visualization",
+      "Approval & Denial Trends",
     ];
 
     for (const name of dashboards) {

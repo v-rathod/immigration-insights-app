@@ -1,0 +1,29 @@
+[
+  {
+    "data_source": "PERM_Labor_Certification",
+    "visa_category": "Employment_Based_EB",
+    "total_cases": 1675051,
+    "approved": 1486457,
+    "denied": 111083,
+    "approval_rate_pct": 88.74,
+    "denial_rate_pct": 6.63
+  },
+  {
+    "data_source": "USCIS_Forms",
+    "visa_category": "USCIS_Adjustment",
+    "total_cases": 3646523,
+    "approved": 3226992,
+    "denied": 419531,
+    "approval_rate_pct": 88.5,
+    "denial_rate_pct": 11.5
+  },
+  {
+    "data_source": "Visa_Applications",
+    "visa_category": "Non_Immigrant_Visa",
+    "total_cases": 444762,
+    "approved": 444762,
+    "denied": 0,
+    "approval_rate_pct": 100.0,
+    "denial_rate_pct": 0.0
+  }
+]
