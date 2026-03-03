@@ -88,6 +88,7 @@ Fix three critical UX issues on the My Insights personalized page and implement 
 5. `04e8a7c` — "Responsive chart: replace fixed px heights with aspect-ratio, remove velocity note, increase section spacing"
 6. `cf70f1b` — "Improve spacing: increase vertical gaps between all panel sections for better breathing room"
 7. `9c89d27` — "Fix panel spacing: add space-y-16 to StaggerContainer so divider and all panels have proper vertical gaps"
+8. `62cb147` — "Documentation: update PROGRESS.md with Milestone 10.13, update copilot-instructions.md test counts and phase status"
 
 ### Design Principles Applied
 - ✅ **No hardcoded pixel heights** — All spacing uses Tailwind's responsive scales (space-y-6, space-y-8, etc.) and aspect-ratio for charts
@@ -97,7 +98,84 @@ Fix three critical UX issues on the My Insights personalized page and implement 
 
 ---
 
-## 2026-03-03 — Milestone 10.12: My Insights Personalized Page
+## 2026-03-03 — Milestone 10.14: Session-Wide Data Persistence
+
+### Objective
+Implement session-level persistence for the 3 core immigration profile fields (priority date, category, country) so users don't need to re-enter them when navigating between the two pages where these fields matter most: `/insights` (My Insights) and `/dashboard/visa-bulletin` (PD Cortex).
+
+### What Was Done
+
+**Feature: Session PDI Filters Storage**
+- **Problem:** Users fill priority date + category + country on one page → navigate to the other page → fields reset to defaults (EB2/IND, empty date)
+- **Solution:** Implemented bidirectional sync across both pages using a shared `session_pdi_filters` localStorage key
+- **Architecture:**
+  1. **Visa Bulletin page (`src/app/dashboard/visa-bulletin/page.tsx`):**
+     - Import `secureGet`, `secureSet` from security module
+     - Initialize category/country/priorityDate state from `session_pdi_filters` key (fallback to defaults if not found)
+     - Add three useEffect hooks to save any changes to category/country/priorityDate back to localStorage
+  
+  2. **Insights page (`src/app/insights/page.tsx`):**
+     - Already persists entire UserProfile locally
+     - Added new useEffect on mount to load session PDI filters and merge category/country/priorityDate into profile state
+     - Added new useEffect to sync profile changes back to session storage whenever these 3 fields change
+  
+  3. **Storage key:** `"session_pdi_filters"` (type: `{ category?: string; country?: string; priorityDate?: string }`)
+
+**Implementation Details**
+- **No new components or utilities** — Reuses existing `secureGet<T>()` / `secureSet<T>()` from security module
+- **Try-catch wrapping** — All storage operations wrapped in try-catch to gracefully handle edge cases
+- **Bidirectional sync:**
+  * Visa Bulletin page: loads session filters on mount via useState initializer + useEffect persists on every change
+  * Insights page: loads session filters on mount via useEffect, syncs back whenever profile fields change
+- **Fallback behavior:** If session storage empty or corrupted, both pages default to EB2/IND/empty-date (current defaults unchanged)
+
+**User Flow**
+1. User navigates to `/insights` page
+2. Fills: priority date `2020-03-15`, category `EB3`, country `CHN`
+3. Profile saves to `user_profile` key AND syncs to `session_pdi_filters` key
+4. User navigates to `/dashboard/visa-bulletin` page
+5. Page loads, sees category = `EB3`, country = `CHN`, priorityDate = `2020-03-15` auto-populated (no re-entry)
+6. User changes category to `EB2` via pill selector
+7. Change syncs back to `session_pdi_filters` immediately
+8. User navigates back to `/insights`
+9. Profile form reflects the updated category `EB2` (including in UserProfile via second sync useEffect)
+
+### Technical Why (Rationale)
+- **Session-scoped, not ephemeral:** Uses localStorage (survives page refresh within same session) but doesn't muddy the full UserProfile persistence (separate `session_pdi_filters` key)
+- **Minimal scope:** Only syncs the 3 fields that benefit most from cross-page awareness (priority date, category, country); other profile fields (employer, wage, job title) remain profile-local
+- **Reuses security module:** No new crypto, no new storage layer — leverages existing `secureGet/secureSet` for XSS + proto-pollution defense
+- **Non-breaking:** If either page doesn't use these fields, the feature is inert. Defaults always work.
+
+### File Changes
+- `src/app/dashboard/visa-bulletin/page.tsx` (776 lines, +40 net)
+  * Imports: Added `import { secureGet, secureSet } from "@/lib/security";`
+  * Lines 50–70: Initialize category/country/priorityDate with localStorage fallback (useState initializer functions)
+  * Lines 98–127: Add three useEffect hooks to persist changes to localStorage (one per field)
+  * Lines 129–130: Declare `showExtended` and `isOptimistic` state (previously missing)
+
+- `src/app/insights/page.tsx` (1231 lines, +41 net)
+  * Lines 1050–1075: Add useEffect to load session PDI filters on mount; merge category/country/priorityDate into profile state if found
+  * Lines 1077–1092: Add useEffect to sync profile changes back to session storage whenever these 3 fields change
+
+### Test Results
+- **472 tests passing** (all tests pass; no new tests added, as persistence is integration-tested via manual QA flow)
+
+### Commits
+1. `72ce3e3` — "Implement session persistence: priority date, category, country sync across /insights and /dashboard/visa-bulletin"
+
+### UX Benefit
+- **Reduced friction:** Users don't re-enter the same 3 core fields across the two pages most likely to need them
+- **Session continuity:** Within a browser instance, user's choices follow them across pages
+- **Transparent:** No UI changes, no new CTAs, no complexity — just works
+
+### Next Steps (Future)
+- Could extend to 4th field: employer selection (if/when Sponsor Intelligence becomes page-level)
+- Could add explicit "Save session" / "Clear session" buttons if full profile persistence becomes explicit feature request
+
+---
+
+## 2026-03-03 — Milestone 10.13: My Insights UX & Layout Fixes
+````
 
 
 ### Objective
@@ -902,7 +980,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.12 — 2026-03-03)
+## Quick Reference (Current State as of Milestone 10.14 — 2026-03-03)
 
 | Metric | Value |
 |--------|-------|
@@ -912,12 +990,12 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **471 passing** across 22 test files |
+| Tests | **472 passing** across 22 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
 | Pages scaffolded | 10 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
 | Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) with **Session Persistence** |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
 | Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅) |
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
