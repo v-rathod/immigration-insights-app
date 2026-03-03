@@ -367,15 +367,15 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [x] Data loader utilities (`src/lib/data/loader.ts`)
 - [x] RAG search utility (`src/lib/search/rag-search.ts`)
 
-### Phase 2: App Shell & Landing 🔄 (Milestone 2 — 2026-02-25)
+### Phase 2: App Shell & Landing ✅ (Milestone 2–10.13 — 2026-02-25 → 2026-03-02)
 - [x] Sidebar navigation with glassmorphic styling
 - [x] Landing page with animated stat cards (hero + key metrics + dashboard grid)
 - [x] Theme toggle (dark/light/system — 3-way toggle)
 - [x] Security module (XSS, proto pollution, CSP, URL sanitization)
-- [x] Test infrastructure (Vitest 4.x + RTL + happy-dom, 133 tests)
+- [x] Test infrastructure (Vitest 4.x + RTL + happy-dom, 472 tests)
 - [x] UI component library (GlassCard, NumberTicker, StatCard, animations)
 - [x] Responsive layout (mobile hamburger + collapsible sidebar)
-- [x] My Insights page (/insights — 7-field profile card, 3 smart panels, localStorage persistence)
+- [x] My Insights page (/insights — 7-field profile card, 3 smart panels, localStorage persistence, responsive chart scaling, proper layout spacing)
 
 ### Phase 3: 8 Dashboards
 - [x] 1. Visa Bulletin Trends (PDI)

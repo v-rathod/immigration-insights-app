@@ -1,4 +1,104 @@
+# Compass Progress Tracker
+
+## 2026-03-02 — Milestone 10.13: My Insights UX & Layout Fixes
+
+### Objective
+Fix three critical UX issues on the My Insights personalized page and implement responsive layout best practices to ensure mobile-friendly display across all screen sizes.
+
+### What Was Done
+
+**Bug 1: Duplicate Employer Field (Removed from Profile Card)**
+- **Problem:** Employer was asked in two places — profile card form AND Sponsor Intelligence panel search
+- **Solution:** Removed entire employer row from profile card form (`lines 908–927` in insights/page.tsx)
+- **Result:** Single employer entry point in Sponsor Intelligence panel
+
+**Bug 2: Layout Stacking via IIFE Pattern (Refactored)**
+- **Problem:** `SponsorPanel` used IIFE in JSX: `{condition ? <A/> : (() => { ... return <JSX/>; })()}` causing React reconciliation issues and visual stacking
+- **Solution:** Extracted content to proper named inner component `SponsorScoreContent`
+- **Result:** Clean component tree, no more layout stacking issues
+
+**Bug 3: "Unrated" Always Showing (Fixed SrsScoreGauge Props)**
+- **Problem:** Chart displayed "Unrated" even for rated employers (Optum Services, etc.)
+- **Root Cause:** `SrsScoreGauge` passed `employer={selectedEmployer}` but component expects explicit `score`, `tier`, `subscores` props
+- **Solution:** Corrected prop mapping in both `SponsorScoreContent` and page-level integration:
+  ```tsx
+  <SrsScoreGauge
+    score={employer.srs ?? null}
+    tier={employer.srs_tier}
+    subscores={{ outcome: ..., wage: ..., sustainability: ... }}
+    mlScore={employer.srs_ml ?? undefined}
+  />
+  ```
+- **Result:** Gauge now correctly renders with proper tier colors and scores
+
+**Layout Fix 1: Removed Redundant Wrapper (Chart Overlap)**
+- **Problem:** Chart had stretched border extending below content, DFF/FAD cards overlaid the overflow
+- **Root Cause:** `PriorityDateChart` already renders its own `rounded-2xl border bg-white/[0.02] p-4 sm:p-6` wrapper + internal `h-[400px]` area (total ~500px). Insights page wrapped it in another `GlassCard + h-[420px]` div too short for content
+- **Solution:** Removed redundant `GlassCard` and fixed-height wrapper; let chart render at natural size
+- **Result:** Clean chart border, DFF/FAD cards sit cleanly below
+
+**Layout Fix 2: Responsive Heights (No Hardcoded Pixels)**
+- **Problem:** Chart used `h-[400px]` fixed height (not mobile-friendly)
+- **Solution:** Replaced with `aspect-[4/3] sm:aspect-[16/7] min-h-64 max-h-[28rem]`
+  * 4:3 ratio on mobile (taller, narrower)
+  * 16:7 ratio on tablet+ (wider, shorter)
+  * Adapts to any screen size automatically
+- Also updated empty state: `h-[300px]` → `aspect-[4/3] sm:aspect-[16/7] min-h-48`
+- **Result:** Chart scales beautifully on all devices; no cramped mobile, no wasted space on desktop
+
+**Layout Fix 3: Removed Velocity Note**
+- **Problem:** "Avg DFF velocity: 18.1 days/month · FAD: 16 days/month" line added clutter without actionable insight
+- **Solution:** Removed entire velocity note block from GreenCardPanel
+- **Result:** Cleaner UI, focus on prediction cards with months-to-current
+
+**Spacing Improvements**
+- **Page level:** `space-y-8` → `space-y-12` → `space-y-16` (between profile card and panels, between panels)
+- **Green Card panel:** `space-y-4` → `space-y-8` (between toggle, chart, prediction cards)
+- **Sponsor panel:** `space-y-4` → `space-y-6` (between search and score sections)
+- **Salary panel:** `space-y-4` → `space-y-6` (between label and cards)
+- **StaggerContainer:** Added `className="space-y-16"` to apply 64px gaps between all child panels (divider, Green Card, Sponsor, Salary)
+
+### Technical Details
+
+**File Changes:**
+- `src/app/insights/page.tsx` (1231 lines)
+  * Lines 908–927: Removed employer form row
+  * Lines 476–521: Added `SponsorScoreContent` inner component with correct gauge props
+  * Lines 565–585: Updated `SponsorPanel` to use new component (replaced IIFE)
+  * Lines 373–382: Removed GlassCard + fixed-height wrapper around chart
+  * Various: Increased `space-y` values for panel spacing (4→6, 6→8, 12→16)
+  * Line 1176: Added `className="space-y-16"` to StaggerContainer
+
+- `src/components/pdi/priority-date-chart.tsx` (594 lines)
+  * Line 318: Updated empty state height: `h-[300px]` → `aspect-[4/3] sm:aspect-[16/7] min-h-48`
+  * Line 427: Updated chart height: `h-[400px]` → `aspect-[4/3] sm:aspect-[16/7] min-h-64 max-h-[28rem]`
+
+- `src/__tests__/insights-page.test.tsx`
+  * Updated `SrsScoreGauge` mock to match new `score`/`tier` API (not `employer` prop)
+  * Added mock props: `outcome_subscore`, `wage_subscore`, `sustainability_subscore`, `srs_ml`
+
+### Test Results
+- **472 tests passing** (all tests pass after updates)
+
+### Commits
+1. `c80ecab` — "Fix My Insights: remove duplicate employer field, fix layout stacking (IIFE→component), fix Unrated display (correct SrsScoreGauge props)"
+2. `872f43b` — "Fix My Insights layout: increase chart height from 300px to 420px, increase page spacing to prevent overlapping"
+3. `509b234` — "Fix My Insights chart styling: remove GlassCard padding so chart border isn't doubled"
+4. `546fff3` — "Fix chart overlap: remove redundant GlassCard+fixed-height wrapper around PriorityDateChart (component has its own border/padding)"
+5. `04e8a7c` — "Responsive chart: replace fixed px heights with aspect-ratio, remove velocity note, increase section spacing"
+6. `cf70f1b` — "Improve spacing: increase vertical gaps between all panel sections for better breathing room"
+7. `9c89d27` — "Fix panel spacing: add space-y-16 to StaggerContainer so divider and all panels have proper vertical gaps"
+
+### Design Principles Applied
+- ✅ **No hardcoded pixel heights** — All spacing uses Tailwind's responsive scales (space-y-6, space-y-8, etc.) and aspect-ratio for charts
+- ✅ **Mobile-first responsive design** — Charts adapt to viewport size via aspect-ratio; spacing scales naturally
+- ✅ **Generous whitespace** — Consistent 64px (space-y-16) between major sections, 24–32px between components
+- ✅ **Aurora design system** — Maintained dark-first luxury aesthetic, glassmorphic cards, consistent typography
+
+---
+
 ## 2026-03-03 — Milestone 10.12: My Insights Personalized Page
+
 
 ### Objective
 Build a "My Insights" page that collects personal profile details, persists them across the session, and renders three smart panels (Green Card Forecast, Sponsor Reliability, Salary Benchmark) personalized to the user's situation.
