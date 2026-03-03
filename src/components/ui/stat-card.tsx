@@ -108,7 +108,7 @@ function TrendBadge({ value, label }: { value: number; label: string }) {
       )}
     >
       <span>{isPositive ? "↑" : "↓"}</span>
-      <span>{Math.abs(value)}%</span>
+      <span>{Math.abs(value).toFixed(2)}%</span>
       <span className="text-[var(--muted-foreground)]">{label}</span>
     </span>
   );
