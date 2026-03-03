@@ -75,17 +75,25 @@ import { secureGet } from "@/lib/security";
 
 const EASING: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 
-// Color palette for the dashboard
+// Color palette — muted Aurora tones (softer, inline with design system)
 const COLORS = {
-  approved: "#10b981",      // emerald
-  denied: "#f43f5e",        // rose
-  total: "#3b82f6",         // blue
-  rateLine: "#fbbf24",      // amber
-  yoyPositive: "#10b981",
-  yoyNegative: "#f43f5e",
+  approved: "#34d399",        // emerald-400 (muted, used in legend + fallback)
+  denied: "#fb7185",          // rose-400 (muted, used in legend + fallback)
+  total: "#60a5fa",           // blue-400
+  rateLine: "#a78bfa",        // violet-400 (premium accent for rate line)
+  yoyPositive: "#34d399",     // emerald-400
+  yoyNegative: "#fb7185",     // rose-400
   grid: "rgba(255,255,255,0.04)",
-  axis: "rgba(255,255,255,0.35)",
+  axis: "rgba(255,255,255,0.30)",
   tooltipBg: "rgba(9,9,11,0.95)",
+};
+
+// Gradient fill IDs (defined as <defs> inside each chart)
+const GRAD = {
+  approved: "url(#gradApproved)",
+  denied: "url(#gradDenied)",
+  yoyPos: "url(#gradYoyPos)",
+  yoyNeg: "url(#gradYoyNeg)",
 };
 
 // ---------------------------------------------------------------------------
@@ -273,11 +281,11 @@ function ApprovalPulseChart({
         </div>
         <div className="flex items-center gap-4 text-[10px] text-[var(--muted-foreground)]">
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.approved }} />
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "linear-gradient(135deg, #34d399, #059669)" }} />
             Approved
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COLORS.denied }} />
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "linear-gradient(135deg, #fb7185, #be123c)" }} />
             Denied
           </span>
           <span className="flex items-center gap-1">
@@ -290,6 +298,16 @@ function ApprovalPulseChart({
       <div className="h-[340px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} barGap={0} barCategoryGap="20%">
+            <defs>
+              <linearGradient id="gradApproved" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#059669" stopOpacity={0.55} />
+              </linearGradient>
+              <linearGradient id="gradDenied" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fb7185" stopOpacity={0.85} />
+                <stop offset="100%" stopColor="#9f1239" stopOpacity={0.5} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
 
             {/* Admin bands (optional) */}
@@ -339,8 +357,8 @@ function ApprovalPulseChart({
             />
             <Tooltip content={<TrendTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
 
-            <Bar yAxisId="left" dataKey="approved" stackId="cases" fill={COLORS.approved} radius={[0, 0, 0, 0]} />
-            <Bar yAxisId="left" dataKey="denied" stackId="cases" fill={COLORS.denied} radius={[4, 4, 0, 0]} />
+            <Bar yAxisId="left" dataKey="approved" stackId="cases" fill={GRAD.approved} radius={[0, 0, 0, 0]} />
+            <Bar yAxisId="left" dataKey="denied" stackId="cases" fill={GRAD.denied} radius={[4, 4, 0, 0]} />
 
             <Line
               yAxisId="right"
@@ -349,7 +367,7 @@ function ApprovalPulseChart({
               stroke={COLORS.rateLine}
               strokeWidth={2.5}
               dot={{ fill: COLORS.rateLine, r: 3 }}
-              activeDot={{ r: 5, strokeWidth: 6, stroke: "rgba(251,191,36,0.3)" }}
+              activeDot={{ r: 5, strokeWidth: 6, stroke: "rgba(167,139,250,0.35)" }}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -409,7 +427,7 @@ function VelocityChart({ data }: { data: PermDetailPoint[] }) {
     .filter((d) => d.yoy_approval_rate_change != null && d.fiscal_year >= 2009)
     .map((d) => ({
       ...d,
-      fillColor: (d.yoy_approval_rate_change ?? 0) >= 0 ? COLORS.yoyPositive : COLORS.yoyNegative,
+      fillColor: (d.yoy_approval_rate_change ?? 0) >= 0 ? GRAD.yoyPos : GRAD.yoyNeg,
     }));
 
   return (
@@ -425,6 +443,16 @@ function VelocityChart({ data }: { data: PermDetailPoint[] }) {
       <div className="h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={velocityData} barCategoryGap="15%">
+            <defs>
+              <linearGradient id="gradYoyPos" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.65} />
+                <stop offset="100%" stopColor="#34d399" stopOpacity={0.85} />
+              </linearGradient>
+              <linearGradient id="gradYoyNeg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fb7185" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="#fb923c" stopOpacity={0.55} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
             <XAxis
               dataKey="fiscal_year"
@@ -459,24 +487,39 @@ function VelocityChart({ data }: { data: PermDetailPoint[] }) {
 // ---------------------------------------------------------------------------
 
 function CrossTrackChart({ categories }: { categories: CategoryRow[] }) {
-  const chartData = categories.map((c) => ({
-    ...c,
-    label: sourceLabel(c.data_source),
-    fullLabel: categoryLabel(c.visa_category),
-  }));
+  // Exclude Visa Applications — incomplete refusal tracking yields 100%, no insight
+  const chartData = categories
+    .filter((c) => c.data_source !== "visa_applications")
+    .map((c) => ({
+      ...c,
+      label: sourceLabel(c.data_source),
+      fullLabel: categoryLabel(c.visa_category),
+    }));
 
   return (
     <GlassCard variant="elevated" padding="lg">
-      <div className="mb-4">
+      <div className="mb-5">
         <h3 className="text-base font-bold text-[var(--foreground)]">
           Cross-Track Comparison
         </h3>
         <p className="text-xs text-[var(--muted-foreground)]">
-          Approval rates across 3 immigration tracks · All-time totals
+          Approval rates across immigration tracks · All-time totals
         </p>
       </div>
 
-      <div className="space-y-4">
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-4 text-[10px] text-[var(--muted-foreground)]">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-sm" style={{ background: "linear-gradient(90deg, rgba(52,211,153,0.8), rgba(16,185,129,0.45))" }} />
+          Approved
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-sm" style={{ background: "linear-gradient(90deg, rgba(251,113,133,0.75), rgba(251,146,60,0.4))" }} />
+          Denied
+        </span>
+      </div>
+
+      <div className="space-y-5">
         {chartData.map((row, i) => {
           const approvalWidth = Math.max(row.approval_rate_pct, 0);
           const denialWidth = Math.max(row.denial_rate_pct, 0);
@@ -486,61 +529,84 @@ function CrossTrackChart({ categories }: { categories: CategoryRow[] }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1, duration: 0.4, ease: EASING }}
-              className="space-y-1.5"
+              className="space-y-2"
             >
+              {/* Track header */}
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-[var(--foreground)]">
                     {row.label}
                   </span>
-                  <span className="ml-2 text-[10px] text-[var(--muted-foreground)]">
+                  <span className="text-[10px] text-[var(--muted-foreground)] bg-white/[0.04] px-1.5 py-0.5 rounded-md border border-white/[0.06]">
                     {row.fullLabel}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-[var(--muted-foreground)]">
+                  <span className="text-[10px] font-mono text-[var(--muted-foreground)]">
                     {formatCompact(row.total_cases)} cases
                   </span>
-                  <span className="text-sm font-mono font-bold text-emerald-400">
+                  <span className="text-sm font-mono font-semibold" style={{ color: "#34d399" }}>
                     {row.approval_rate_pct.toFixed(1)}%
                   </span>
+                  {denialWidth > 0 && (
+                    <span className="text-xs font-mono" style={{ color: "#fb7185" }}>
+                      −{row.denial_rate_pct.toFixed(1)}%
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="flex h-6 w-full overflow-hidden rounded-lg">
+
+              {/* Progress bar track */}
+              <div
+                className="relative flex h-7 w-full overflow-hidden rounded-lg"
+                style={{
+                  background: "rgba(255,255,255,0.025)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                {/* Approval fill */}
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${approvalWidth}%` }}
-                  transition={{ duration: 0.8, ease: EASING, delay: i * 0.1 }}
-                  className="bg-emerald-500/80 flex items-center justify-end pr-2"
+                  transition={{ duration: 0.9, ease: EASING, delay: i * 0.12 }}
+                  className="relative flex items-center justify-end pr-2.5 shrink-0"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(52,211,153,0.75) 0%, rgba(16,185,129,0.45) 100%)",
+                    borderRight: "1px solid rgba(52,211,153,0.2)",
+                  }}
                 >
-                  {approvalWidth > 30 && (
-                    <span className="text-[10px] font-mono font-bold text-white">
+                  {approvalWidth > 35 && (
+                    <span className="text-[10px] font-mono font-bold text-white/90">
                       {row.approval_rate_pct.toFixed(1)}%
                     </span>
                   )}
                 </motion.div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${denialWidth}%` }}
-                  transition={{ duration: 0.8, ease: EASING, delay: i * 0.1 + 0.1 }}
-                  className="bg-rose-500/80 flex items-center justify-start pl-1"
-                >
-                  {denialWidth > 5 && (
-                    <span className="text-[10px] font-mono font-bold text-white">
-                      {row.denial_rate_pct.toFixed(2)}%
-                    </span>
-                  )}
-                </motion.div>
+
+                {/* Denial fill */}
+                {denialWidth > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${denialWidth}%` }}
+                    transition={{ duration: 0.9, ease: EASING, delay: i * 0.12 + 0.12 }}
+                    className="relative flex items-center justify-start pl-2 shrink-0"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, rgba(251,113,133,0.7) 0%, rgba(251,146,60,0.38) 100%)",
+                    }}
+                  >
+                    {denialWidth > 6 && (
+                      <span className="text-[10px] font-mono font-bold text-white/90">
+                        {row.denial_rate_pct.toFixed(1)}%
+                      </span>
+                    )}
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           );
         })}
       </div>
-
-      <p className="mt-4 text-[10px] text-[var(--muted-foreground)] text-center flex items-center justify-center gap-1">
-        <Info className="h-3 w-3" />
-        Visa Applications show 100% due to incomplete refusal tracking in recent fiscal years
-      </p>
     </GlassCard>
   );
 }
@@ -647,14 +713,14 @@ function RiskWindow({ data }: { data: PermDetailPoint[] }) {
 // ---------------------------------------------------------------------------
 
 function HeatGrid({ data }: { data: PermDetailPoint[] }) {
-  // Color interpolation: low(red) → mid(amber) → high(green)
+  // Color tiers — muted Aurora palette
   function rateColor(rate: number): string {
-    if (rate >= 96) return "bg-emerald-500/80 border-emerald-500/30";
-    if (rate >= 94) return "bg-emerald-500/50 border-emerald-500/20";
-    if (rate >= 91) return "bg-blue-500/50 border-blue-500/20";
-    if (rate >= 88) return "bg-amber-500/50 border-amber-500/20";
-    if (rate >= 85) return "bg-amber-500/70 border-amber-500/30";
-    return "bg-rose-500/60 border-rose-500/30";
+    if (rate >= 96) return "bg-emerald-500/50 border-emerald-400/20";
+    if (rate >= 94) return "bg-emerald-500/35 border-emerald-400/15";
+    if (rate >= 91) return "bg-blue-500/35 border-blue-400/15";
+    if (rate >= 88) return "bg-violet-500/35 border-violet-400/15";
+    if (rate >= 85) return "bg-amber-500/35 border-amber-400/20";
+    return "bg-rose-500/35 border-rose-400/20";
   }
 
   const maxTotal = Math.max(...data.map((d) => d.total));
@@ -704,21 +770,24 @@ function HeatGrid({ data }: { data: PermDetailPoint[] }) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-3 mt-4 text-[10px] text-[var(--muted-foreground)]">
+      <div className="flex flex-wrap items-center justify-center gap-3 mt-4 text-[10px] text-[var(--muted-foreground)]">
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-rose-500/60" /> &lt;85%
+          <span className="h-2.5 w-2.5 rounded-sm bg-rose-500/35" /> &lt;85%
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-amber-500/50" /> 85–93%
+          <span className="h-2.5 w-2.5 rounded-sm bg-amber-500/35" /> 85–87%
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-blue-500/50" /> 91–93%
+          <span className="h-2.5 w-2.5 rounded-sm bg-violet-500/35" /> 88–90%
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/50" /> 94–95%
+          <span className="h-2.5 w-2.5 rounded-sm bg-blue-500/35" /> 91–93%
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/80" /> 96%+
+          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/35" /> 94–95%
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/50" /> 96%+
         </span>
         <span className="ml-2 flex items-center gap-1">
           <span className="h-2.5 w-4 rounded-sm border border-dashed border-white/30 bg-transparent" /> Partial
