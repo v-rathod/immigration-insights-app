@@ -340,7 +340,7 @@ function GreenCardPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {sectionHeader}
 
         {/* Optimistic / Realistic toggle */}
@@ -562,7 +562,7 @@ function SponsorPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {sectionHeader}
 
         {/* Employer search — always shown, pre-filled with profile employer */}
@@ -692,7 +692,7 @@ function SalaryPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {sectionHeader}
 
         <GlassCard variant="elevated" padding="lg">
@@ -1144,7 +1144,7 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-12 pb-12" data-testid="insights-page">
+    <div className="space-y-16 pb-12" data-testid="insights-page">
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <FadeIn>
         <div className="flex items-center gap-3">
