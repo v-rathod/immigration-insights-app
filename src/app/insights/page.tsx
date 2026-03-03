@@ -373,19 +373,15 @@ function GreenCardPanel({
 
         {/* Chart */}
         {hasChartData && (
-          <GlassCard variant="elevated" padding="none">
-            <div className="h-[420px] w-full">
-              <PriorityDateChart
-                dffForecast={dffSeries}
-                fadForecast={fadSeries}
-                dffTrends={dffTrends}
-                fadTrends={fadTrends}
-                priorityDate={profile.priorityDate}
-                dffExtrapolation={dffExtrapolation}
-                fadExtrapolation={fadExtrapolation}
-              />
-            </div>
-          </GlassCard>
+          <PriorityDateChart
+            dffForecast={dffSeries}
+            fadForecast={fadSeries}
+            dffTrends={dffTrends}
+            fadTrends={fadTrends}
+            priorityDate={profile.priorityDate}
+            dffExtrapolation={dffExtrapolation}
+            fadExtrapolation={fadExtrapolation}
+          />
         )}
 
         {/* Prediction cards */}
