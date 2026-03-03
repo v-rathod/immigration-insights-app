@@ -473,6 +473,68 @@ function GreenCardPanel({
 // Panel B: Sponsor Intelligence
 // ---------------------------------------------------------------------------
 
+// Inner component — avoids IIFE-in-JSX pattern and correctly maps gauge props
+function SponsorScoreContent({
+  employer,
+  risk,
+}: {
+  employer: SponsorReliabilityScore & { srs_ml?: number };
+  risk: EmployerRiskFeature | undefined;
+}) {
+  const isRated =
+    employer.srs != null &&
+    !isNaN(Number(employer.srs)) &&
+    employer.srs_tier !== "Unrated";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="space-y-4"
+    >
+      {isRated ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <GlassCard variant="elevated" padding="lg">
+            <SrsScoreGauge
+              score={employer.srs ?? null}
+              tier={employer.srs_tier}
+              subscores={{
+                outcome: employer.outcome_subscore,
+                wage: employer.wage_subscore,
+                sustainability: employer.sustainability_subscore,
+              }}
+              mlScore={employer.srs_ml ?? undefined}
+            />
+          </GlassCard>
+          <GlassCard variant="elevated" padding="lg">
+            <EmployerDetailCard employer={employer} risk={risk} />
+          </GlassCard>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
+            <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Sponsor Reliability Score not available
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                <span className="font-medium text-[var(--foreground)]">{employer.employer_name}</span>{" "}
+                has insufficient H-1B sponsorship history to compute a reliability score.
+                Filing detail and approval rates may still be available below.
+              </p>
+            </div>
+          </div>
+          <GlassCard variant="elevated" padding="lg">
+            <EmployerDetailCard employer={employer} risk={risk} />
+          </GlassCard>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function SponsorPanel({
   profile,
   overallScores,
@@ -537,47 +599,9 @@ function SponsorPanel({
             title="Select your employer"
             body="Search for your sponsoring employer above to see their Sponsor Reliability Score, approval rates, wage competitiveness, and risk signals."
           />
-        ) : (() => {
-          const isRated = selectedEmployer.srs != null && !isNaN(Number(selectedEmployer.srs));
-          return (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="space-y-4"
-            >
-              {isRated ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <GlassCard variant="elevated" padding="lg">
-                    <SrsScoreGauge employer={selectedEmployer} />
-                  </GlassCard>
-                  <GlassCard variant="elevated" padding="lg">
-                    <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
-                  </GlassCard>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
-                    <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--foreground)]">
-                        Sponsor Reliability Score not available
-                      </p>
-                      <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                        <span className="font-medium text-[var(--foreground)]">{selectedEmployer.employer_name}</span>{" "}
-                        has insufficient H-1B sponsorship history to compute a reliability score.
-                        Filing detail and approval rates may still be available below.
-                      </p>
-                    </div>
-                  </div>
-                  <GlassCard variant="elevated" padding="lg">
-                    <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
-                  </GlassCard>
-                </div>
-              )}
-            </motion.div>
-          );
-        })()}
+        ) : (
+          <SponsorScoreContent employer={selectedEmployer} risk={selectedRisk} />
+        )}
 
         {/* Trend chart */}
         {selectedEmployer && selectedMetrics.length > 0 && (
@@ -902,26 +926,6 @@ function ProfileCard({
                       {label}
                     </Pill>
                   ))}
-                </div>
-              </div>
-
-              {/* Employer — set via Sponsor Intelligence panel below */}
-              <div className="sm:col-span-2 lg:col-span-1">
-                <FormLabel icon={Building2}>Current / Sponsoring Employer</FormLabel>
-                <div className="flex items-center gap-2 rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
-                  {profile.employerName ? (
-                    <>
-                      <Building2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="text-sm text-[var(--foreground)] truncate">{profile.employerName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        Search in <span className="text-violet-400">Sponsor Intelligence</span> below
-                      </span>
-                    </>
-                  )}
                 </div>
               </div>
 

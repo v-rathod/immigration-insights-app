@@ -125,6 +125,10 @@ vi.mock("@/components/srs/employer-search", () => ({
             srs: 88,
             srs_tier: "Excellent",
             scope: "overall",
+            outcome_subscore: 90,
+            wage_subscore: 85,
+            sustainability_subscore: 88,
+            srs_ml: 87,
           } as any)
         }
         data-testid="mock-select-employer"
@@ -136,8 +140,8 @@ vi.mock("@/components/srs/employer-search", () => ({
 }));
 
 vi.mock("@/components/srs/score-gauge", () => ({
-  SrsScoreGauge: ({ employer }: { employer: { employer_name: string } }) => (
-    <div data-testid="srs-score-gauge">{employer.employer_name}</div>
+  SrsScoreGauge: ({ score, tier }: { score: number | null; tier: string }) => (
+    <div data-testid="srs-score-gauge">{tier ?? score}</div>
   ),
 }));
 
