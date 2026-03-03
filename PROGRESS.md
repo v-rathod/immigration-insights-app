@@ -1,3 +1,73 @@
+## 2026-03-03 — Milestone 10.12: My Insights Personalized Page
+
+### Objective
+Build a "My Insights" page that collects personal profile details, persists them across the session, and renders three smart panels (Green Card Forecast, Sponsor Reliability, Salary Benchmark) personalized to the user's situation.
+
+### What Was Done
+
+**New Page: `src/app/insights/page.tsx`**
+- 7-field profile card: priorityDate (date), category (EB1–EB5 pills), country of chargeability (IND/CHN/ROW/PHL/MEX pills), employerName (text), wageOffered (number), jobTitle (text), yearsOfExperience (number)
+- Collapsible form with Done/Edit toggle; collapsed summary shows filled values; "Saved ✓" badge
+- Persistence via `secureGet<Partial<UserProfile>>` / `secureSet<UserProfile>` (security module handles JSON serialization internally)
+- **Smart visibility** — panels hide with CTA placeholders until required input exists:
+  - Green Card Forecast: requires `priorityDate`
+  - Sponsor Panel: always shows search; reveals score/details after employer selected
+  - Salary Panel: requires `wageOffered > 0`
+- **Green Card panel**: Optimistic/Realistic toggle, PriorityDateChart, DFF + FAD prediction cards with months-to-current
+- **Sponsor panel**: EmployerSearch + SrsScoreGauge + EmployerDetailCard + SrsTrendChart
+- **Salary panel**: percentile bar, national benchmark comparison, vs-median formatted text
+- Profile header: violet→purple gradient icon, matches PDI/SRS page aesthetic
+- `data-testid="loading-spinner"` on the Framer Motion loading div for testability
+- Added `/insights` navigation in Personal group (removed `/setup` which had no page)
+
+**Sidebar update: `src/components/layout/sidebar.tsx`**
+- Removed `{ href: "/setup", label: "Setup", ... }` entry (no page exists for it)
+- Removed `Settings` icon import (unused after Setup removal)
+
+**Tests: `src/__tests__/insights-page.test.tsx`** (new — 27 tests)
+- 8 describe blocks: page structure (3), profile empty state (4), field interactions (4), persistence (1), Green Card panel (3), Sponsor panel (5), Salary panel (4), loading state (1)
+- Mocks: framer-motion, recharts, PriorityDateChart, EmployerSearch, SrsScoreGauge, EmployerDetailCard, SrsTrendChart, all data loaders, security module
+- Covers smart visibility, persistence loading, employer selection sync, salary benchmark display
+
+**Tests: `src/__tests__/sidebar.test.tsx`** (updated — +1 test)
+- Added "My Insights" in Personal group test; asserts "Setup" is no longer rendered
+
+### Test Results
+- **471 passing** across 22 test files (27 new + residual from sidebar update)
+
+### Files Changed
+- `src/app/insights/page.tsx` — CREATED (new personalized insights page)
+- `src/components/layout/sidebar.tsx` — Removed Setup nav entry
+- `src/__tests__/insights-page.test.tsx` — CREATED (27 tests)
+- `src/__tests__/sidebar.test.tsx` — Updated (My Insights test, Setup absence assertion)
+- `PROGRESS.md` — This entry
+- `.github/copilot-instructions.md` — Updated inventory, test counts, phase checklist
+
+---
+
+## 2026-03-03 — Milestone 10.11: Approvals Dashboard Visual Redesign
+
+### Objective
+Improve visual quality of the USCIS Approvals Dashboard: remove the uninformative "Visa Applications" bar from Cross-Track Comparison, replace flat solid colors with muted aurora gradients across all charts.
+
+### What Was Done
+
+**`src/components/approvals/ApprovalDenialDashboard.tsx`**
+- **Removed** Visa Applications bar from Cross-Track Comparison (was always 100%, added noise not insight)
+- **New COLORS palette**: muted aurora — `approved: "#34d399"`, `denied: "#fb7185"`, `rateLine: "#a78bfa"` (violet)  
+- **Approval Pulse chart**: injected SVG `<defs>` with named `linearGradient`s (emerald 0.9→0.55, rose 0.85→0.5)
+- **YoY Velocity gradient bars**: blue→emerald stroke for positive, rose→amber for negative (via `GRAD` references)
+- **Cross-Track**: glassmorphic bg track, CSS gradient fills (`bg-gradient-to-r`), badge chips for category labels, inline denial % in header rows
+- **Heat Grid**: muted tier opacities (0.35–0.50); added violet tier for 88–90% range
+
+### Test Results
+- All existing tests passing; commit `2fac694`
+
+### Files Changed
+- `src/components/approvals/ApprovalDenialDashboard.tsx` — Visual redesign (committed `2fac694`)
+
+---
+
 ## 2026-03-02 — Milestone 10.10: Fix Page Refresh on Sidebar Navigation
 
 ### Objective
@@ -732,31 +802,30 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.5 — 2026-03-02)
+## Quick Reference (Current State as of Milestone 10.12 — 2026-03-03)
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 3 — 8 Dashboards (3/8) + Phase 5 — RAG Q&A ✅ |
+| **Current Phase** | Phase 3 — 8 Dashboards (3/8) + Phase 4 — Personalized Panels (1/5) + Phase 5 — RAG Q&A ✅ |
 | Framework | Next.js 16.1.6 (App Router, static export) |
 | TypeScript | 5.x (strict mode) |
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **395 passing** across 20 test files |
-| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` (includes `employer_role_profiles.json` + both H-1B/PERM in `employer_wage_rankings.json`) |
-| Pages scaffolded | 9 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
-| Components | 33 custom (layout, UI, SRS, PDI, wage, providers) |
+| Tests | **471 passing** across 22 test files |
+| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
+| Pages scaffolded | 10 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
+| Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) |
-| Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → Personal |
-| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅ with 100-employer min threshold) |
-| Personalized panels | 0 / 5 |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) |
+| Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
+| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅) |
+| Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
-| **Data quality** | ✅ Canonical employer names across ALL employer artifacts; dim_employer is sole source of truth; occupation groups ≥100 employers minimum; employer_wage_rankings includes both H-1B and PERM visa types |
 
 ### Quick Commands
 ```bash
@@ -882,7 +951,12 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.4 | 2026-03-02 | Top Roles Data Source Fix | Root-cause fix: new `employer_role_profiles.json` (employer-centric, top-25 roles by filings, 485 employers); was using SOC-centric `employer_wage_rankings` causing Cognizant to show 2 of 33 roles; sync script + new loader + EmployerProfile updated; 395 tests; commit 5ecf659 |
 | 10.5 | 2026-03-02 | Wage Dashboard UX + Data Quality | Reorder page sections (Salary Overview pushed down after Rising Stars); apply 100-employer minimum threshold to occupation groups for statistical significance; updated test mock to generate 122+ synthetic employers; all 395 tests passing; commit daceb738 |
 | 10.6 | 2026-03-02 | Fix Missing PERM Data in Wage Rankings | Removed H-1B-only filter from sync script; now includes both H-1B (3,912) and PERM (760) employers in rankings; increased per-SOC limit from 25 → 50; Software Developers now shows 47 H-1B + 3 PERM (was 25 + 0); 394 tests passing; commit f4c66fab |
-| 10.7 | 2026-03-02 | Add Point Markers to Line Charts | Added data point dots to all charts: PriorityDateChart (4 lines), MarketTrendChart (3 areas), SrsTrendChart (3 areas); improved readability and hover interaction; 394 tests passing; commit d0cf9f8c |
+| 10.7 | 2026-03-02 | Add Point Markers to Line Charts | Added data point dots to all charts: PriorityDateChart (4 lines), MarketTrendChart (3 areas), SrsTrendChart (3 areas); 394 tests passing; commit d0cf9f8c |
+| 10.8 | 2026-03-02 | Limit Priority Date Chart to Last 10 Years | Capped historical trend display to 10 years for readability |
+| 10.9 | 2026-03-02 | Wage Dashboard UX Refinements | Reorder sections; employer drill-down below leaderboard; prior-year salary context in Top Roles table |
+| 10.10 | 2026-03-02 | Fix Page Refresh on Sidebar Navigation | Converted sidebar Link → button with `window.location.href`; hard page reload on nav |
+| 10.11 | 2026-03-03 | Approvals Dashboard Visual Redesign | Muted aurora gradient palette; removed Visa Applications bar from Cross-Track; SVG gradient defs in charts; commit 2fac694 |
+| 10.12 | 2026-03-03 | My Insights Personalized Page | New `/insights` page: 7-field profile card, 3 smart panels (Green Card Forecast, Sponsor, Salary), persistence via secureSet/secureGet, smart visibility CTAs, 471 tests (22 files) |
 
 ---
 

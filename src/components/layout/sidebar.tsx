@@ -11,7 +11,6 @@ import {
   Clock,
   Layers,
   Search,
-  Settings,
   User,
   ChevronLeft,
   ChevronRight,
@@ -50,7 +49,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/ask", label: "Ask", icon: Search, group: "Tools" },
   { href: "/about", label: "About", icon: Compass, group: "Project" },
   { href: "/insights", label: "My Insights", icon: User, group: "Personal" },
-  { href: "/setup", label: "Setup", icon: Settings, group: "Personal" },
 ];
 
 // ---------------------------------------------------------------------------

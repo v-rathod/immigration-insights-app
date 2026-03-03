@@ -98,6 +98,15 @@ describe("Sidebar", () => {
     expect(screen.getByLabelText("Open navigation menu")).toBeInTheDocument();
   });
 
+  it("renders My Insights in the Personal group", async () => {
+    renderSidebar();
+    const items = await screen.findAllByText("My Insights");
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    // Setup should NOT be in the sidebar
+    const setupItems = screen.queryAllByText("Setup");
+    expect(setupItems.length).toBe(0);
+  });
+
   it("renders collapse button", async () => {
     renderSidebar();
     const collapseButtons = await screen.findAllByLabelText("Collapse sidebar");

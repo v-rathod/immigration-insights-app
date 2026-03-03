@@ -1,0 +1,1124 @@
+/**
+ * My Insights — Personalized Immigration Dashboard
+ *
+ * Collects 7 profile fields inline (persisted to localStorage) and renders
+ * 3 smart insight panels that unlock progressively as fields are filled:
+ *
+ *   A. Green Card Forecast   — priority date + category + country → PDI chart + predictions
+ *   B. Sponsor Intelligence  — employer name → SRS gauge + metrics + trend
+ *   C. Salary Compass        — salary + employer/job title → percentile + benchmark
+ *
+ * No separate /setup page — this IS the setup and the insights in one flow.
+ *
+ * Route: /insights
+ */
+"use client";
+
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  User,
+  Calendar,
+  Building2,
+  DollarSign,
+  MapPin,
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  Shield,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  Zap,
+  ArrowUpRight,
+  Info,
+  Edit3,
+  Save,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatMonthYear, formatCurrency } from "@/lib/utils/format";
+import { GlassCard, FadeIn, StaggerContainer, StaggerItem } from "@/components/ui";
+import { PriorityDateChart } from "@/components/pdi/priority-date-chart";
+import {
+  EmployerSearch,
+  SrsScoreGauge,
+  EmployerDetailCard,
+  SrsTrendChart,
+} from "@/components/srs";
+import {
+  loadPdForecasts,
+  loadCutoffTrends,
+  getForecastSeries,
+  getHistoricalSeries,
+  computePdi,
+  extrapolateForChart,
+  COUNTRY_LABELS,
+} from "@/lib/data/pdi";
+import {
+  loadSrsScores,
+  loadSrsScoresML,
+  loadEmployerMonthlyMetrics,
+  loadEmployerRiskFeatures,
+  filterOverallScores,
+  getEmployerMetrics,
+  getEmployerRisk,
+} from "@/lib/data/srs";
+import {
+  loadSalaryBenchmarksNational,
+  getNationalBenchmark,
+  computePercentile,
+} from "@/lib/data/wage";
+import { secureGet, secureSet } from "@/lib/security";
+import type { PdForecast } from "@/types/p2-artifacts";
+import type { CutoffTrendRecord } from "@/lib/data/pdi";
+import type {
+  SponsorReliabilityScore,
+  SponsorReliabilityScoreML,
+  EmployerMonthlyMetric,
+  EmployerRiskFeature,
+} from "@/types/p2-artifacts";
+import type { SalaryBenchmark } from "@/lib/data/wage";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
+const STORAGE_KEY = "user_profile";
+
+const EB_CATEGORIES = ["EB1", "EB2", "EB3", "EB3-Other", "EB4", "EB5"] as const;
+const DISPLAY_COUNTRIES = [
+  { code: "IND", label: "India" },
+  { code: "CHN", label: "China" },
+  { code: "ROW", label: "Rest of World" },
+  { code: "PHL", label: "Philippines" },
+  { code: "MEX", label: "Mexico" },
+] as const;
+
+const REALISTIC_MULTIPLIER = 0.65;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface UserProfile {
+  priorityDate: string;       // YYYY-MM-DD
+  category: string;           // "EB2" etc.
+  country: string;            // "IND" etc.
+  employerName: string;       // free text
+  wageOffered: string;        // numeric string (keep as string for input compatibility)
+  jobTitle: string;
+  yearsOfExperience: string;  // numeric string
+}
+
+const DEFAULT_PROFILE: UserProfile = {
+  priorityDate: "",
+  category: "EB2",
+  country: "IND",
+  employerName: "",
+  wageOffered: "",
+  jobTitle: "",
+  yearsOfExperience: "",
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function loadProfile(): UserProfile {
+  try {
+    const parsed = secureGet<Partial<UserProfile>>(STORAGE_KEY);
+    if (!parsed || typeof parsed !== "object") return DEFAULT_PROFILE;
+    return { ...DEFAULT_PROFILE, ...parsed };
+  } catch {
+    return DEFAULT_PROFILE;
+  }
+}
+
+function saveProfile(profile: UserProfile) {
+  try {
+    secureSet<UserProfile>(STORAGE_KEY, profile);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function isProfileFilled(p: UserProfile): boolean {
+  return !!(p.priorityDate || p.employerName || p.wageOffered);
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+/** Pill selector button — matches PDI/SRS page aesthetic */
+function Pill({
+  active,
+  onClick,
+  children,
+  color = "blue",
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  color?: "blue" | "purple" | "emerald";
+}) {
+  const activeClasses = {
+    blue: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+    purple: "bg-violet-500/20 text-violet-300 border-violet-500/40",
+    emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+        active
+          ? activeClasses[color]
+          : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Label + small icon for form rows */
+function FormLabel({ icon: Icon, children }: { icon: typeof Calendar; children: React.ReactNode }) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+      <Icon className="h-3.5 w-3.5" />
+      {children}
+    </label>
+  );
+}
+
+/** Padlock-style empty-state CTA */
+function PanelCTA({ icon: Icon, title, body }: { icon: typeof Target; title: string; body: string }) {
+  return (
+    <GlassCard padding="lg" className="border-dashed border-violet-500/[0.15]">
+      <div className="flex flex-col items-center py-6 text-center gap-2">
+        <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-1">
+          <Icon className="h-5 w-5 text-violet-400/70" />
+        </div>
+        <p className="text-sm font-semibold text-[var(--foreground)]">{title}</p>
+        <p className="text-xs text-[var(--muted-foreground)] max-w-xs leading-relaxed">{body}</p>
+      </div>
+    </GlassCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Panel A: Green Card Forecast
+// ---------------------------------------------------------------------------
+
+function GreenCardPanel({
+  profile,
+  forecasts,
+  trends,
+}: {
+  profile: UserProfile;
+  forecasts: PdForecast[];
+  trends: CutoffTrendRecord[];
+}) {
+  const [isOptimistic, setIsOptimistic] = useState(true);
+  const multiplier = isOptimistic ? 1.0 : REALISTIC_MULTIPLIER;
+
+  const hasPd = !!profile.priorityDate;
+  const hasData = forecasts.length > 0;
+
+  const dffSeries = useMemo(
+    () => (hasData ? getForecastSeries(forecasts, "DFF", profile.category, profile.country) : []),
+    [forecasts, profile.category, profile.country, hasData]
+  );
+  const fadSeries = useMemo(
+    () => (hasData ? getForecastSeries(forecasts, "FAD", profile.category, profile.country) : []),
+    [forecasts, profile.category, profile.country, hasData]
+  );
+
+  const dffPdi = useMemo(() => {
+    if (!hasPd || dffSeries.length === 0) return null;
+    return computePdi(forecasts, "DFF", profile.category, profile.country, profile.priorityDate, multiplier);
+  }, [forecasts, profile.category, profile.country, profile.priorityDate, dffSeries.length, multiplier, hasPd]);
+
+  const fadPdi = useMemo(() => {
+    if (!hasPd || fadSeries.length === 0) return null;
+    return computePdi(forecasts, "FAD", profile.category, profile.country, profile.priorityDate, multiplier);
+  }, [forecasts, profile.category, profile.country, profile.priorityDate, fadSeries.length, multiplier, hasPd]);
+
+  const dffExtrapolation = useMemo(() => {
+    if (!hasPd || dffSeries.length === 0) return [];
+    const ts = new Date(profile.priorityDate).getTime();
+    return isNaN(ts) ? [] : extrapolateForChart(dffSeries, ts, 120, multiplier);
+  }, [profile.priorityDate, dffSeries, multiplier, hasPd]);
+
+  const fadExtrapolation = useMemo(() => {
+    if (!hasPd || fadSeries.length === 0) return [];
+    const ts = new Date(profile.priorityDate).getTime();
+    return isNaN(ts) ? [] : extrapolateForChart(fadSeries, ts, 120, multiplier);
+  }, [profile.priorityDate, fadSeries, multiplier, hasPd]);
+
+  const dffTrends = useMemo(
+    () => getHistoricalSeries(trends, "DFF", profile.category, profile.country),
+    [trends, profile.category, profile.country]
+  );
+  const fadTrends = useMemo(
+    () => getHistoricalSeries(trends, "FAD", profile.category, profile.country),
+    [trends, profile.category, profile.country]
+  );
+
+  const hasChartData = dffSeries.length > 0 || fadSeries.length > 0;
+
+  // --- Section header ---
+  const sectionHeader = (
+    <div className="flex items-center gap-3 mb-1">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 shrink-0">
+        <Calendar className="h-4 w-4 text-white" />
+      </div>
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Green Card Forecast</h2>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          When your priority date may become current ·{" "}
+          {COUNTRY_LABELS[profile.country] ?? profile.country} · {profile.category}
+        </p>
+      </div>
+    </div>
+  );
+
+  if (!hasPd) {
+    return (
+      <FadeIn>
+        <div className="space-y-3">
+          {sectionHeader}
+          <PanelCTA
+            icon={Calendar}
+            title="Enter your priority date above"
+            body="Add your priority date in the profile card to see when the cutoff date may reach your PD — with DFF and FAD timeline projections."
+          />
+        </div>
+      </FadeIn>
+    );
+  }
+
+  return (
+    <FadeIn>
+      <div className="space-y-4">
+        {sectionHeader}
+
+        {/* Optimistic / Realistic toggle */}
+        <div className="flex items-center gap-2 justify-end">
+          <span className="text-[10px] text-[var(--muted-foreground)]">Forecast mode:</span>
+          <button
+            onClick={() => setIsOptimistic(true)}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              isOptimistic
+                ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                : "text-[var(--muted-foreground)] border-white/[0.08]"
+            )}
+          >
+            <Zap className="h-3 w-3 inline mr-1" />
+            Optimistic
+          </button>
+          <button
+            onClick={() => setIsOptimistic(false)}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              !isOptimistic
+                ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
+                : "text-[var(--muted-foreground)] border-white/[0.08]"
+            )}
+          >
+            Realistic
+          </button>
+        </div>
+
+        {/* Chart */}
+        {hasChartData && (
+          <GlassCard variant="elevated" padding="lg">
+            <div className="h-[300px]">
+              <PriorityDateChart
+                dffForecast={dffSeries}
+                fadForecast={fadSeries}
+                dffTrends={dffTrends}
+                fadTrends={fadTrends}
+                priorityDate={profile.priorityDate}
+                dffExtrapolation={dffExtrapolation}
+                fadExtrapolation={fadExtrapolation}
+              />
+            </div>
+          </GlassCard>
+        )}
+
+        {/* Prediction cards */}
+        {(dffPdi || fadPdi) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {dffPdi && (
+              <GlassCard variant="elevated" padding="md">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                      Date for Filing (DFF)
+                    </p>
+                    {dffPdi.found && dffPdi.currentMonth ? (
+                      <>
+                        <p className="text-xl font-mono font-bold text-[var(--foreground)]">
+                          {formatMonthYear(dffPdi.currentMonth)}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          ~{dffPdi.monthsUntilCurrent} months from now
+                          {dffPdi.extrapolated && (
+                            <span className="ml-1 text-amber-400/80">(extrapolated)</span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        Already current or no data
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+            {fadPdi && (
+              <GlassCard variant="elevated" padding="md">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <CheckCircle className="h-4 w-4 text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                      Final Action Date (FAD)
+                    </p>
+                    {fadPdi.found && fadPdi.currentMonth ? (
+                      <>
+                        <p className="text-xl font-mono font-bold text-[var(--foreground)]">
+                          {formatMonthYear(fadPdi.currentMonth)}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          ~{fadPdi.monthsUntilCurrent} months from now
+                          {fadPdi.extrapolated && (
+                            <span className="ml-1 text-amber-400/80">(extrapolated)</span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        Already current or no data
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+          </div>
+        )}
+
+        {/* Avg velocity note */}
+        {(dffPdi || fadPdi) && (
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
+            <Info className="h-3 w-3 shrink-0" />
+            Avg DFF velocity: {dffPdi?.avgVelocity ?? "—"} days/month · FAD: {fadPdi?.avgVelocity ?? "—"} days/month
+            {!isOptimistic && " (realistic: 65% of model velocity)"}
+          </div>
+        )}
+      </div>
+    </FadeIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Panel B: Sponsor Intelligence
+// ---------------------------------------------------------------------------
+
+function SponsorPanel({
+  profile,
+  overallScores,
+  mlScores,
+  monthlyMetrics,
+  riskFeatures,
+  onEmployerSelect,
+  selectedEmployer,
+  selectedMetrics,
+  selectedRisk,
+}: {
+  profile: UserProfile;
+  overallScores: SponsorReliabilityScore[];
+  mlScores: SponsorReliabilityScoreML[];
+  monthlyMetrics: EmployerMonthlyMetric[];
+  riskFeatures: EmployerRiskFeature[];
+  onEmployerSelect: (e: SponsorReliabilityScore) => void;
+  selectedEmployer: (SponsorReliabilityScore & { srs_ml?: number }) | null;
+  selectedMetrics: EmployerMonthlyMetric[];
+  selectedRisk: EmployerRiskFeature | undefined;
+}) {
+  const sectionHeader = (
+    <div className="flex items-center gap-3 mb-1">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400 shrink-0">
+        <Shield className="h-4 w-4 text-white" />
+      </div>
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Sponsor Intelligence</h2>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          {profile.employerName
+            ? `Showing data for: ${profile.employerName}`
+            : "Search your employer to see their sponsorship track record"}
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <FadeIn>
+      <div className="space-y-4">
+        {sectionHeader}
+
+        {/* Employer search — always shown, pre-filled with profile employer */}
+        <div className="relative z-10 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 className="h-4 w-4 text-[var(--accent-blue)]" strokeWidth={1.5} />
+            <span className="text-sm font-semibold text-[var(--foreground)]">
+              {selectedEmployer ? "Selected Employer" : "Search Any Employer"}
+            </span>
+          </div>
+          <EmployerSearch
+            employers={overallScores}
+            onSelect={onEmployerSelect}
+            placeholder={profile.employerName ? `Last: ${profile.employerName}` : "Search 70,000+ employers…"}
+          />
+        </div>
+
+        {/* Score + details — hidden until employer selected (Smart Visibility) */}
+        {!selectedEmployer ? (
+          <PanelCTA
+            icon={Shield}
+            title="Select your employer"
+            body="Search for your sponsoring employer above to see their Sponsor Reliability Score, approval rates, wage competitiveness, and risk signals."
+          />
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: EASE }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+          >
+            <GlassCard variant="elevated" padding="lg">
+              <SrsScoreGauge employer={selectedEmployer} />
+            </GlassCard>
+            <GlassCard variant="elevated" padding="lg">
+              <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {/* Trend chart */}
+        {selectedEmployer && selectedMetrics.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: EASE, delay: 0.1 }}
+          >
+            <SrsTrendChart employerName={selectedEmployer.employer_name} metrics={selectedMetrics} />
+          </motion.div>
+        )}
+      </div>
+    </FadeIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Panel C: Salary Compass
+// ---------------------------------------------------------------------------
+
+function SalaryPanel({
+  profile,
+  benchmarks,
+}: {
+  profile: UserProfile;
+  benchmarks: SalaryBenchmark[];
+}) {
+  const wage = Number(profile.wageOffered);
+  const hasWage = wage > 0;
+
+  const sectionHeader = (
+    <div className="flex items-center gap-3 mb-1">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-400 shrink-0">
+        <DollarSign className="h-4 w-4 text-white" />
+      </div>
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Salary Compass</h2>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          How your offered wage compares to market benchmarks
+        </p>
+      </div>
+    </div>
+  );
+
+  if (!hasWage) {
+    return (
+      <FadeIn>
+        <div className="space-y-3">
+          {sectionHeader}
+          <PanelCTA
+            icon={DollarSign}
+            title="Enter your offered salary"
+            body="Add your annual wage offer in the profile card to see how it compares to market percentiles for your role and location."
+          />
+        </div>
+      </FadeIn>
+    );
+  }
+
+  // Find the most relevant benchmark — use first national benchmark if no SOC match
+  const nationalBenchmarks = benchmarks.filter((b) => b.area_code === "99");
+  // Try to find a match by job title keyword (best-effort)
+  const titleKeyword = profile.jobTitle.toLowerCase();
+  const matched = nationalBenchmarks.find(
+    (b) => titleKeyword && b.soc_title.toLowerCase().includes(titleKeyword.split(" ")[0])
+  );
+  const benchmark = matched ?? nationalBenchmarks[0] ?? null;
+
+  const percentileInfo = benchmark ? computePercentile(benchmark, wage) : null;
+
+  return (
+    <FadeIn>
+      <div className="space-y-4">
+        {sectionHeader}
+
+        <GlassCard variant="elevated" padding="lg">
+          <div className="space-y-6">
+            {/* Offered wage headline */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  Your Offered Salary
+                </p>
+                <p className="text-3xl font-mono font-bold text-[var(--foreground)]">
+                  {formatCurrency(wage)}
+                </p>
+                {profile.jobTitle && (
+                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{profile.jobTitle}</p>
+                )}
+              </div>
+              {percentileInfo && (
+                <div className={cn(
+                  "px-4 py-2 rounded-xl border text-sm font-semibold",
+                  percentileInfo.pct >= 75
+                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                    : percentileInfo.pct >= 50
+                    ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                    : percentileInfo.pct >= 25
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                    : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                )}>
+                  {percentileInfo.label}
+                </div>
+              )}
+            </div>
+
+            {/* Benchmark bar */}
+            {benchmark && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+                  Market range for:{" "}
+                  <span className="text-[var(--foreground)]">{benchmark.soc_title}</span>
+                </p>
+
+                {/* Visual percentile ruler */}
+                <div className="relative">
+                  <div className="flex h-6 w-full rounded-lg overflow-hidden">
+                    <div className="h-full flex-1" style={{ background: "linear-gradient(90deg, rgba(251,113,133,0.5) 0%, rgba(251,146,60,0.45) 20%, rgba(96,165,250,0.45) 50%, rgba(52,211,153,0.5) 80%, rgba(16,185,129,0.6) 100%)" }} />
+                  </div>
+                  {/* Wage marker */}
+                  {(() => {
+                    const { p10, p90 } = benchmark;
+                    const clampedPct = Math.min(100, Math.max(0, ((wage - p10) / (p90 - p10)) * 100));
+                    return (
+                      <motion.div
+                        initial={{ left: "50%" }}
+                        animate={{ left: `${clampedPct}%` }}
+                        transition={{ duration: 0.7, ease: EASE }}
+                        className="absolute top-[-4px] -translate-x-1/2 flex flex-col items-center"
+                        style={{ left: `${clampedPct}%` }}
+                      >
+                        <div className="w-0.5 h-8 bg-white/90 rounded-full" />
+                        <div className="w-2 h-2 rounded-full bg-white mt-[-4px]" />
+                      </motion.div>
+                    );
+                  })()}
+                </div>
+
+                {/* Range labels */}
+                <div className="grid grid-cols-5 gap-1 text-center">
+                  {[
+                    { label: "p10", val: benchmark.p10, color: "text-rose-400" },
+                    { label: "p25", val: benchmark.p25, color: "text-amber-400" },
+                    { label: "Median", val: benchmark.median, color: "text-blue-400" },
+                    { label: "p75", val: benchmark.p75, color: "text-emerald-400" },
+                    { label: "p90", val: benchmark.p90, color: "text-emerald-400" },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} className="space-y-0.5">
+                      <p className={cn("text-[11px] font-mono font-semibold", color)}>
+                        {formatCurrency(val)}
+                      </p>
+                      <p className="text-[9px] text-[var(--muted-foreground)]">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* vs median */}
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                  <span className={cn(
+                    "font-semibold font-mono",
+                    wage >= benchmark.median ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {wage >= benchmark.median ? "+" : ""}
+                    {formatCurrency(wage - benchmark.median)}
+                  </span>
+                  <span>vs median ({formatCurrency(benchmark.median)})</span>
+                </div>
+              </div>
+            )}
+
+            {/* Experience note */}
+            {profile.yearsOfExperience && (
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+                <Clock className="h-4 w-4 text-[var(--muted-foreground)] shrink-0" />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  <span className="font-semibold text-[var(--foreground)]">
+                    {profile.yearsOfExperience} years
+                  </span>{" "}
+                  of experience noted — senior-level candidates typically land p75+
+                </p>
+              </div>
+            )}
+          </div>
+        </GlassCard>
+      </div>
+    </FadeIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Profile Form Card
+// ---------------------------------------------------------------------------
+
+function ProfileCard({
+  profile,
+  onChange,
+  isEditing,
+  onToggleEdit,
+}: {
+  profile: UserProfile;
+  onChange: (updates: Partial<UserProfile>) => void;
+  isEditing: boolean;
+  onToggleEdit: () => void;
+}) {
+  const filled = isProfileFilled(profile);
+
+  return (
+    <GlassCard variant="elevated" padding="lg">
+      {/* Card header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-violet-400" />
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Your Profile</h2>
+          {filled && !isEditing && (
+            <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              Saved
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onToggleEdit}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-[var(--muted-foreground)] border-white/[0.08] hover:text-[var(--foreground)] hover:border-white/[0.18]"
+          aria-label={isEditing ? "Collapse profile" : "Edit profile"}
+        >
+          {isEditing ? (
+            <>
+              <Save className="h-3 w-3" />
+              Done
+            </>
+          ) : (
+            <>
+              <Edit3 className="h-3 w-3" />
+              Edit
+            </>
+          )}
+          {isEditing ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {isEditing && (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5 pt-2">
+              {/* Priority Date */}
+              <div>
+                <FormLabel icon={Calendar}>Priority Date</FormLabel>
+                <input
+                  type="date"
+                  value={profile.priorityDate}
+                  onChange={(e) => onChange({ priorityDate: e.target.value })}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  placeholder="YYYY-MM-DD"
+                  aria-label="Priority date"
+                />
+              </div>
+
+              {/* EB Category */}
+              <div>
+                <FormLabel icon={Briefcase}>EB Category</FormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {EB_CATEGORIES.map((cat) => (
+                    <Pill
+                      key={cat}
+                      active={profile.category === cat}
+                      onClick={() => onChange({ category: cat })}
+                      color="blue"
+                    >
+                      {cat}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Country */}
+              <div>
+                <FormLabel icon={MapPin}>Country of Chargeability</FormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {DISPLAY_COUNTRIES.map(({ code, label }) => (
+                    <Pill
+                      key={code}
+                      active={profile.country === code}
+                      onClick={() => onChange({ country: code })}
+                      color="purple"
+                    >
+                      {label}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Employer */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <FormLabel icon={Building2}>Current / Sponsoring Employer</FormLabel>
+                <input
+                  type="text"
+                  value={profile.employerName}
+                  onChange={(e) => onChange({ employerName: e.target.value })}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  placeholder="e.g. Google LLC"
+                  aria-label="Employer name"
+                />
+              </div>
+
+              {/* Annual Salary */}
+              <div>
+                <FormLabel icon={DollarSign}>Annual Salary Offered (USD)</FormLabel>
+                <input
+                  type="number"
+                  value={profile.wageOffered}
+                  onChange={(e) => onChange({ wageOffered: e.target.value })}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  placeholder="e.g. 145000"
+                  min="0"
+                  aria-label="Annual salary"
+                />
+              </div>
+
+              {/* Job Title */}
+              <div>
+                <FormLabel icon={Briefcase}>Job Title</FormLabel>
+                <input
+                  type="text"
+                  value={profile.jobTitle}
+                  onChange={(e) => onChange({ jobTitle: e.target.value })}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  placeholder="e.g. Software Engineer"
+                  aria-label="Job title"
+                />
+              </div>
+
+              {/* Years of Experience */}
+              <div>
+                <FormLabel icon={Clock}>Years of Experience</FormLabel>
+                <input
+                  type="number"
+                  value={profile.yearsOfExperience}
+                  onChange={(e) => onChange({ yearsOfExperience: e.target.value })}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  placeholder="e.g. 8"
+                  min="0"
+                  max="50"
+                  aria-label="Years of experience"
+                />
+              </div>
+            </div>
+            <p className="mt-4 text-[10px] text-[var(--muted-foreground)] flex items-center gap-1.5">
+              <ArrowUpRight className="h-3 w-3" />
+              Saved automatically · stays in your browser, never sent to any server
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Collapsed summary */}
+      {!isEditing && filled && (
+        <div className="flex flex-wrap gap-3 text-xs text-[var(--muted-foreground)]">
+          {profile.priorityDate && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              PD: <span className="text-[var(--foreground)] font-mono ml-1">{profile.priorityDate}</span>
+            </span>
+          )}
+          {profile.category && (
+            <span className="flex items-center gap-1">
+              <Briefcase className="h-3 w-3" />
+              {profile.category}
+            </span>
+          )}
+          {profile.country && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {COUNTRY_LABELS[profile.country] ?? profile.country}
+            </span>
+          )}
+          {profile.employerName && (
+            <span className="flex items-center gap-1">
+              <Building2 className="h-3 w-3" />
+              {profile.employerName}
+            </span>
+          )}
+          {profile.wageOffered && (
+            <span className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              {formatCurrency(Number(profile.wageOffered))}
+            </span>
+          )}
+        </div>
+      )}
+
+      {!isEditing && !filled && (
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Fill in your details to unlock personalized immigration insights.
+        </p>
+      )}
+    </GlassCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Page
+// ---------------------------------------------------------------------------
+
+export default function InsightsPage() {
+  // Profile state
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [isEditing, setIsEditing] = useState(true); // open by default on first visit
+
+  // PDI data
+  const [forecasts, setForecasts] = useState<PdForecast[]>([]);
+  const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
+
+  // SRS data
+  const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
+  const [mlScores, setMlScores] = useState<SponsorReliabilityScoreML[]>([]);
+  const [monthlyMetrics, setMonthlyMetrics] = useState<EmployerMonthlyMetric[]>([]);
+  const [riskFeatures, setRiskFeatures] = useState<EmployerRiskFeature[]>([]);
+  const [selectedEmployer, setSelectedEmployer] = useState<
+    (SponsorReliabilityScore & { srs_ml?: number }) | null
+  >(null);
+  const [selectedMetrics, setSelectedMetrics] = useState<EmployerMonthlyMetric[]>([]);
+  const [selectedRisk, setSelectedRisk] = useState<EmployerRiskFeature | undefined>();
+
+  // Wage data
+  const [benchmarks, setBenchmarks] = useState<SalaryBenchmark[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load saved profile on mount
+  useEffect(() => {
+    const saved = loadProfile();
+    setProfile(saved);
+    if (isProfileFilled(saved)) setIsEditing(false);
+  }, []);
+
+  // Load all data sources on mount
+  useEffect(() => {
+    Promise.all([
+      loadPdForecasts(),
+      loadCutoffTrends(),
+      loadSrsScores(),
+      loadSrsScoresML(),
+      loadEmployerMonthlyMetrics(),
+      loadEmployerRiskFeatures(),
+      loadSalaryBenchmarksNational(),
+    ])
+      .then(([fc, tr, scores, ml, metrics, risks, bench]) => {
+        setForecasts(fc);
+        setTrends(tr);
+        setOverallScores(filterOverallScores(scores));
+        setMlScores(ml);
+        setMonthlyMetrics(metrics);
+        setRiskFeatures(risks);
+        setBenchmarks(bench);
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load data")
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Profile change handler — saves to localStorage on every change
+  const handleProfileChange = useCallback((updates: Partial<UserProfile>) => {
+    setProfile((prev) => {
+      const next = { ...prev, ...updates };
+      saveProfile(next);
+      return next;
+    });
+  }, []);
+
+  // Employer selection from SRS search
+  const handleEmployerSelect = useCallback(
+    (employer: SponsorReliabilityScore) => {
+      const mlMatch = mlScores.find((m) => m.employer_id === employer.employer_id);
+      setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
+      setSelectedMetrics(getEmployerMetrics(monthlyMetrics, employer.employer_id));
+      setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+      // Sync employer name back to profile
+      handleProfileChange({ employerName: employer.employer_name });
+    },
+    [mlScores, monthlyMetrics, riskFeatures, handleProfileChange]
+  );
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <motion.div
+          data-testid="loading-spinner"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          className="h-8 w-8 rounded-full border-2 border-t-transparent border-[var(--accent-blue)]"
+        />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6">
+          <p className="text-sm text-rose-400">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 pb-12" data-testid="insights-page">
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <FadeIn>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-400 shrink-0">
+            <User className="h-5 w-5 text-white" strokeWidth={2} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+              My Insights
+            </h1>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Personalized immigration intelligence, built around your situation
+            </p>
+          </div>
+        </div>
+      </FadeIn>
+
+      {/* ── Profile Card ─────────────────────────────────────────────────── */}
+      <FadeIn delay={0.05}>
+        <ProfileCard
+          profile={profile}
+          onChange={handleProfileChange}
+          isEditing={isEditing}
+          onToggleEdit={() => setIsEditing((v) => !v)}
+        />
+      </FadeIn>
+
+      {/* ── Panels ───────────────────────────────────────────────────────── */}
+      <StaggerContainer>
+        {/* Divider */}
+        <StaggerItem>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+              Your Personalized Insights
+            </span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+        </StaggerItem>
+
+        {/* Panel A — Green Card Forecast */}
+        <StaggerItem>
+          <GreenCardPanel profile={profile} forecasts={forecasts} trends={trends} />
+        </StaggerItem>
+
+        {/* Panel B — Sponsor Intelligence */}
+        <StaggerItem>
+          <SponsorPanel
+            profile={profile}
+            overallScores={overallScores}
+            mlScores={mlScores}
+            monthlyMetrics={monthlyMetrics}
+            riskFeatures={riskFeatures}
+            onEmployerSelect={handleEmployerSelect}
+            selectedEmployer={selectedEmployer}
+            selectedMetrics={selectedMetrics}
+            selectedRisk={selectedRisk}
+          />
+        </StaggerItem>
+
+        {/* Panel C — Salary Compass */}
+        <StaggerItem>
+          <SalaryPanel profile={profile} benchmarks={benchmarks} />
+        </StaggerItem>
+      </StaggerContainer>
+
+      {/* ── Privacy note ─────────────────────────────────────────────────── */}
+      <FadeIn>
+        <GlassCard padding="md">
+          <p className="text-[11px] text-[var(--muted-foreground)] text-center flex items-center justify-center gap-1.5">
+            <Shield className="h-3 w-3 shrink-0" />
+            All profile data is stored locally in your browser only — nothing is ever sent to a server.
+            See our{" "}
+            <a href="/privacy" className="underline underline-offset-2 hover:text-[var(--foreground)] transition-colors">
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </GlassCard>
+      </FadeIn>
+    </div>
+  );
+}

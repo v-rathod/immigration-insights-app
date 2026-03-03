@@ -169,8 +169,7 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 /about                      → About page (personal story, principles, tech stack)
 /privacy                    → Privacy Policy (zero data collection)
 /terms                      → Terms of Use
-/setup                      → User input form (8 fields)
-/insights                   → Personalized panels (A–E)
+/insights                   → My Insights — 7-field profile card + 3 smart panels (Green Card Forecast, Sponsor, Salary)
 /dashboard/visa-bulletin     → Dashboard 1: Visa Bulletin Trends
 /dashboard/employer          → Dashboard 2: Sponsor Reliability Score (SRS)
 /dashboard/eb-category       → Dashboard 3: EB Category Comparison
@@ -376,7 +375,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [x] Test infrastructure (Vitest 4.x + RTL + happy-dom, 133 tests)
 - [x] UI component library (GlassCard, NumberTicker, StatCard, animations)
 - [x] Responsive layout (mobile hamburger + collapsible sidebar)
-- [ ] User input form (/setup — 8 fields, localStorage persistence)
+- [x] My Insights page (/insights — 7-field profile card, 3 smart panels, localStorage persistence)
 
 ### Phase 3: 8 Dashboards
 - [x] 1. Visa Bulletin Trends (PDI)
@@ -389,7 +388,8 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [ ] 8. Backlog Visualization
 
 ### Phase 4: Personalized Panels
-- [ ] A. Green Card Forecast
+- [x] My Insights page (`/insights`) — profile form + 3 smart panels (Green Card, Sponsor, Salary)
+- [ ] A. Green Card Forecast (full standalone panel)
 - [ ] B. Employer Insights
 - [ ] C. Job Market Insights
 - [ ] D. Actionable Recommendations
@@ -476,6 +476,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/app/dashboard/visa-bulletin/page.tsx` | PDI Dashboard — reactive category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats, methodology |
 | `src/app/dashboard/wage/page.tsx` | Wage Intelligence Hub — dual-mode search (employer default / role), EmployerProfile drill-down, WageGrowthLeaderboard, SOC stat cards + benchmark tabs |
 | `src/app/ask/page.tsx` | Ask page — RAG-powered Q&A with 3-tier search (QA cache + chunks + cloud LLM via Groq), topic filter pills, suggested questions, AI answer button, result cards with expand/collapse |
+| `src/app/insights/page.tsx` | My Insights page — 7-field collapsible profile card (priorityDate, category pills, country pills, employerName, wageOffered, jobTitle, yearsOfExperience), 3 smart panels (Green Card Forecast with PDI chart + predictions, Sponsor panel with SRS gauge/detail/trend, Salary panel with percentile bar + benchmark), localStorage persistence via secureGet/secureSet, smart visibility CTAs, violet→purple gradient header |
 
 **Components — Layout**
 | File | Purpose |
@@ -542,7 +543,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (20 files, 395 tests)**
+**Tests (22 files, 471 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -566,6 +567,8 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
 | `src/__tests__/wage-dashboard.test.tsx` | 34 | WageIntelligenceHub: default employer mode (placeholder, Top H-1B Sponsors, mode toggles), role mode flow (switch → SOC select → stat cards/tabs/clear/visa toggle), EmployerProfile, WageGrowthLeaderboard, loadWageData, getSocBenchmarks, getEmployerList, computeEmployerGrowth; **getEmployerRoles** (6 tests: latest-year filter, soc_code dedup, visaType filter, sort order, unknown employer) |
 | `src/__tests__/employer-normalization.test.ts` | 25 | Data integrity tests for canonical employer names in public JSON files: `employer_salary_trend.json`, `employer_wage_rankings.json`, `employer_features.json`, `employer_friendliness_scores.json`, `employer_monthly_metrics.json` (no dirty ALL-CAPS multi-word names), `dim_employer.json` (unique employer_ids), cross-file contract. Uses `isDirtyAllCaps()` helper and NaN-safe `loadJson()` |
+| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: page structure (title, privacy note, 3 section headers), profile card (form open by default, EB pills, country pills, Done button, collapsed prompt), field interactions (category pill, priority date, salary, collapsed summary), persistence (localStorage pre-populated object), Green Card panel (CTA without PD, optimistic/realistic toggle with PD), Sponsor panel (always shows search, CTA before select, gauge+detail after select, employer name synced), Salary panel (CTA without salary, benchmark card, formatted currency, vs-median), loading state (data-testid spinner) |
+| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: page structure (title, privacy note, 3 section headers), profile card (form open by default, EB pills, country pills, Done button, collapsed prompt), field interactions (category pill, priority date, salary, collapsed summary), persistence (localStorage pre-populated object), Green Card panel (CTA without PD, toggle with PD), Sponsor panel (always shows search, CTA before select, gauge+detail after select, employer name synced), Salary panel (CTA without salary, benchmark card, formatted currency, vs-median), loading state (data-testid spinner) |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |
