@@ -374,7 +374,7 @@ function GreenCardPanel({
         {/* Chart */}
         {hasChartData && (
           <GlassCard variant="elevated" padding="lg">
-            <div className="h-[300px]">
+            <div className="h-[420px] w-full">
               <PriorityDateChart
                 dffForecast={dffSeries}
                 fadForecast={fadSeries}
@@ -1156,7 +1156,7 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-8 pb-12" data-testid="insights-page">
+    <div className="space-y-12 pb-12" data-testid="insights-page">
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <FadeIn>
         <div className="flex items-center gap-3">
