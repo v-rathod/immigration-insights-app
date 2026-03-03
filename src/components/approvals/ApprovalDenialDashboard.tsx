@@ -119,6 +119,10 @@ function TrendTooltip({ active, payload, label }: any) {
           <span className="text-amber-400">Approval Rate</span>
           <span className="font-mono font-semibold text-white">{row.approval_rate?.toFixed(1)}%</span>
         </div>
+        <div className="flex justify-between gap-6">
+          <span className="text-rose-400">Denial Rate</span>
+          <span className="font-mono font-semibold text-white">{row.denial_rate?.toFixed(2)}%</span>
+        </div>
         {row.yoy_approval_rate_change != null && (
           <div className="flex justify-between gap-6">
             <span className="text-[var(--muted-foreground)]">YoY Change</span>
@@ -176,6 +180,10 @@ function CategoryTooltip({ active, payload }: any) {
         <div className="flex justify-between gap-6 border-t border-white/[0.06] pt-1 mt-1">
           <span className="text-[var(--muted-foreground)]">Approval Rate</span>
           <span className="font-mono font-semibold text-amber-400">{row.approval_rate_pct?.toFixed(1)}%</span>
+        </div>
+        <div className="flex justify-between gap-6">
+          <span className="text-rose-400">Denial Rate</span>
+          <span className="font-mono font-semibold text-amber-400">{row.denial_rate_pct?.toFixed(2)}%</span>
         </div>
       </div>
     </div>
@@ -519,7 +527,7 @@ function CrossTrackChart({ categories }: { categories: CategoryRow[] }) {
                 >
                   {denialWidth > 5 && (
                     <span className="text-[10px] font-mono font-bold text-white">
-                      {row.denial_rate_pct.toFixed(1)}%
+                      {row.denial_rate_pct.toFixed(2)}%
                     </span>
                   )}
                 </motion.div>
