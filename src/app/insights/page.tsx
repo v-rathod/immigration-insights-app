@@ -98,6 +98,13 @@ const DISPLAY_COUNTRIES = [
 
 const REALISTIC_MULTIPLIER = 0.65;
 
+/** Title-level prefixes to ignore when matching job titles to SOC categories */
+const TITLE_LEVEL_WORDS = new Set([
+  "sr", "senior", "jr", "junior", "lead", "staff", "principal",
+  "associate", "mid", "entry", "the", "and", "for", "of",
+  "i", "ii", "iii", "iv", "v", "1", "2", "3",
+]);
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -146,6 +153,35 @@ function saveProfile(profile: UserProfile) {
 
 function isProfileFilled(p: UserProfile): boolean {
   return !!(p.priorityDate || p.employerName || p.wageOffered);
+}
+
+/**
+ * Smart benchmark matching — splits job title into significant words (skipping
+ * level prefixes like Sr/Senior/Lead/Staff) and scores each SOC benchmark by
+ * how many words match its title.  Returns null if nothing matches (avoids
+ * false fallback to unrelated categories like "Chief Executives").
+ */
+function findBestBenchmark(
+  nationalBenchmarks: SalaryBenchmark[],
+  jobTitle: string
+): SalaryBenchmark | null {
+  if (!jobTitle.trim()) return null;
+  const words = jobTitle
+    .toLowerCase()
+    .split(/[\s,/\-]+/)
+    .filter((w) => w.length > 2 && !TITLE_LEVEL_WORDS.has(w));
+  if (words.length === 0) return null;
+
+  // Score each benchmark: how many significant words appear in its SOC title
+  const scored = nationalBenchmarks
+    .map((b) => ({
+      b,
+      score: words.filter((w) => b.soc_title.toLowerCase().includes(w)).length,
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.b ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -501,21 +537,47 @@ function SponsorPanel({
             title="Select your employer"
             body="Search for your sponsoring employer above to see their Sponsor Reliability Score, approval rates, wage competitiveness, and risk signals."
           />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-          >
-            <GlassCard variant="elevated" padding="lg">
-              <SrsScoreGauge employer={selectedEmployer} />
-            </GlassCard>
-            <GlassCard variant="elevated" padding="lg">
-              <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
-            </GlassCard>
-          </motion.div>
-        )}
+        ) : (() => {
+          const isRated = selectedEmployer.srs != null && !isNaN(Number(selectedEmployer.srs));
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="space-y-4"
+            >
+              {isRated ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <GlassCard variant="elevated" padding="lg">
+                    <SrsScoreGauge employer={selectedEmployer} />
+                  </GlassCard>
+                  <GlassCard variant="elevated" padding="lg">
+                    <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
+                  </GlassCard>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
+                    <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--foreground)]">
+                        Sponsor Reliability Score not available
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                        <span className="font-medium text-[var(--foreground)]">{selectedEmployer.employer_name}</span>{" "}
+                        has insufficient H-1B sponsorship history to compute a reliability score.
+                        Filing detail and approval rates may still be available below.
+                      </p>
+                    </div>
+                  </div>
+                  <GlassCard variant="elevated" padding="lg">
+                    <EmployerDetailCard employer={selectedEmployer} riskFeature={selectedRisk} />
+                  </GlassCard>
+                </div>
+              )}
+            </motion.div>
+          );
+        })()}
 
         {/* Trend chart */}
         {selectedEmployer && selectedMetrics.length > 0 && (
@@ -575,16 +637,46 @@ function SalaryPanel({
     );
   }
 
-  // Find the most relevant benchmark — use first national benchmark if no SOC match
   const nationalBenchmarks = benchmarks.filter((b) => b.area_code === "99");
-  // Try to find a match by job title keyword (best-effort)
-  const titleKeyword = profile.jobTitle.toLowerCase();
-  const matched = nationalBenchmarks.find(
-    (b) => titleKeyword && b.soc_title.toLowerCase().includes(titleKeyword.split(" ")[0])
-  );
-  const benchmark = matched ?? nationalBenchmarks[0] ?? null;
+  // Smart multi-word matching — skips level prefixes (Sr, Senior, Lead, etc.)
+  // Falls back to first benchmark only when no job title is entered
+  const benchmark = profile.jobTitle.trim()
+    ? findBestBenchmark(nationalBenchmarks, profile.jobTitle)
+    : (nationalBenchmarks[0] ?? null);
 
   const percentileInfo = benchmark ? computePercentile(benchmark, wage) : null;
+
+  // No benchmark match — show a helpful no-data state rather than wrong data
+  if (!benchmark) {
+    return (
+      <FadeIn>
+        <div className="space-y-3">
+          {sectionHeader}
+          <GlassCard variant="elevated" padding="lg">
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  Your Offered Salary
+                </p>
+                <p className="text-3xl font-mono font-bold text-[var(--foreground)]">{formatCurrency(wage)}</p>
+                {profile.jobTitle && (
+                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{profile.jobTitle}</p>
+                )}
+              </div>
+              <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  No salary benchmark found for{" "}
+                  <span className="text-[var(--foreground)] font-semibold">&ldquo;{profile.jobTitle}&rdquo;</span>.
+                  Try a standard job title (e.g. &ldquo;Software Engineer&rdquo; or &ldquo;Data Scientist&rdquo;).
+                </p>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      </FadeIn>
+    );
+  }
 
   return (
     <FadeIn>
@@ -626,7 +718,7 @@ function SalaryPanel({
             {benchmark && (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-[var(--muted-foreground)]">
-                  Market range for:{" "}
+                  {profile.jobTitle.trim() ? "Closest SOC match" : "National reference"} ·{" "}
                   <span className="text-[var(--foreground)]">{benchmark.soc_title}</span>
                 </p>
 
@@ -813,17 +905,24 @@ function ProfileCard({
                 </div>
               </div>
 
-              {/* Employer */}
+              {/* Employer — set via Sponsor Intelligence panel below */}
               <div className="sm:col-span-2 lg:col-span-1">
                 <FormLabel icon={Building2}>Current / Sponsoring Employer</FormLabel>
-                <input
-                  type="text"
-                  value={profile.employerName}
-                  onChange={(e) => onChange({ employerName: e.target.value })}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  placeholder="e.g. Google LLC"
-                  aria-label="Employer name"
-                />
+                <div className="flex items-center gap-2 rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
+                  {profile.employerName ? (
+                    <>
+                      <Building2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span className="text-sm text-[var(--foreground)] truncate">{profile.employerName}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        Search in <span className="text-violet-400">Sponsor Intelligence</span> below
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Annual Salary */}
@@ -957,6 +1056,21 @@ export default function InsightsPage() {
     setProfile(saved);
     if (isProfileFilled(saved)) setIsEditing(false);
   }, []);
+
+  // Auto-restore saved employer selection once SRS scores are available
+  useEffect(() => {
+    if (overallScores.length === 0 || selectedEmployer) return;
+    if (!profile.employerName) return;
+    const needle = profile.employerName.toLowerCase();
+    const match = overallScores.find((s) => s.employer_name.toLowerCase() === needle);
+    if (match) {
+      const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
+      setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
+      setSelectedMetrics(getEmployerMetrics(monthlyMetrics, match.employer_id));
+      setSelectedRisk(getEmployerRisk(riskFeatures, match.employer_id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overallScores]);
 
   // Load all data sources on mount
   useEffect(() => {

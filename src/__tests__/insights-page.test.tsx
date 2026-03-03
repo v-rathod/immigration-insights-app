@@ -242,9 +242,10 @@ describe("InsightsPage — page structure", () => {
 
   it("renders the three section headers", async () => {
     await renderPage();
-    expect(screen.getByText("Green Card Forecast")).toBeInTheDocument();
-    expect(screen.getByText("Sponsor Intelligence")).toBeInTheDocument();
-    expect(screen.getByText("Salary Compass")).toBeInTheDocument();
+    // Use role queries to distinguish panel h2 headings from other text with same words
+    expect(screen.getByRole("heading", { name: /green card forecast/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /sponsor intelligence/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /salary compass/i })).toBeInTheDocument();
   });
 });
 
@@ -252,7 +253,7 @@ describe("InsightsPage — profile card (empty state)", () => {
   it("shows profile card with edit form open by default", async () => {
     await renderPage();
     expect(screen.getByLabelText(/priority date/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/employer name/i)).toBeInTheDocument();
+    // Employer is set via Sponsor Intelligence panel, not a text input
     expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/job title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/years of experience/i)).toBeInTheDocument();
@@ -319,13 +320,26 @@ describe("InsightsPage — profile card (field interactions)", () => {
     fireEvent.change(screen.getByLabelText(/priority date/i), {
       target: { value: "2020-03-15" },
     });
-    fireEvent.change(screen.getByLabelText(/employer name/i), {
-      target: { value: "Microsoft Corp" },
-    });
     // Close form
     fireEvent.click(screen.getByRole("button", { name: /collapse profile|done/i }));
     await waitFor(() => {
       expect(screen.getByText("2020-03-15")).toBeInTheDocument();
+    });
+  });
+
+  it("employer name in collapsed summary reflects selection from Sponsor panel", async () => {
+    await renderPage();
+    // Select employer via the Sponsor Intelligence panel search
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    // After selection, employer name appears in both score gauge, detail card, and profile summary
+    await waitFor(() => {
+      const instances = screen.getAllByText("Google LLC");
+      expect(instances.length).toBeGreaterThan(0);
+    });
+    // Close form — employer name should still appear in collapsed profile summary
+    fireEvent.click(screen.getByRole("button", { name: /collapse profile|done/i }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Google LLC").length).toBeGreaterThan(0);
     });
   });
 });
