@@ -340,7 +340,7 @@ function GreenCardPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {sectionHeader}
 
         {/* Optimistic / Realistic toggle */}
@@ -452,14 +452,6 @@ function GreenCardPanel({
           </div>
         )}
 
-        {/* Avg velocity note */}
-        {(dffPdi || fadPdi) && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
-            <Info className="h-3 w-3 shrink-0" />
-            Avg DFF velocity: {dffPdi?.avgVelocity ?? "—"} days/month · FAD: {fadPdi?.avgVelocity ?? "—"} days/month
-            {!isOptimistic && " (realistic: 65% of model velocity)"}
-          </div>
-        )}
       </div>
     </FadeIn>
   );

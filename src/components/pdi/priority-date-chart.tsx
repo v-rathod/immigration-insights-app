@@ -315,7 +315,7 @@ export function PriorityDateChart({
     return (
       <div
         className={cn(
-          "flex items-center justify-center h-[300px] rounded-2xl border border-white/[0.08] bg-white/[0.02]",
+          "flex items-center justify-center aspect-[4/3] sm:aspect-[16/7] min-h-48 rounded-2xl border border-white/[0.08] bg-white/[0.02]",
           className
         )}
       >
@@ -424,7 +424,7 @@ export function PriorityDateChart({
       </div>
 
       {/* Chart */}
-      <div className="h-[400px] w-full">
+      <div className="aspect-[4/3] sm:aspect-[16/7] w-full min-h-64 max-h-[28rem]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
