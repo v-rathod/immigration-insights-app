@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMonthYear } from "@/lib/utils/format";
+import { secureGet, secureSet } from "@/lib/security";
 import { FadeIn } from "@/components/ui";
 import { PriorityDateChart } from "@/components/pdi/priority-date-chart";
 import {
@@ -62,16 +63,63 @@ const EASE = [0.25, 0.1, 0.25, 1] as const;
 // ---------------------------------------------------------------------------
 
 export default function VisaBulletinPage() {
+  // Load saved values from localStorage or use defaults
+  const [category, setCategory] = useState(() => {
+    try {
+      const saved = secureGet<{ category?: string }>("session_pdi_filters");
+      return saved?.category || DEFAULT_CATEGORY;
+    } catch {
+      return DEFAULT_CATEGORY;
+    }
+  });
+  const [country, setCountry] = useState(() => {
+    try {
+      const saved = secureGet<{ country?: string }>("session_pdi_filters");
+      return saved?.country || DEFAULT_COUNTRY;
+    } catch {
+      return DEFAULT_COUNTRY;
+    }
+  });
+  const [priorityDate, setPriorityDate] = useState(() => {
+    try {
+      const saved = secureGet<{ priorityDate?: string }>("session_pdi_filters");
+      return saved?.priorityDate || "";
+    } catch {
+      return "";
+    }
+  });
+
   // Data
   const [forecasts, setForecasts] = useState<PdForecast[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // User selections — reactive, no submit
-  const [category, setCategory] = useState(DEFAULT_CATEGORY);
-  const [country, setCountry] = useState(DEFAULT_COUNTRY);
-  const [priorityDate, setPriorityDate] = useState("");
+  // Save category to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
+      secureSet("session_pdi_filters", { ...current, category });
+    } catch {}
+  }, [category]);
+
+  // Save country to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
+      secureSet("session_pdi_filters", { ...current, country });
+    } catch {}
+  }, [country]);
+
+  // Save priorityDate to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
+      secureSet("session_pdi_filters", { ...current, priorityDate });
+    } catch {}
+  }, [priorityDate]);
+
+  // Extended charts and toggle state
   const [showExtended, setShowExtended] = useState(false);
   const [isOptimistic, setIsOptimistic] = useState(true);
 

@@ -1049,6 +1049,35 @@ export default function InsightsPage() {
     if (isProfileFilled(saved)) setIsEditing(false);
   }, []);
 
+  // Load session PDI filters (from Visa Bulletin page) on mount
+  useEffect(() => {
+    try {
+      const sessionFilters = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters");
+      if (sessionFilters) {
+        const updates: Partial<UserProfile> = {};
+        if (sessionFilters.category) updates.category = sessionFilters.category;
+        if (sessionFilters.country) updates.country = sessionFilters.country;
+        if (sessionFilters.priorityDate) updates.priorityDate = sessionFilters.priorityDate;
+        if (Object.keys(updates).length > 0) {
+          setProfile((prev) => ({ ...prev, ...updates }));
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Sync profile changes back to session PDI filters
+  useEffect(() => {
+    try {
+      const sessionFilters = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
+      if (profile.category) sessionFilters.category = profile.category;
+      if (profile.country) sessionFilters.country = profile.country;
+      if (profile.priorityDate) sessionFilters.priorityDate = profile.priorityDate;
+      if (Object.keys(sessionFilters).length > 0) {
+        secureSet("session_pdi_filters", sessionFilters);
+      }
+    } catch {}
+  }, [profile.category, profile.country, profile.priorityDate]);
+
   // Auto-restore saved employer selection once SRS scores are available
   useEffect(() => {
     if (overallScores.length === 0 || selectedEmployer) return;
