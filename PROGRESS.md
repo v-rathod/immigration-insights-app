@@ -1122,7 +1122,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.18 — 2026-03-04)
+## Quick Reference (Current State as of Milestone 10.19 — 2026-03-04)
 
 | Metric | Value |
 |--------|-------|
@@ -1283,6 +1283,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.16 | 2026-03-04 | Fix Role Rows Unclickable | Removed `!hasTrendData` guard blocking clicks; roles always interactive; commit 2ef6307 |
 | 10.17 | 2026-03-04 | Rename OEWS → Industry Average | RolePercentileTrend chart: reference line, tooltip, footer now say "Industry Average"; commit 003fd84 |
 | 10.18 | 2026-03-04 | Wage Role Search Fixes | Fix activeEmployers (47→17K+); ROLE_ALIASES (45+ SOC aliases); opaque dropdown bg; `n_employers`/`total_filings` in SocSalaryMarket interface; 472 tests; commit 6c9b756 |
+| 10.19 | 2026-03-04 | Fix Salary Data Source Mismatch | Stat cards (soc_salary_market, LCA) vs Distribution tab (OEWS survey) showed different numbers for same role. P2: added market_p10/p90 to soc_salary_market via weighted avg. P3: `marketAsBenchmark()` helper + Distribution tab now uses LCA data throughout. Data Scientists: median $139,918 now consistent everywhere. 472 tests; commit bd34f9a |
 
 ---
 
