@@ -1,14 +1,14 @@
 /**
- * FeedbackWidget — Floating action button (FAB) for sending feedback.
+ * FeedbackWidget — Floating action button (FAB) that opens a feedback dialog.
  *
- * Single floating button that opens a feedback dialog with three categories:
+ * Single click opens the dialog directly (no intermediate menu).
+ * Feedback is stored in PostHog as a `feedback_submitted` event and
+ * queryable daily in the PostHog dashboard — no email, no GitHub, no backend.
+ *
+ * Three feedback categories:
  *   - General Feedback
  *   - Feature Request
  *   - Bug Report
- *
- * Since Compass has zero backend, the form composes a pre-filled GitHub
- * issue URL (or mailto fallback). The user clicks "Submit" and is routed
- * to the appropriate destination in a new tab.
  */
 "use client";
 
@@ -16,16 +16,16 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus,
   X,
   Send,
   MessageCircle,
   Lightbulb,
   Bug,
-  ExternalLink,
+  CheckCircle2,
   MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,10 +45,6 @@ interface FeedbackOption {
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-
-/** Placeholder — user will provide the real URL */
-const GITHUB_REPO_URL = "https://github.com";
-const CONTACT_EMAIL = "northstar-compass@example.com";
 
 const FEEDBACK_OPTIONS: FeedbackOption[] = [
   {
@@ -114,24 +110,19 @@ const panelVariants = {
 
 export function FeedbackWidget() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [selected, setSelected] = useState<FeedbackType>("feedback");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Toggle the mini-menu (FAB)
-  const toggleMenu = useCallback(() => {
-    setMenuOpen((o) => !o);
-  }, []);
-
-  // Open feedback dialog
+  // Open feedback dialog directly from FAB
   const openFeedback = useCallback(() => {
-    setMenuOpen(false);
     setFeedbackOpen(true);
     setSubmitted(false);
     setMessage("");
+    setSelected("feedback");
   }, []);
 
   // Close feedback dialog
@@ -141,7 +132,7 @@ export function FeedbackWidget() {
     setMessage("");
   }, []);
 
-  // Focus textarea when feedback modal opens
+  // Focus textarea when dialog opens
   useEffect(() => {
     if (feedbackOpen && textareaRef.current) {
       const t = setTimeout(() => textareaRef.current?.focus(), 200);
@@ -149,119 +140,72 @@ export function FeedbackWidget() {
     }
   }, [feedbackOpen, selected]);
 
-  // Escape to close menu or feedback
+  // Escape to close
   useEffect(() => {
-    if (!menuOpen && !feedbackOpen) return;
+    if (!feedbackOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (feedbackOpen) setFeedbackOpen(false);
-        else setMenuOpen(false);
-      }
+      if (e.key === "Escape") setFeedbackOpen(false);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [menuOpen, feedbackOpen]);
-
-  // Close menu on route change
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  if (pathname !== prevPathname) {
-    setPrevPathname(pathname);
-    setMenuOpen(false);
-  }
+  }, [feedbackOpen]);
 
   const currentOption =
     FEEDBACK_OPTIONS.find((o) => o.type === selected) ?? FEEDBACK_OPTIONS[0];
 
+  // Submit: store via PostHog event — queryable daily in PostHog dashboard
   const handleSubmit = useCallback(() => {
     if (!message.trim()) return;
-
-    const title = encodeURIComponent(
-      `[${currentOption.issueLabel}] ${message.slice(0, 80)}`
-    );
-    const body = encodeURIComponent(
-      `**Type:** ${currentOption.label}\n\n**Description:**\n${message}\n\n---\n_Submitted via NorthStar Compass feedback widget_`
-    );
-
-    const githubUrl = `${GITHUB_REPO_URL}/issues/new?title=${title}&body=${body}&labels=${currentOption.issueLabel}`;
-    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${title}&body=${body}`;
-
-    const url =
-      GITHUB_REPO_URL !== "https://github.com" ? githubUrl : mailtoUrl;
-
-    window.open(url, "_blank", "noopener,noreferrer");
+    analytics.feedbackSubmitted({
+      type: selected,
+      message: message.trim(),
+      pagePath: pathname ?? "/",
+    });
     setSubmitted(true);
-  }, [message, currentOption]);
-
-
+  }, [message, selected, pathname]);
 
   return (
     <>
-      {/* ── FAB trigger ── */}
-      <motion.button
-        onClick={toggleMenu}
-        aria-label={menuOpen ? "Close menu" : "Quick actions"}
-        className={cn(
-          "fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-colors",
-          "bg-gradient-to-br from-blue-500 to-purple-500 text-white",
-          "hover:shadow-xl hover:shadow-blue-500/20",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-        )}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        animate={{ rotate: menuOpen ? 45 : 0 }}
-        transition={{ duration: 0.2, ease: EASING }}
-      >
-        {menuOpen ? (
-          <X className="h-5 w-5" strokeWidth={2} />
-        ) : (
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
-        )}
-      </motion.button>
-
-      {/* ── Mini-menu (2 items) ── */}
-      <AnimatePresence>
-        {menuOpen && (
-          <>
-            {/* Invisible backdrop to close */}
-            <motion.div
-              key="fab-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+      {/* ── FAB — single click opens dialog ── */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
+        {/* Tooltip label — fades in on hover */}
+        <AnimatePresence>
+          {hovered && !feedbackOpen && (
+            <motion.span
+              key="fab-tooltip"
+              initial={{ opacity: 0, x: 6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 6 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 z-40"
-              onClick={() => setMenuOpen(false)}
-              aria-hidden="true"
-            />
+              className={cn(
+                "rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5",
+                "text-xs font-medium text-[var(--foreground)] shadow-lg",
+                "pointer-events-none select-none whitespace-nowrap"
+              )}
+            >
+              Send Feedback
+            </motion.span>
+          )}
+        </AnimatePresence>
 
-            {/* Feedback button */}
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.85 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.9 }}
-              transition={{ duration: 0.2, ease: EASING }}
-              className="fixed bottom-20 right-6 z-50">
-            <div>
-                <button
-                  onClick={openFeedback}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-full pl-4 pr-3 py-2.5 shadow-lg",
-                    "bg-[var(--background)] border border-[var(--border)]",
-                    "text-sm font-medium text-[var(--foreground)]",
-                    "hover:border-blue-500/30 hover:shadow-blue-500/10",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <span>Send Feedback</span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
-                    <MessageSquarePlus className="h-3.5 w-3.5 text-blue-400" />
-                  </div>
-                </button>
-            </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+        <motion.button
+          onClick={openFeedback}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          aria-label="Send feedback"
+          title="Send feedback"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.93 }}
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-full shadow-lg",
+            "bg-gradient-to-br from-blue-500 to-purple-500 text-white",
+            "hover:shadow-xl hover:shadow-blue-500/25",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+          )}
+        >
+          <MessageSquarePlus className="h-5 w-5" strokeWidth={1.75} />
+        </motion.button>
+      </div>
 
       {/* ── Feedback dialog (modal) ── */}
       <AnimatePresence>
@@ -312,11 +256,11 @@ export function FeedbackWidget() {
                   /* ── Success state ── */
                   <div className="py-8 text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                      <Send className="h-5 w-5 text-emerald-400" />
-                    </div>
-                    <p className="text-sm font-medium">Thank you!</p>
-                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      Your feedback helps make Compass better for everyone.
+                    <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                  </div>
+                  <p className="text-sm font-medium">Thank you!</p>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    Your feedback has been recorded and will be reviewed shortly.
                     </p>
                     <button
                       onClick={closeFeedback}
@@ -383,14 +327,11 @@ export function FeedbackWidget() {
                           : "cursor-not-allowed bg-[var(--muted)]/50 text-[var(--muted-foreground)]"
                       )}
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Submit via{" "}
-                      {GITHUB_REPO_URL !== "https://github.com"
-                        ? "GitHub"
-                        : "Email"}
+                      <Send className="h-3.5 w-3.5" />
+                      Submit Feedback
                     </button>
                     <p className="mt-2 text-center text-[10px] text-[var(--muted-foreground)]">
-                      Opens in a new tab — we never collect data on our servers.
+                      Feedback is stored securely and reviewed by the team.
                     </p>
                   </>
                 )}

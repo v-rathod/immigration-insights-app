@@ -300,6 +300,26 @@ function navItemClicked(label: string, href: string) {
   capture("nav_item_clicked", { nav_label: label, href });
 }
 
+/**
+ * User submitted feedback via the FAB feedback dialog.
+ * The full message is captured so it can be queried in PostHog daily.
+ * Properties:
+ *   - feedback_type: "feedback" | "feature" | "bug"
+ *   - feedback_message: the verbatim text (user-volunteered for this purpose)
+ *   - page_path: current route (e.g. "/dashboard/visa-bulletin")
+ */
+function feedbackSubmitted(params: {
+  type: "feedback" | "feature" | "bug";
+  message: string;
+  pagePath: string;
+}) {
+  capture("feedback_submitted", {
+    feedback_type: params.type,
+    feedback_message: params.message,
+    page_path: params.pagePath,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
@@ -324,4 +344,5 @@ export const analytics = {
   queuePositionLooked,
   geoDatasetChanged,
   navItemClicked,
+  feedbackSubmitted,
 };
