@@ -69,6 +69,12 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       // Respect Do Not Track browser setting
       respect_dnt: false, // Set true if you add a privacy banner
 
+      // Tag all events with deployment environment for filtering
+      // In PostHog: filter by `environment = 'prod'` to see only production traffic
+      properties: {
+        environment: process.env.NODE_ENV === "production" ? "prod" : "dev",
+      },
+
       // Only capture in production or when key is explicitly provided
       loaded: (ph) => {
         if (process.env.NODE_ENV !== "production") {
