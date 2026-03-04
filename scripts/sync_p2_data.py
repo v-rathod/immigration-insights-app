@@ -279,7 +279,7 @@ def sync_wage_dashboard():
     if not ssm.empty:
         ssm = ssm[ssm["fiscal_year"] >= 2016].copy()
         ssm["soc_title"] = ssm["soc_code"].map(soc_map).fillna("")
-        for col in ["market_mean", "market_median", "market_p25", "market_p75"]:
+        for col in ["market_mean", "market_median", "market_p10", "market_p25", "market_p75", "market_p90"]:
             if col in ssm.columns:
                 ssm[col] = ssm[col].fillna(0).round(0).astype(int)
         ssm = ssm.sort_values(["soc_code", "visa_type", "fiscal_year"])

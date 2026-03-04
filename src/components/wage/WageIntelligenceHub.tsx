@@ -60,6 +60,7 @@ import {
   getYoyGrowth,
   getTopStates,
   computePercentile,
+  marketAsBenchmark,
   getSocGroupStats,
   type SalaryBenchmark,
   type SocSalaryMarket,
@@ -483,6 +484,12 @@ export function WageIntelligenceHub() {
     () => (socCode ? getNationalBenchmark(national, socCode) : null),
     [national, socCode]
   );
+  // LCA/PERM-derived benchmark — same data source as the stat cards.
+  // Used for Distribution tab and user-offer percentile to avoid source mismatch with OEWS.
+  const marketBenchmark = useMemo(
+    () => (latestMarket ? marketAsBenchmark(latestMarket) : null),
+    [latestMarket]
+  );
   const topStates = useMemo(
     () => (socCode ? getTopStates(states, socCode) : []),
     [states, socCode]
@@ -494,9 +501,9 @@ export function WageIntelligenceHub() {
     [latestMarket]
   );
   const userPercentile = useMemo(() => {
-    if (!userProfile?.wageOffered || !nationalBenchmark) return null;
-    return computePercentile(nationalBenchmark, userProfile.wageOffered);
-  }, [userProfile, nationalBenchmark]);
+    if (!userProfile?.wageOffered || !marketBenchmark) return null;
+    return computePercentile(marketBenchmark, userProfile.wageOffered);
+  }, [userProfile, marketBenchmark]);
   const marketTrendData = useMemo(
     () => market.filter((m) => m.soc_code === socCode),
     [market, socCode]
@@ -669,7 +676,7 @@ export function WageIntelligenceHub() {
         <GlassCard variant="default" padding="lg">
           <div className="space-y-8">
             <AnimatePresence>
-            {userProfile?.wageOffered && nationalBenchmark && userPercentile && (
+            {userProfile?.wageOffered && marketBenchmark && userPercentile && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -806,12 +813,12 @@ export function WageIntelligenceHub() {
                     <div>
                       <h3 className="text-base font-semibold text-[var(--foreground)]">Salary Distribution</h3>
                       <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                        BLS OEWS national percentiles · {selectedSoc.title}
+                        {visaType} certified wages · {selectedSoc.title} · Latest available year
                       </p>
                     </div>
-                    {nationalBenchmark ? (
+                    {marketBenchmark ? (
                       <>
-                        <PercentileLadder benchmark={nationalBenchmark} userWage={userProfile?.wageOffered} />
+                        <PercentileLadder benchmark={marketBenchmark} userWage={userProfile?.wageOffered} />
                         <div className="grid grid-cols-5 gap-2 pt-2 border-t border-white/[0.06]">
                           {(["p10", "p25", "median", "p75", "p90"] as const).map((key) => (
                             <div key={key} className="text-center">
@@ -819,20 +826,20 @@ export function WageIntelligenceHub() {
                                 {{ p10: "10th", p25: "25th", median: "Median", p75: "75th", p90: "90th" }[key] ?? key}
                               </p>
                               <p className="text-sm font-mono font-bold text-[var(--foreground)] mt-1">
-                                {formatCurrency(nationalBenchmark[key])}
+                                {formatCurrency(marketBenchmark[key])}
                               </p>
                             </div>
                           ))}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] pt-1">
                           <Info className="h-3 w-3" />
-                          Source: U.S. Bureau of Labor Statistics · Annual wages
+                          Source: H-1B &amp; PERM wage certifications (DOL) · FY{latestMarket?.fiscal_year}
                         </div>
                       </>
                     ) : (
                       <div className="flex items-center justify-center py-12">
                         <p className="text-sm text-[var(--muted-foreground)]">
-                          No national benchmark data for this occupation
+                          No distribution data for this occupation
                         </p>
                       </div>
                     )}

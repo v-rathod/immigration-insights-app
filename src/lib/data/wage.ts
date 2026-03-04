@@ -23,8 +23,10 @@ export interface SocSalaryMarket {
   visa_type: string; // "H-1B" | "PERM"
   market_mean: number;
   market_median: number;
+  market_p10?: number;
   market_p25: number;
   market_p75: number;
+  market_p90?: number;
   /** Total LCA/PERM filings for this SOC × year × visa type (JSON field: total_filings). */
   total_filings?: number;
   /** Count of unique employers sponsoring this SOC × year × visa type. */
@@ -204,7 +206,27 @@ export function getNationalBenchmark(
 ): SalaryBenchmark | null {
   return benchmarks.find((b) => b.soc_code === socCode && b.area_code === '99') ?? null;
 }
-
+/**
+ * Convert a SocSalaryMarket row into a SalaryBenchmark-compatible object so that
+ * LCA/PERM-certified wage data (not OEWS survey data) can be used in visualizations
+ * like PercentileLadder and computePercentile that expect the SalaryBenchmark shape.
+ * Falls back to p25/p75 values if p10/p90 are not available.
+ */
+export function marketAsBenchmark(m: SocSalaryMarket): SalaryBenchmark {
+  const p10 = m.market_p10 ?? Math.round(m.market_p25 * 0.9);
+  const p90 = m.market_p90 ?? Math.round(m.market_p75 * 1.1);
+  return {
+    soc_code: m.soc_code,
+    soc_title: m.soc_title,
+    area_code: '99',
+    area_title: 'National',
+    p10,
+    p25: m.market_p25,
+    median: m.market_median,
+    p75: m.market_p75,
+    p90,
+  };
+}
 /** Get market trend series for a SOC + visa type, sorted by year.
  * Filters out data points with implausible salary values or insufficient volume.
  */
