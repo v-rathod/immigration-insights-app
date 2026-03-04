@@ -246,14 +246,13 @@ export function secureClearAll(): void {
 // ---------------------------------------------------------------------------
 
 /** Exact paths allowed as internal routes */
-const ALLOWED_EXACT_PATHS = ["/", "/setup", "/insights", "/ask", "/ops", "/about", "/privacy", "/terms"] as const;
+const ALLOWED_EXACT_PATHS = ["/", "/setup", "/insights", "/ops", "/about", "/privacy", "/terms"] as const;
 
 /** Path prefixes allowed as internal routes */
 const ALLOWED_PREFIX_PATHS = [
   "/setup/",
   "/insights/",
   "/dashboard/",
-  "/ask/",
   "/ops/",
 ] as const;
 

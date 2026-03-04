@@ -1,11 +1,7 @@
 /**
- * FeedbackWidget — Unified floating action button (FAB) with mini-menu.
+ * FeedbackWidget — Floating action button (FAB) for sending feedback.
  *
- * Single floating button that expands into two actions:
- *   1. Ask NorthStar — navigates to /ask (RAG Q&A)
- *   2. Send Feedback — opens the feedback dialog
- *
- * The feedback dialog has three categories:
+ * Single floating button that opens a feedback dialog with three categories:
  *   - General Feedback
  *   - Feature Request
  *   - Bug Report
@@ -18,7 +14,6 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -28,7 +23,6 @@ import {
   Lightbulb,
   Bug,
   ExternalLink,
-  Search,
   MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -132,7 +126,7 @@ export function FeedbackWidget() {
     setMenuOpen((o) => !o);
   }, []);
 
-  // Open feedback dialog from mini-menu
+  // Open feedback dialog
   const openFeedback = useCallback(() => {
     setMenuOpen(false);
     setFeedbackOpen(true);
@@ -145,11 +139,6 @@ export function FeedbackWidget() {
     setFeedbackOpen(false);
     setSubmitted(false);
     setMessage("");
-  }, []);
-
-  // Navigate to /ask from mini-menu
-  const handleAskClick = useCallback(() => {
-    setMenuOpen(false);
   }, []);
 
   // Focus textarea when feedback modal opens
@@ -203,8 +192,7 @@ export function FeedbackWidget() {
     setSubmitted(true);
   }, [message, currentOption]);
 
-  // Hide on /ask page — the full search is already there
-  const isAskPage = pathname === "/ask";
+
 
   return (
     <>
@@ -246,42 +234,14 @@ export function FeedbackWidget() {
               aria-hidden="true"
             />
 
-            {/* Action items — stagger upward */}
-            <div className="fixed bottom-20 right-6 z-50 flex flex-col-reverse items-end gap-3">
-              {/* Ask NorthStar */}
-              {!isAskPage && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.85 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.9 }}
-                  transition={{ duration: 0.2, delay: 0.03, ease: EASING }}
-                >
-                  <Link
-                    href="/ask"
-                    onClick={handleAskClick}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-full pl-4 pr-3 py-2.5 shadow-lg",
-                      "bg-[var(--background)] border border-[var(--border)]",
-                      "text-sm font-medium text-[var(--foreground)]",
-                      "hover:border-purple-500/30 hover:shadow-purple-500/10",
-                      "transition-all duration-200"
-                    )}
-                  >
-                    <span>Ask NorthStar</span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-                      <Search className="h-3.5 w-3.5 text-purple-400" />
-                    </div>
-                  </Link>
-                </motion.div>
-              )}
-
-              {/* Send Feedback */}
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.9 }}
-                transition={{ duration: 0.2, delay: 0.06, ease: EASING }}
-              >
+            {/* Feedback button */}
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: EASING }}
+              className="fixed bottom-20 right-6 z-50">
+            <div>
                 <button
                   onClick={openFeedback}
                   className={cn(
@@ -297,8 +257,8 @@ export function FeedbackWidget() {
                     <MessageSquarePlus className="h-3.5 w-3.5 text-blue-400" />
                   </div>
                 </button>
-              </motion.div>
             </div>
+            </motion.div>
           </>
         )}
       </AnimatePresence>

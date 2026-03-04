@@ -22,12 +22,11 @@
 11. [Dashboard: Processing Speed](#11-dashboard-processing-speed)
 12. [Dashboard: Backlog Visualization](#12-dashboard-backlog-visualization)
 13. [Dashboard: Approval & Denial Trends](#13-dashboard-approval--denial-trends)
-14. [Ask NorthStar — AI Q&A](#14-ask-northstar--ai-qa)
-15. [About Page](#15-about-page)
-16. [Privacy Policy](#16-privacy-policy)
-17. [Terms of Use](#17-terms-of-use)
-18. [Data Sources & Methodology](#18-data-sources--methodology)
-19. [Glossary of Terms](#19-glossary-of-terms)
+14. [About Page](#14-about-page)
+15. [Privacy Policy](#15-privacy-policy)
+16. [Terms of Use](#16-terms-of-use)
+17. [Data Sources & Methodology](#17-data-sources--methodology)
+18. [Glossary of Terms](#18-glossary-of-terms)
 
 ---
 
@@ -61,9 +60,8 @@ The sidebar is your primary navigation tool. It is present on every page. On des
 | Section | Links |
 |---------|-------|
 | **Main** | Home |
-| **Insights** | Priority Date Cortex, Sponsor Score |
+| **Insights** | Priority Date Cortex, Sponsor Score, Approvals |
 | **Dashboards** | EB Categories, Geographic, Wages, Occupations, Processing, Backlog |
-| **Tools** | Ask (AI Q&A) |
 | **Project** | About |
 | **Personal** | My Insights |
 
@@ -77,7 +75,6 @@ In the bottom-left of the sidebar, there are three icons — Sun (light mode), M
 
 ### Feedback Button
 A floating button in the bottom-right corner of every page. Click it to:
-- Ask a question via the built-in AI Q&A tool
 - Submit feedback, a feature request, or a bug report (opens a pre-filled GitHub issue)
 
 ---
@@ -801,88 +798,7 @@ This provides an at-a-glance pattern recognition view. Hover over any cell to se
 
 ---
 
-## 14. Ask NorthStar — AI Q&A
-
-**Route:** `/ask`
-
-A conversational search tool that lets you ask questions about immigration in plain English, powered by a combination of pre-computed Q&A answers and AI synthesis.
-
-### Search Bar
-
-Type any immigration question in the search box at the top. Results appear as you type (200ms debounce — slight pause before searching to avoid results jumping with every keystroke).
-
-Examples of questions you can ask:
-- *"How long will an Indian EB2 applicant wait?"*
-- *"What is the Sponsor Reliability Score?"*
-- *"Which employers have the highest PERM approval rates?"*
-- *"What is the difference between DFF and FAD?"*
-- *"How is the visa bulletin cutoff calculated?"*
-
----
-
-### Topic Filter Pills
-
-Below the search bar, 10 topic filter pills Let you browse by subject:
-
-| Pill | Topics Covered |
-|------|---------------|
-| **Priority Date** | Forecast methodology, DFF vs FAD, queue mechanics |
-| **Employer** | SRS scoring, employer selection, sponsorship risks |
-| **Salary** | Wage benchmarks, prevailing wage, percentile distributions |
-| **Visa Bulletin** | Cutoff history, retrogression, DOS methodology |
-| **Geographic** | State-level filing patterns, regional demand |
-| **Occupation** | SOC codes, demand trends, hot job categories |
-| **Processing** | USCIS timelines, backlog, form processing |
-| **Visa Demand** | NIV issuances, H-1B cap, visa utilization |
-| **Filings** | PERM audits, LCA applications, case volume |
-| **General** | Immigration basics, definitions, how the system works |
-
-Click a pill to filter results to just that topic. Click again to deselect.
-
----
-
-### Suggested Questions
-
-When the search bar is empty, a grid of suggested questions appears — curated to cover the most common questions users have. Clicking any suggestion instantly populates and runs that query.
-
----
-
-### Search Results
-
-Each result card shows:
-- The question/topic title (bold)
-- A short preview of the answer
-- A **topic tag** (e.g., "visa_bulletin", "employer") identifying which knowledge base it came from
-- A **type badge**: QA (pre-computed answer from curated pairs) or Chunk (a text excerpt from the knowledge base)
-- A **source attribution** — which specific dataset or document the answer came from
-
-Click the result card to expand and read the full answer.
-
----
-
-### AI Answer Button
-
-After a search, a **"Get AI Answer"** button appears below the results. Clicking it sends your question and the top retrieved results to an AI language model (Groq Llama 3.3 70B in development; OpenAI GPT-4o-mini in production). The AI synthesizes an answer from the retrieved content.
-
-The answer panel shows:
-- The synthesized answer in full
-- Which AI backend was used (Groq / OpenAI / Mock)
-- A citation of sources
-
-**Note:** The AI answer is grounded in NorthStar's knowledge base — it specifically avoids making up information not present in the retrieved data.
-
----
-
-### How It Works Section
-
-A collapsible section at the bottom explains the 3-tier search architecture:
-1. **Tier 1 — QA Cache:** 182 pre-computed Q&A pairs searched first for instant, exact-match answers
-2. **Tier 2 — Chunk Retrieval:** 341 knowledge base chunks searched by topic relevance using Fuse.js fuzzy matching
-3. **Tier 3 — LLM Synthesis:** For questions not answered by the cache or chunks, an AI model composes an answer
-
----
-
-## 15. About Page
+## 14. About Page
 
 **Route:** `/about`
 
@@ -897,7 +813,7 @@ A personal introduction to the app's creator and the guiding principles behind t
 
 ---
 
-## 16. Privacy Policy
+## 15. Privacy Policy
 
 **Route:** `/privacy`
 
@@ -912,7 +828,7 @@ Explains the data practices of the app. Key points:
 
 ---
 
-## 17. Terms of Use
+## 16. Terms of Use
 
 **Route:** `/terms`
 
@@ -926,7 +842,7 @@ Key terms:
 
 ---
 
-## 18. Data Sources & Methodology
+## 17. Data Sources & Methodology
 
 NorthStar Compass aggregates and analyzes data from the following official US government sources:
 
@@ -949,7 +865,7 @@ The Sponsor Reliability Score combines 5 sub-scores: approval rate trend, wage c
 
 ---
 
-## 19. Glossary of Terms
+## 18. Glossary of Terms
 
 | Term | Definition |
 |------|-----------|

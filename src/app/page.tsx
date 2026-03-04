@@ -184,7 +184,7 @@ export default function LandingPage() {
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
               <Link
-                href="/ask/"
+                href="/about"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)]/50 px-7 py-3 text-sm font-medium text-[var(--foreground)] backdrop-blur-sm transition-all duration-300 hover:bg-[var(--muted)]/50 hover:border-[var(--muted-foreground)]/30"
               >
                 <Search className="h-4 w-4" />

@@ -47,7 +47,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/soc-demand", label: "Occupations", icon: Briefcase, group: "Dashboards" },
   { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Dashboards" },
   { href: "/dashboard/backlog", label: "Backlog", icon: Layers, group: "Dashboards" },
-  { href: "/ask", label: "Ask", icon: Search, group: "Tools" },
   { href: "/about", label: "About", icon: Compass, group: "Project" },
   { href: "/insights", label: "My Insights", icon: User, group: "Personal" },
 ];
