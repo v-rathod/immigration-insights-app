@@ -384,17 +384,15 @@ export function EmployerProfile({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: i * 0.04 }}
                       onClick={() => {
-                        if (!hasTrendData) return;
                         setSelectedRole(
                           isSelected ? null : { soc_code: role.soc_code, soc_title: role.soc_title }
                         );
                       }}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
                         isSelected
                           ? "border-blue-400/30 bg-blue-400/[0.06]"
-                          : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]",
-                        hasTrendData ? "cursor-pointer" : "cursor-default"
+                          : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
                       )}
                       aria-label={`View salary trends for ${role.soc_title}`}
                       aria-expanded={isSelected}
@@ -480,8 +478,8 @@ export function EmployerProfile({
 
             <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
               {roleTrends && roleTrends.length > 0
-                ? "Click a role to see 5-year salary distribution · Switch to Job Role search above to compare across employers"
-                : "To compare a role across all employers, switch to Job Role search above"}
+                ? "Click any role to expand and see 5-year salary distribution · Switch to Job Role search above to compare across employers"
+                : "Switch to Job Role search above to compare roles across multiple employers"}
             </p>
           </GlassCard>
         )}
