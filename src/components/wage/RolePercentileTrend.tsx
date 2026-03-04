@@ -2,7 +2,7 @@
  * RolePercentileTrend — 5-year salary distribution chart for an employer × role.
  *
  * Displays stacked area bands for p10→p25→p50→p75→p90 salary percentiles,
- * with filing count annotations and optional OEWS national median reference line.
+ * with filing count annotations and optional industry average reference line.
  *
  * Data source: employer_role_trends.json (pre-computed in P2 Meridian).
  */
@@ -80,7 +80,7 @@ function PercentileTooltip({
       </div>
       {row.oews_national_median > 0 && (
         <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between">
-          <span className="text-[var(--muted-foreground)]">OEWS National</span>
+          <span className="text-[var(--muted-foreground)]">Industry Average</span>
           <span className="font-mono text-emerald-400">{formatCurrency(row.oews_national_median)}</span>
         </div>
       )}
@@ -311,7 +311,7 @@ export function RolePercentileTrend({
                 cursor={{ stroke: "rgba(255,255,255,0.08)" }}
               />
 
-              {/* OEWS national median reference line */}
+              {/* Industry average reference line */}
               {latestOews && (
                 <ReferenceLine
                   y={latestOews}
@@ -319,7 +319,7 @@ export function RolePercentileTrend({
                   strokeDasharray="6 3"
                   strokeWidth={1.5}
                   label={{
-                    value: `OEWS ${formatCurrency(latestOews)}`,
+                    value: `Avg ${formatCurrency(latestOews)}`,
                     fill: "#10b981",
                     fontSize: 10,
                     position: "right",
@@ -355,7 +355,7 @@ export function RolePercentileTrend({
 
         {/* Footer note */}
         <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
-          Based on H-1B & PERM LCA filings · Salary percentiles calculated from prevailing & offered wages
+          Based on H-1B & PERM filings · Industry average from occupational salary surveys
         </p>
       </GlassCard>
     </FadeIn>
