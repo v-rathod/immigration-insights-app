@@ -117,26 +117,31 @@ const mockMovementData = [
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB1",
     country: "IND", avg_monthly_advancement_days: 20, median_advancement_days: 18,
     volatility_score: 0.2, retrogression_events_12m: 0, next_movement_prediction: "Advance",
+    blended_velocity: 22, net_velocity: 18,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB2",
     country: "IND", avg_monthly_advancement_days: 10, median_advancement_days: 8,
     volatility_score: 0.5, retrogression_events_12m: 1, next_movement_prediction: "Slow",
+    blended_velocity: 12, net_velocity: 9,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB3",
     country: "IND", avg_monthly_advancement_days: 5, median_advancement_days: 4,
     volatility_score: 0.8, retrogression_events_12m: 2, next_movement_prediction: "Retrogress",
+    blended_velocity: 7, net_velocity: 5,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB1",
     country: "CHN", avg_monthly_advancement_days: 15, median_advancement_days: 12,
     volatility_score: 0.3, retrogression_events_12m: 0, next_movement_prediction: "Advance",
+    blended_velocity: 17, net_velocity: 14,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB2",
     country: "CHN", avg_monthly_advancement_days: 8, median_advancement_days: 6,
     volatility_score: 0.4, retrogression_events_12m: 1, next_movement_prediction: "Slow",
+    blended_velocity: 10, net_velocity: 7,
   },
 ];
 
@@ -187,8 +192,8 @@ const mockSocDemandData = [
 ];
 
 const mockDimSocData = [
-  { soc_code: "15-1252", soc_title: "Software Developers", soc_major_code: "15", soc_major_title: "Computer and Mathematical" },
-  { soc_code: "11-1021", soc_title: "General and Operations Managers", soc_major_code: "11", soc_major_title: "Management" },
+  { soc_code: "15-1252", soc_title: "Software Developers", soc_major: "15", soc_major_title: "Computer and Mathematical", soc_group: null, soc_group_title: null, soc_broad: null, soc_broad_title: null, soc_version: "2018", is_legacy: false, mapped_2018_code: null, mapped_2018_title: null },
+  { soc_code: "11-1021", soc_title: "General and Operations Managers", soc_major: "11", soc_major_title: "Management", soc_group: null, soc_group_title: null, soc_broad: null, soc_broad_title: null, soc_version: "2018", is_legacy: false, mapped_2018_code: null, mapped_2018_title: null },
 ];
 
 vi.mock("@/lib/data/soc-demand", async () => {
@@ -204,17 +209,18 @@ vi.mock("@/lib/data/soc-demand", async () => {
 const mockProcessingData = [
   {
     fiscal_year: 2024, quarter: 1, reporting_period: "FY2024 Q1", form_type: "I-485",
-    eb_pending: 500000, eb_approvals: 50000, eb_denials: 5000, approval_rate: 0.91,
-    denial_rate: 0.09, throughput: 55000, backlog_months: 10, approval_rate_yoy_change: 0.02,
-    pending_yoy_change: -0.05, throughput_yoy_change: 0.1, eb1_approvals: 10000,
-    eb2_approvals: 25000, eb3_approvals: 15000, eb_other_approvals: 0,
-    source: "USCIS", generated_at: "2024-01-01",
+    period_end_date: "2024-03-31", category: "Employment-based",
+    eb_received: null, eb_approved: 50000, eb_denied: 5000,
+    eb_pending: 500000, total_received: null, total_approved: null,
+    total_denied: null, total_pending: null,
+    approval_rate: 0.91, throughput: 55000, net_intake: null,
+    backlog_months: 10, pending_change: -0.05, throughput_change: 0.1,
   },
 ];
 
 const mockUscisData = [
-  { fiscal_year: "FY2024", form: "I-485", category: "EB", approvals: 50000, denials: 5000, source: "USCIS", generated_at: "2024-01-01" },
-  { fiscal_year: "FY2024", form: "I-140", category: "EB", approvals: 30000, denials: 2000, source: "USCIS", generated_at: "2024-01-01" },
+  { fiscal_year: "FY2024", form: "I-485", category: "EB", approvals: 50000, denials: 5000, source_file: "uscis_q1.csv", ingested_at: "2024-01-01" },
+  { fiscal_year: "FY2024", form: "I-140", category: "EB", approvals: 30000, denials: 2000, source_file: "uscis_q1.csv", ingested_at: "2024-01-01" },
 ];
 
 vi.mock("@/lib/data/processing", async () => {
@@ -231,17 +237,17 @@ const mockBacklogData = [
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB1",
     country: "IND", inflow_estimate_12m: 3000, advancement_days_12m_avg: 30,
-    backlog_months_to_clear_est: 24,
+    blended_velocity: 25, backlog_months_to_clear_est: 24,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB2",
     country: "IND", inflow_estimate_12m: 5000, advancement_days_12m_avg: 15,
-    backlog_months_to_clear_est: 120,
+    blended_velocity: 12, backlog_months_to_clear_est: 120,
   },
   {
     bulletin_year: 2025, bulletin_month: 1, chart: "DFF", category: "EB3",
     country: "IND", inflow_estimate_12m: 4000, advancement_days_12m_avg: 10,
-    backlog_months_to_clear_est: 180,
+    blended_velocity: 8, backlog_months_to_clear_est: 180,
   },
 ];
 
@@ -323,7 +329,7 @@ describe("EB Category Dashboard", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     });
-    expect(screen.getByText("Monthly Advancement Velocity")).toBeTruthy();
+    expect(screen.getByText("Blended Priority Date Velocity")).toBeTruthy();
   });
 
   it("renders methodology section", async () => {

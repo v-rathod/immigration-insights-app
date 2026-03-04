@@ -66,7 +66,12 @@ export function getLatestMovement(
   chart: string = "DFF"
 ): CategoryMovementMetric | null {
   const series = filterMovementSeries(data, category, country, chart);
-  // Find last row with actual data
+  // Prefer the last row with blended_velocity; fall back to avg_monthly_advancement_days
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (series[i].blended_velocity !== null && series[i].blended_velocity !== undefined) {
+      return series[i];
+    }
+  }
   for (let i = series.length - 1; i >= 0; i--) {
     if (series[i].avg_monthly_advancement_days !== null) {
       return series[i];
@@ -82,6 +87,8 @@ export function buildCategorySummary(
   chart: string = "DFF"
 ): Array<{
   category: string;
+  blendedVelocity: number | null;
+  netVelocity: number | null;
   avgAdvancement: number | null;
   medianAdvancement: number | null;
   volatility: number | null;
@@ -92,6 +99,8 @@ export function buildCategorySummary(
     const latest = getLatestMovement(data, cat, country, chart);
     return {
       category: cat,
+      blendedVelocity: latest?.blended_velocity ?? null,
+      netVelocity: latest?.net_velocity ?? null,
       avgAdvancement: latest?.avg_monthly_advancement_days ?? null,
       medianAdvancement: latest?.median_advancement_days ?? null,
       volatility: latest?.volatility_score ?? null,

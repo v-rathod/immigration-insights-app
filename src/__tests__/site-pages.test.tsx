@@ -145,35 +145,18 @@ describe("Footer", () => {
 // =========================================================================
 
 describe("FeedbackWidget", () => {
-  /** Helper: open the FAB mini-menu */
-  const openMenu = () => {
-    render(<FeedbackWidget />);
-    fireEvent.click(screen.getByLabelText("Quick actions"));
-  };
-
-  /** Helper: open feedback dialog via FAB → Send Feedback */
+  /** Helper: open the feedback dialog by clicking the FAB */
   const openFeedback = () => {
-    openMenu();
-    fireEvent.click(screen.getByText("Send Feedback"));
+    render(<FeedbackWidget />);
+    fireEvent.click(screen.getByTitle("Send feedback"));
   };
 
   it("renders floating FAB button", () => {
     render(<FeedbackWidget />);
-    expect(screen.getByLabelText("Quick actions")).toBeInTheDocument();
+    expect(screen.getByTitle("Send feedback")).toBeInTheDocument();
   });
 
-  it("opens mini-menu with Ask and Feedback items", () => {
-    openMenu();
-    expect(screen.getByText("Ask NorthStar")).toBeInTheDocument();
-    expect(screen.getByText("Send Feedback")).toBeInTheDocument();
-  });
-
-  it("FAB label changes to Close menu when open", () => {
-    openMenu();
-    expect(screen.getByLabelText("Close menu")).toBeInTheDocument();
-  });
-
-  it("opens feedback dialog from mini-menu", () => {
+  it("opens feedback dialog on click", () => {
     openFeedback();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
@@ -195,7 +178,7 @@ describe("FeedbackWidget", () => {
 
   it("submit button is disabled when empty", () => {
     openFeedback();
-    const submitBtn = screen.getByText(/submit via/i).closest("button");
+    const submitBtn = screen.getByText(/submit/i).closest("button");
     expect(submitBtn).toBeDisabled();
   });
 
@@ -204,7 +187,7 @@ describe("FeedbackWidget", () => {
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "Great tool!" },
     });
-    const submitBtn = screen.getByText(/submit via/i).closest("button");
+    const submitBtn = screen.getByText(/submit/i).closest("button");
     expect(submitBtn).not.toBeDisabled();
   });
 
@@ -218,12 +201,6 @@ describe("FeedbackWidget", () => {
   it("shows character count", () => {
     openFeedback();
     expect(screen.getByText("0 / 2,000")).toBeInTheDocument();
-  });
-
-  it("Ask NorthStar links to /ask", () => {
-    openMenu();
-    const link = screen.getByText("Ask NorthStar").closest("a");
-    expect(link).toHaveAttribute("href", "/ask");
   });
 });
 

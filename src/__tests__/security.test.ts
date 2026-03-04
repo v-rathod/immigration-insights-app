@@ -255,7 +255,7 @@ describe("isAllowedPath", () => {
 
   it("ignores query params and hash", () => {
     expect(isAllowedPath("/setup?tab=1")).toBe(true);
-    expect(isAllowedPath("/ask#topic")).toBe(true);
+    expect(isAllowedPath("/about#team")).toBe(true);
   });
 
   it("rejects non-string input", () => {

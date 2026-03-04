@@ -254,6 +254,8 @@ export interface CategoryMovementMetric {
   volatility_score: number | null;
   retrogression_events_12m: number;
   next_movement_prediction: string; // "Flat" | "Advancing" | "Unknown" | etc.
+  blended_velocity: number | null;  // Blended velocity (50% full-hist + 25% capped r24 + 25% capped r12)
+  net_velocity: number | null;      // Full-history net velocity (days/month)
 }
 
 export interface BacklogEstimate {
@@ -264,6 +266,7 @@ export interface BacklogEstimate {
   country: string;
   inflow_estimate_12m: number | null;
   advancement_days_12m_avg: number | null;
+  blended_velocity: number | null;  // Blended velocity (50% full-hist + 25% capped r24 + 25% capped r12)
   backlog_months_to_clear_est: number | null;
 }
 

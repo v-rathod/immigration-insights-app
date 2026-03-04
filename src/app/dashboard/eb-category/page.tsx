@@ -91,7 +91,7 @@ export default function EbCategoryDashboardPage() {
       for (const r of series) {
         const key = `${r.bulletin_year}-${String(r.bulletin_month).padStart(2, "0")}`;
         const existing = timeline.get(key) ?? { date: key };
-        existing[cat] = r.avg_monthly_advancement_days;
+        existing[cat] = r.blended_velocity ?? r.avg_monthly_advancement_days;
         timeline.set(key, existing);
       }
     }
@@ -205,18 +205,18 @@ export default function EbCategoryDashboardPage() {
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-[var(--muted-foreground)]">Avg Movement</p>
+                    <p className="text-[var(--muted-foreground)]">Velocity</p>
                     <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.avgAdvancement !== null
-                        ? `${formatNumber(s.avgAdvancement, 1)} days/mo`
+                      {s.blendedVelocity !== null
+                        ? `${formatNumber(s.blendedVelocity, 1)} days/mo`
                         : "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[var(--muted-foreground)]">Median</p>
+                    <p className="text-[var(--muted-foreground)]">Net Velocity</p>
                     <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.medianAdvancement !== null
-                        ? `${formatNumber(s.medianAdvancement, 1)} days/mo`
+                      {s.netVelocity !== null
+                        ? `${formatNumber(s.netVelocity, 1)} days/mo`
                         : "—"}
                     </p>
                   </div>
@@ -264,12 +264,12 @@ export default function EbCategoryDashboardPage() {
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5 text-purple-400" />
               <h2 className="text-lg font-semibold text-[var(--foreground)]">
-                Monthly Advancement Velocity
+                Blended Priority Date Velocity
               </h2>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] mb-5">
-              Average days of priority date advancement per month by EB
-              category — {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
+              Blended velocity (50% full-history net + 25% capped rolling-24m + 25% capped rolling-12m)
+              per EB category — {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
               {selectedChart === "DFF" ? "Dates for Filing" : "Final Action Dates"}
             </p>
 
@@ -437,11 +437,19 @@ export default function EbCategoryDashboardPage() {
               <div className="mt-4 text-xs text-[var(--muted-foreground)] space-y-2">
                 <p>
                   Category movement metrics are computed from the Visa Bulletin
-                  historical cutoff dates using rolling 12-month windows.
+                  historical cutoff dates using a blended velocity formula
+                  consistent across all NorthStar artifacts.
                 </p>
                 <p>
-                  <strong>Avg Monthly Advancement:</strong> Rolling 12-month
-                  average of daily cutoff date movement per month.
+                  <strong>Blended Velocity:</strong> Weighted combination of
+                  50% full-history net velocity + 25% capped rolling-24m mean +
+                  25% capped rolling-12m mean. This smooths out burst
+                  advancement spikes while reflecting long-term trends.
+                </p>
+                <p>
+                  <strong>Net Velocity:</strong> Full-history average
+                  advancement from the first recorded cutoff date to the
+                  current date, in days per month.
                 </p>
                 <p>
                   <strong>Volatility Score:</strong> Standard deviation of
@@ -454,7 +462,7 @@ export default function EbCategoryDashboardPage() {
                 </p>
                 <p>
                   <strong>Prediction:</strong> Based on recent velocity trend
-                  direction — Advancing, Flat, or Retreating.
+                  direction — Forward, Flat, or Backward.
                 </p>
                 <p className="pt-2 border-t border-white/[0.06]">
                   Source: Department of State Visa Bulletin, processed by P2

@@ -453,13 +453,16 @@ export default function BacklogDashboardPage() {
               <div className="mt-4 text-xs text-[var(--muted-foreground)] space-y-2">
                 <p>
                   Backlog estimates are computed from Visa Bulletin cutoff date
-                  trends, using rolling 12-month advancement rates and PERM
-                  filing inflow as a proxy for demand.
+                  trends, using a <strong>blended velocity</strong> that combines
+                  full-history net advancement (50%), capped 24-month rolling
+                  average (25%), and capped 12-month rolling average (25%).
+                  This smooths out short-term spillover spikes while staying
+                  responsive to recent trends.
                 </p>
                 <p>
                   <strong>Years to Clear:</strong> Estimated time to clear the
-                  current backlog based on the recent 12-month average
-                  advancement rate. Capped at 50 years (600 months).
+                  current backlog based on the blended advancement velocity.
+                  Capped at 50 years (600 months).
                 </p>
                 <p>
                   <strong>Queue Depth:</strong> Estimates the number of

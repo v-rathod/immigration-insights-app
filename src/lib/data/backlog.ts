@@ -93,7 +93,7 @@ export function buildBacklogSummary(
       backlogMonths: months,
       backlogYears: months !== null ? Math.round((months / 12) * 10) / 10 : null,
       inflow12m: latest?.inflow_estimate_12m ?? null,
-      advancementDays: latest?.advancement_days_12m_avg ?? null,
+      advancementDays: latest?.blended_velocity ?? latest?.advancement_days_12m_avg ?? null,
     };
   });
 }

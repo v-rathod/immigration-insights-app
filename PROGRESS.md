@@ -1,5 +1,69 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.21: Cross-Artifact Velocity Fix (EB Category + Backlog)
+
+### Objective
+EB Category dashboard showed incorrect velocity values — IND EB2 displayed faster than CHN EB2 (impossible). Cross-verify all P2 artifacts using blended velocity, fix both `category_movement_metrics` and `backlog_estimates` in P2, re-sync to P3, and update dashboards/tests.
+
+### Root Cause
+Rolling 12-month average (`advancement_days_12m_avg`) was inflated by 2 massive spillover jumps (303+335 days) for IND EB2, making it appear faster than CHN. The blended velocity formula from `pd_forecast.py` (50% full-history net + 25% capped r24m + 25% capped r12m) correctly damps these outliers.
+
+### Cross-Verification Results
+| Artifact Pair | Status |
+|---------------|--------|
+| Queue Depth ↔ PD Forecast | ALL 15 series MATCH within 0.1 days ✓ |
+| CMM blended ↔ PD base_velocity | All within 0.5–1.8 days ✓ |
+| Backlog Estimates | Had same r12m bug — fixed with blended_velocity |
+
+### What Was Done
+
+**P2 Changes**
+- `scripts/make_category_movement_metrics.py` — Added `_rolling_nonzero_median()`, `_compute_blended()`, outputs `blended_velocity` and `net_velocity` columns. Fixed pandas 3.0 `groupby().apply()` incompatibility (manual iteration).
+- `scripts/make_backlog_estimates.py` — Added `_compute_blended_backlog()`, uses blended velocity for `backlog_months_to_clear_est`, outputs `blended_velocity`.
+- Both artifacts rebuilt (8,060 rows each).
+
+**P3 Changes**
+- `src/types/p2-artifacts.ts` — Added `blended_velocity`, `net_velocity` to `CategoryMovementMetric`; added `blended_velocity` to `BacklogEstimate`
+- `src/lib/data/eb-category.ts` — `getLatestMovement` prefers `blended_velocity`; `buildCategorySummary` returns `blendedVelocity`/`netVelocity`
+- `src/lib/data/backlog.ts` — `buildBacklogSummary` uses `blended_velocity ?? advancement_days_12m_avg`
+- `src/app/dashboard/eb-category/page.tsx` — Cards show "Velocity"/"Net Velocity"; chart uses blended; methodology updated
+- `src/app/dashboard/backlog/page.tsx` — Methodology updated to describe blended formula
+- Test mocks updated in `dashboard-data-loaders.test.ts` and `new-dashboards.test.tsx`
+- `site-pages.test.tsx` — Rewrote FeedbackWidget tests for new single-click FAB
+- `security.test.ts` — Fixed allowed path test (`/ask` removed)
+- Cleaned up temporary scripts (`cross_verify.py`, `debug_cross_verify.py`, `_verify_cmm.py`)
+
+**Also in this session**
+- PostHog environment tagging: `posthog.register({ environment })` as super properties (all events now carry `environment: "dev"|"prod"`)
+- FAB redesign: single-click → feedback dialog (MessageSquarePlus icon, no mini-menu)
+- Removed Ask/Search from UI
+
+### Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Tests | 552 | **549** (3 removed: old FeedbackWidget mini-menu) |
+| EB2/IND velocity | 55.8 (wrong) | **19.0** (correct, IND < CHN ✓) |
+| EB2/CHN velocity | 38.1 | **28.7** |
+| Backlog clearing velocity | raw r12m (inflated) | blended (accurate) |
+| TypeScript errors | 0 | **0** |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/types/p2-artifacts.ts` | `blended_velocity`, `net_velocity` on 2 interfaces |
+| `src/lib/data/eb-category.ts` | Prefers blended_velocity in summaries |
+| `src/lib/data/backlog.ts` | Uses `blended_velocity ?? advancement_days_12m_avg` |
+| `src/app/dashboard/eb-category/page.tsx` | Velocity/Net Velocity cards, blended chart, methodology |
+| `src/app/dashboard/backlog/page.tsx` | Methodology text updated |
+| `src/components/providers/posthog-provider.tsx` | `posthog.register({ environment })` |
+| `src/components/ui/feedback-widget.tsx` | Single-click FAB (no mini-menu) |
+| `src/__tests__/dashboard-data-loaders.test.ts` | Added blended_velocity to mocks |
+| `src/__tests__/new-dashboards.test.tsx` | Added blended_velocity to mocks |
+| `src/__tests__/site-pages.test.tsx` | Rewrote FeedbackWidget tests |
+| `src/__tests__/security.test.ts` | Fixed `/ask` → `/about#team` |
+
+---
+
 ## 2026-03-05 — Milestone 10.20: Build All 5 Missing Dashboards + Full Test Suite
 
 ### Objective
@@ -1196,7 +1260,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.20 — 2026-03-05)
+## Quick Reference (Current State as of Milestone 10.21 — 2026-03-06)
 
 | Metric | Value |
 |--------|-------|
@@ -1206,7 +1270,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **552 passing** across 24 test files |
+| Tests | **549 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
 | Pages scaffolded | 15 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/_not-found`) |
 | Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
@@ -1217,7 +1281,8 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
-| FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
+| FAB | Single-click feedback dialog (MessageSquarePlus icon) |
+| PostHog | Super properties: `environment` tag on all events |
 | AWS deploy | Not started |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (15 pages) |
 
@@ -1359,6 +1424,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.18 | 2026-03-04 | Wage Role Search Fixes | Fix activeEmployers (47→17K+); ROLE_ALIASES (45+ SOC aliases); opaque dropdown bg; `n_employers`/`total_filings` in SocSalaryMarket interface; 472 tests; commit 6c9b756 |
 | 10.19 | 2026-03-04 | Fix Salary Data Source Mismatch | Stat cards (soc_salary_market, LCA) vs Distribution tab (OEWS survey) showed different numbers for same role. P2: added market_p10/p90 to soc_salary_market via weighted avg. P3: `marketAsBenchmark()` helper + Distribution tab now uses LCA data throughout. Data Scientists: median $139,918 now consistent everywhere. 472 tests; commit bd34f9a |
 | 10.20 | 2026-03-05 | Build All 5 Missing Dashboards | System audit found 5/9 dashboards unbuilt (EB Category, Geographic, SOC Demand, Processing, Backlog). Built all 5 with data loaders, fixed 5 TypeScript interfaces, added 80 new tests. **9/9 dashboards complete.** 552 tests (24 files); 15 pages |
+| 10.21 | 2026-03-06 | Cross-Artifact Velocity Fix | EB2/IND velocity wrong (55.8→19.0) due to r12m spillover spikes. Applied blended formula to CMM + backlog_estimates in P2; cross-verified all artifacts; updated P3 dashboards/tests. PostHog super properties. FAB redesign. 549 tests |
 
 ---
 

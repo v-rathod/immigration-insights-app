@@ -65,6 +65,8 @@ const makeMovement = (
   volatility_score: 0.3,
   retrogression_events_12m: 0,
   next_movement_prediction: "Advance Slowly",
+  blended_velocity: 12,
+  net_velocity: 9,
   ...overrides,
 });
 
@@ -93,7 +95,7 @@ describe("eb-category data", () => {
   it("getLatestMovement picks last non-null entry", () => {
     const data = [
       makeMovement({ bulletin_month: 1 }),
-      makeMovement({ bulletin_month: 2, avg_monthly_advancement_days: null }),
+      makeMovement({ bulletin_month: 2, avg_monthly_advancement_days: null, blended_velocity: null }),
     ];
     const latest = getLatestMovement(data, "EB2", "IND", "DFF");
     expect(latest?.bulletin_month).toBe(1);
@@ -275,8 +277,16 @@ const makeSocDemand = (
 const makeDimSoc = (overrides: Partial<DimSoc> = {}): DimSoc => ({
   soc_code: "15-1252",
   soc_title: "Software Developers",
-  soc_major_code: "15",
+  soc_major: "15",
   soc_major_title: "Computer and Mathematical",
+  soc_group: null,
+  soc_group_title: null,
+  soc_broad: null,
+  soc_broad_title: null,
+  soc_version: "2018",
+  is_legacy: false,
+  mapped_2018_code: null,
+  mapped_2018_title: null,
   ...overrides,
 });
 
@@ -416,22 +426,22 @@ const makeProcTrend = (
   quarter: 1,
   reporting_period: "FY2024 Q1",
   form_type: "I-485",
+  period_end_date: "2024-03-31",
+  category: "Employment-based",
+  eb_received: null,
+  eb_approved: 50000,
+  eb_denied: 5000,
   eb_pending: 500000,
-  eb_approvals: 50000,
-  eb_denials: 5000,
+  total_received: null,
+  total_approved: null,
+  total_denied: null,
+  total_pending: null,
   approval_rate: 0.91,
-  denial_rate: 0.09,
   throughput: 55000,
+  net_intake: null,
   backlog_months: 10,
-  approval_rate_yoy_change: 0.02,
-  pending_yoy_change: -0.05,
-  throughput_yoy_change: 0.1,
-  eb1_approvals: 10000,
-  eb2_approvals: 25000,
-  eb3_approvals: 15000,
-  eb_other_approvals: 0,
-  source: "USCIS",
-  generated_at: "2024-01-01",
+  pending_change: -0.05,
+  throughput_change: 0.1,
   ...overrides,
 });
 
@@ -443,8 +453,8 @@ const makeUscisApproval = (
   category: "EB",
   approvals: 50000,
   denials: 5000,
-  source: "USCIS",
-  generated_at: "2024-01-01",
+  source_file: "uscis_q1.csv",
+  ingested_at: "2024-01-01",
   ...overrides,
 });
 
@@ -553,6 +563,7 @@ const makeBacklog = (
   country: "IND",
   inflow_estimate_12m: 5000,
   advancement_days_12m_avg: 15,
+  blended_velocity: 12,
   backlog_months_to_clear_est: 120,
   ...overrides,
 });
