@@ -9,8 +9,6 @@
  *   EmployerProfile               StatCards + 4 Tabs
  *   (trend chart, roles)          (Trend|Dist|Employers|Regional)
  *
- *   Bottom (always): WageGrowthLeaderboard
- *
  * Data sources: salary_benchmarks_national, salary_benchmarks_states,
  *               soc_salary_market, employer_wage_rankings, employer_salary_trend
  */
@@ -46,7 +44,6 @@ import { PercentileLadder } from "@/components/wage/PercentileLadder";
 import { EmployerWageTable } from "@/components/wage/EmployerWageTable";
 import { RegionalBreakdown } from "@/components/wage/RegionalBreakdown";
 import { EmployerProfile } from "@/components/wage/EmployerProfile";
-import { WageGrowthLeaderboard } from "@/components/wage/WageGrowthLeaderboard";
 import {
   loadSalaryBenchmarksNational,
   loadSalaryBenchmarksStates,
@@ -861,17 +858,6 @@ export function WageIntelligenceHub() {
             <EmptyStateRole onQuickPick={selectSoc} />
           )}
         </FadeIn>
-      )}
-
-      {/* ── Rising Stars leaderboard (always visible at bottom) ──────────── */}
-      {trends.length > 0 && (
-        <WageGrowthLeaderboard
-          trend={trends}
-          onSelectEmployer={(name) => {
-            setSearchMode("employer");
-            selectEmployer(name);
-          }}
-        />
       )}
 
       {/* ── EMPLOYER SELECTED — Profile view ──────────────────────────── */}
