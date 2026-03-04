@@ -4,11 +4,11 @@
  * Sections:
  *   1. Growth badges (CAGR 5yr, latest YoY, filing count, consecutive raises)
  *   2. Salary trend chart — 2016→2025 median with YoY% tooltip
- *   3. Top roles at this employer (from FY2025 rankings data)
+ *   3. Top roles at this employer — searchable, with drill-down to 5-year percentile chart
  */
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
   TrendingDown,
@@ -27,19 +27,26 @@ import {
   Building2,
   Briefcase,
   Minus,
+  Search,
+  X,
+  ChevronDown,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatCompact } from "@/lib/utils/format";
 import { GlassCard } from "@/components/ui/glass-card";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/animations";
+import { RolePercentileTrend } from "@/components/wage/RolePercentileTrend";
 import {
   computeEmployerGrowth,
   getEmployerTrend,
   getEmployerRoles,
+  getEmployerRoleTrendSeries,
   annotateWithYoy,
   WAGE_SANITY,
   type EmployerSalaryTrend,
   type EmployerWageRanking,
+  type EmployerRoleTrend as EmployerRoleTrendType,
 } from "@/lib/data/wage";
 
 // ---------------------------------------------------------------------------
@@ -54,6 +61,8 @@ interface EmployerProfileProps {
    * When provided, these replace `rankings` for the "Top Roles" section.
    * Falls back to `rankings` if omitted (backwards-compatible). */
   roleProfiles?: EmployerWageRanking[];
+  /** Multi-year percentile data for role drill-down charts. */
+  roleTrends?: EmployerRoleTrendType[];
   visaType?: "H-1B" | "PERM";
 }
 
@@ -124,8 +133,13 @@ export function EmployerProfile({
   trend,
   rankings,
   roleProfiles,
+  roleTrends,
   visaType = "H-1B",
 }: EmployerProfileProps) {
+  // ── Role search + selection state ─────────────────────────────────────────
+  const [roleQuery, setRoleQuery] = useState("");
+  const [selectedRole, setSelectedRole] = useState<{ soc_code: string; soc_title: string } | null>(null);
+
   const series = useMemo(() => {
     // Filter out years with implausible salary values before rendering the chart
     const validated = getEmployerTrend(trend, employerName, visaType).filter(
@@ -151,6 +165,23 @@ export function EmployerProfile({
     ).slice(0, 8),
     [roleProfiles, rankings, employerName, visaType]
   );
+
+  // Filter roles by search query (case-insensitive substring match)
+  const filteredRoles = useMemo(() => {
+    if (!roleQuery.trim()) return roles;
+    const q = roleQuery.toLowerCase();
+    return roles.filter(
+      (r) =>
+        r.soc_title.toLowerCase().includes(q) ||
+        r.soc_code.includes(q)
+    );
+  }, [roles, roleQuery]);
+
+  // Get percentile trend data for the selected role
+  const roleTrendSeries = useMemo(() => {
+    if (!selectedRole || !roleTrends || roleTrends.length === 0) return [];
+    return getEmployerRoleTrendSeries(roleTrends, employerName, selectedRole.soc_code, visaType);
+  }, [roleTrends, employerName, selectedRole, visaType]);
 
   if (!stats || series.length === 0) {
     return (
@@ -299,77 +330,158 @@ export function EmployerProfile({
           </div>
         </GlassCard>
 
-        {/* ── Top roles table ─────────────────────────────────────────── */}
+        {/* ── Top roles section ────────────────────────────────────────── */}
         {roles.length > 0 && (
           <GlassCard variant="elevated" padding="lg">
-            <p className="text-sm font-semibold text-[var(--foreground)] mb-4">
-              Top Roles at {employerName}
-              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
-                FY{roles[0]?.fiscal_year} · {visaType}
-              </span>
-            </p>
+            {/* Header + search */}
+            <div className="flex items-start sm:items-center justify-between gap-3 mb-4 flex-col sm:flex-row">
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Top Roles at {employerName}
+                <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+                  FY{roles[0]?.fiscal_year} · {visaType}
+                </span>
+              </p>
+              {/* Search within roles */}
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                <input
+                  type="text"
+                  value={roleQuery}
+                  onChange={(e) => setRoleQuery(e.target.value)}
+                  placeholder="Search roles..."
+                  aria-label="Search roles in top roles"
+                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-white/[0.03] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-400/40 transition-colors"
+                />
+                {roleQuery && (
+                  <button
+                    onClick={() => setRoleQuery("")}
+                    aria-label="Clear role search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
 
             <div className="space-y-2">
-              {roles.map((role, i) => {
+              {filteredRoles.length === 0 && roleQuery && (
+                <p className="text-xs text-[var(--muted-foreground)] text-center py-4">
+                  No roles matching &ldquo;{roleQuery}&rdquo;
+                </p>
+              )}
+              {filteredRoles.map((role, i) => {
                 const premium = role.wage_premium_pct ?? 0;
                 const premiumColor =
                   premium >= 20 ? "text-emerald-400" : premium >= 5 ? "text-blue-400" : "text-amber-400";
+                const isSelected = selectedRole?.soc_code === role.soc_code;
+                const hasTrendData = roleTrends && roleTrends.length > 0;
 
                 return (
-                  <motion.div
-                    key={`${role.soc_code}-${i}`}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.04 }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.02]"
-                  >
-                    {/* Rank */}
-                    <span className="w-5 text-right text-[10px] font-mono text-[rgba(255,255,255,0.25)] shrink-0">
-                      {i + 1}
-                    </span>
-
-                    {/* Role info */}
-                    <Briefcase className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{role.soc_title}</p>
-                      <p className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
-                        {role.soc_code}
-                        {role.job_title_top ? ` · ${role.job_title_top}` : ""}
-                        {role.worksite_state_top ? ` · ${role.worksite_state_top}` : ""}
-                      </p>
-                    </div>
-
-                    {/* Filings */}
-                    <span className="hidden sm:block text-xs text-[var(--muted-foreground)] font-mono shrink-0 w-16 text-right">
-                      {formatCompact(role.n_filings)} filings
-                    </span>
-
-                    {/* Prior Year Median (hidden on mobile) */}
-                    <div className="hidden md:flex flex-col items-end">
-                      <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
-                      <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
-                        {(role as any).prior_year_median_salary ? formatCurrency((role as any).prior_year_median_salary) : "—"}
+                  <div key={`${role.soc_code}-${i}`}>
+                    <motion.button
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.04 }}
+                      onClick={() => {
+                        if (!hasTrendData) return;
+                        setSelectedRole(
+                          isSelected ? null : { soc_code: role.soc_code, soc_title: role.soc_title }
+                        );
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left",
+                        isSelected
+                          ? "border-blue-400/30 bg-blue-400/[0.06]"
+                          : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]",
+                        hasTrendData ? "cursor-pointer" : "cursor-default"
+                      )}
+                      aria-label={`View salary trends for ${role.soc_title}`}
+                      aria-expanded={isSelected}
+                    >
+                      {/* Rank */}
+                      <span className="w-5 text-right text-[10px] font-mono text-[rgba(255,255,255,0.25)] shrink-0">
+                        {i + 1}
                       </span>
-                    </div>
 
-                    {/* Median */}
-                    <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
-                      {formatCurrency(role.median_salary)}
-                    </span>
+                      {/* Role info */}
+                      <Briefcase className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{role.soc_title}</p>
+                        <p className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
+                          {role.soc_code}
+                          {role.job_title_top ? ` · ${role.job_title_top}` : ""}
+                          {role.worksite_state_top ? ` · ${role.worksite_state_top}` : ""}
+                        </p>
+                      </div>
 
-                    {/* Premium */}
-                    <span className={cn("text-xs font-semibold shrink-0 w-16 text-right hidden sm:block", premiumColor)}>
-                      {premium >= 0 ? "+" : ""}
-                      {Math.round(premium)}% mkt
-                    </span>
+                      {/* Filings */}
+                      <span className="hidden sm:block text-xs text-[var(--muted-foreground)] font-mono shrink-0 w-16 text-right">
+                        {formatCompact(role.n_filings)} filings
+                      </span>
 
-                  </motion.div>
+                      {/* Prior Year Median (hidden on mobile) */}
+                      <div className="hidden md:flex flex-col items-end">
+                        <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
+                        <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
+                          {(role as Record<string, unknown>).prior_year_median_salary
+                            ? formatCurrency((role as Record<string, unknown>).prior_year_median_salary as number)
+                            : "—"}
+                        </span>
+                      </div>
+
+                      {/* Median */}
+                      <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
+                        {formatCurrency(role.median_salary)}
+                      </span>
+
+                      {/* Premium */}
+                      <span className={cn("text-xs font-semibold shrink-0 w-16 text-right hidden sm:block", premiumColor)}>
+                        {premium >= 0 ? "+" : ""}
+                        {Math.round(premium)}% mkt
+                      </span>
+
+                      {/* Expand indicator */}
+                      {hasTrendData && (
+                        <ChevronDown
+                          className={cn(
+                            "h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-200",
+                            isSelected && "rotate-180 text-blue-400"
+                          )}
+                        />
+                      )}
+                    </motion.button>
+
+                    {/* ── Role drill-down: percentile trend chart ─────── */}
+                    <AnimatePresence>
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-3 pb-1">
+                            <RolePercentileTrend
+                              series={roleTrendSeries}
+                              employerName={employerName}
+                              socTitle={role.soc_title}
+                              socCode={role.soc_code}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 );
               })}
             </div>
 
             <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
-              To compare a role across all employers, switch to Job Role search above
+              {roleTrends && roleTrends.length > 0
+                ? "Click a role to see 5-year salary distribution · Switch to Job Role search above to compare across employers"
+                : "To compare a role across all employers, switch to Job Role search above"}
             </p>
           </GlassCard>
         )}

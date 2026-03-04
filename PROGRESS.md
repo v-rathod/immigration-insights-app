@@ -1,5 +1,64 @@
 # Compass Progress Tracker
 
+## 2026-03-04 — Milestone 10.15: Employer Role Drill-Down with 5-Year Percentile Trends
+
+### Objective
+When a user selects an employer, provide a searchable "Top Roles" section. When a role is clicked, show an inline 5-year salary distribution chart (p10, p25, p50, p75, p90 percentile bands) for that employer × role combination.
+
+### What Was Done
+
+**P2 Data Pipeline (Meridian)**
+- Modified `scripts/make_employer_salary_profiles.py` to compute p10 and p90 percentiles (previously only p25/p75)
+- Rebuilt `employer_salary_profiles.parquet` — 2,524,521 rows, FY2008–2026, all 5 percentiles
+
+**P3 Data Sync (Compass)**
+- Updated `scripts/sync_p2_data.py`: added p10/p90 to `employer_role_profiles.json` export
+- Created NEW export: `employer_role_trends.json` — multi-year percentile history
+  - Grain: `employer_name × soc_code × fiscal_year` (last 5 fiscal years)
+  - Top 500 employers, n_filings ≥ 2
+  - 26,989 rows, 460 employers, 8MB
+  - Example: Microsoft + Software Developers: FY2022 ($155K median) → FY2026 ($181K median)
+
+**New Type + Loader (`src/lib/data/wage.ts`)**
+- Added `EmployerRoleTrend` interface (13 fields: employer_name, soc_code, soc_title, fiscal_year, p10–p90, mean, oews_national_median, visa_type)
+- Added `loadEmployerRoleTrends()` async loader
+- Added `getEmployerRoleTrendSeries()` helper — filters by employer+SOC+visa_type, sorts by year
+
+**New Component: `RolePercentileTrend` (`src/components/wage/RolePercentileTrend.tsx`)**
+- 5-band Recharts AreaChart: p10 (teal) → p25 (cyan) → median (blue, bold) → p75 (indigo) → p90 (purple)
+- OEWS national median reference line (green dashed)
+- Rich tooltip: all 5 percentiles + filing count + OEWS comparison
+- TrendSummary badges: median growth %, salary range (p10–p90), total filings
+- Graceful empty state when no multi-year data available
+- Legend (hidden on mobile)
+
+**Enhanced `EmployerProfile` Component**
+- Added role search input (substring match on soc_title/soc_code)
+- Made role rows clickable — selecting expands an inline percentile chart below
+- AnimatePresence for smooth expand/collapse transitions
+- Clear button on search input
+- Accepts new `roleTrends` prop (backwards-compatible — hide expand chevrons when absent)
+- Updated footer text to guide interaction ("Click a role to see 5-year salary distribution")
+
+**Wired `WageIntelligenceHub`**
+- Loads `employer_role_trends` in parallel with other data (via `loadEmployerRoleTrends()`)
+- Passes `roleTrends` prop to `EmployerProfile`
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/lib/data/wage.ts` | +EmployerRoleTrend type, +loadEmployerRoleTrends(), +getEmployerRoleTrendSeries() |
+| `src/components/wage/RolePercentileTrend.tsx` | **NEW** — 5-band percentile area chart |
+| `src/components/wage/EmployerProfile.tsx` | +role search, +clickable rows, +drill-down chart, +roleTrends prop |
+| `src/components/wage/WageIntelligenceHub.tsx` | +loadEmployerRoleTrends, +roleTrends state, pass to EmployerProfile |
+| `scripts/sync_p2_data.py` | +employer_role_trends.json export, +p10/p90 columns |
+| `public/data/dashboards/wage/employer_role_trends.json` | **NEW** — 26,989 rows, 8MB |
+
+### Test Results
+- **472 tests passing** (all existing tests pass, no regressions)
+
+---
+
 ## 2026-03-02 — Milestone 10.13: My Insights UX & Layout Fixes
 
 ### Objective

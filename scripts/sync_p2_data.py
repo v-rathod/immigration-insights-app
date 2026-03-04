@@ -438,14 +438,15 @@ def sync_wage_dashboard():
         erp_top["soc_title"] = erp_top["soc_code"].map(soc_map).fillna("")
         erp_cols = [
             "employer_name", "soc_code", "soc_title", "fiscal_year", "n_filings",
-            "mean_salary", "median_salary", "p25_salary", "p75_salary",
-            "prevailing_wage_median", "wage_premium_pct", "wage_vs_pw_pct",
+            "mean_salary", "median_salary", "p10_salary", "p25_salary", "p75_salary",
+            "p90_salary", "prevailing_wage_median", "wage_premium_pct", "wage_vs_pw_pct",
             "oews_national_median", "visa_type", "job_title_top", "worksite_state_top",
         ]
         erp_cols = [c for c in erp_cols if c in erp_top.columns]
         erp_out = erp_top[erp_cols].copy()
-        for col in ["mean_salary", "median_salary", "p25_salary", "p75_salary",
-                    "prevailing_wage_median", "oews_national_median"]:
+        for col in ["mean_salary", "median_salary", "p10_salary", "p25_salary",
+                    "p75_salary", "p90_salary", "prevailing_wage_median",
+                    "oews_national_median"]:
             if col in erp_out.columns:
                 erp_out[col] = erp_out[col].fillna(0).round(0).astype(int)
         for col in ["wage_premium_pct", "wage_vs_pw_pct"]:
@@ -456,6 +457,46 @@ def sync_wage_dashboard():
         n = df_to_json(erp_out, out_dir / "employer_role_profiles.json")
         size_kb = (out_dir / "employer_role_profiles.json").stat().st_size / 1024
         print(f"    ✓ employer_role_profiles: {n:,} rows ({n_employers} employers × top-25 roles) → {size_kb:.0f} KB")
+
+        # ── 4d. employer_role_trends — multi-year percentile history per employer×role ──
+        # For role drill-down widget: last 5 years of p10/p25/p50/p75/p90 per employer+role.
+        ert = esp[
+            (esp["visa_type"] == "H-1B")
+            & esp["employer_name"].notna()
+            & esp["n_filings"].ge(2)
+            & esp["median_salary"].notna()
+        ].copy()
+
+        # Same top 500 employers as role_profiles
+        ert = ert[ert["employer_name"].isin(top_500_by_filings)].copy()
+
+        # Keep last 5 fiscal years of data per employer
+        max_year = ert["fiscal_year"].max()
+        ert = ert[ert["fiscal_year"] >= max_year - 4]
+
+        # Enrich with SOC title
+        ert["soc_title"] = ert["soc_code"].map(soc_map).fillna("")
+
+        ert_cols = [
+            "employer_name", "soc_code", "soc_title", "fiscal_year", "n_filings",
+            "p10_salary", "p25_salary", "median_salary", "p75_salary", "p90_salary",
+            "mean_salary", "oews_national_median", "visa_type",
+        ]
+        ert_cols = [c for c in ert_cols if c in ert.columns]
+        ert_out = ert[ert_cols].copy()
+        for col in ["p10_salary", "p25_salary", "median_salary", "p75_salary",
+                    "p90_salary", "mean_salary", "oews_national_median"]:
+            if col in ert_out.columns:
+                ert_out[col] = ert_out[col].fillna(0).round(0).astype(int)
+
+        ert_out = ert_out.sort_values(
+            ["employer_name", "soc_code", "fiscal_year"], ascending=[True, True, True]
+        ).reset_index(drop=True)
+
+        n_ert = df_to_json(ert_out, out_dir / "employer_role_trends.json")
+        n_ert_employers = ert_out["employer_name"].nunique()
+        size_kb_ert = (out_dir / "employer_role_trends.json").stat().st_size / 1024
+        print(f"    ✓ employer_role_trends: {n_ert:,} rows ({n_ert_employers} employers × roles × 5yr) → {size_kb_ert:.0f} KB")
 
 
 def write_manifest():

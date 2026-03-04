@@ -64,6 +64,7 @@
 - **Fact Tables (18):** `fact_perm`, `fact_lca`, `fact_oews`, `fact_cutoffs`, `fact_h1b_employer_hub`, `fact_niv_issuance`, `fact_visa_issuance`, `fact_visa_applications`, `fact_perm_unique_case`, `fact_perm_all`, `fact_cutoffs_all`, `fact_uscis_approvals`, `fact_dhs_admissions`, `fact_waiting_list`, `fact_warn_events`, `fact_bls_ces`, `fact_processing_times`, `fact_trac_adjudications`
 - **Feature/Metric Tables (14):** `employer_features`, `employer_monthly_metrics`, `salary_benchmarks`, `visa_demand_metrics`, `worksite_geo_metrics`, `backlog_estimates`, `category_movement_metrics`, `fact_cutoff_trends`, `soc_demand_metrics`, `queue_depth_estimates`, `processing_times_trends`, `employer_risk_features`, `employer_salary_profiles`, `employer_salary_yearly`, `soc_salary_market`
 - **Model Outputs (3):** `employer_friendliness_scores`, `employer_friendliness_scores_ml`, `pd_forecasts`
+- **P3-Derived Exports (1):** `employer_role_trends` (multi-year p10–p90 percentile data per employer×SOC×year, 26,989 rows)
 - **RAG/QA Artifacts (4):** `catalog.json`, `all_chunks.json`, `qa_cache.json`, `build_summary.json`
 - **Stubs (4):** `employer_scores.parquet`, `oews_wages.parquet`, `visa_bulletin.parquet`, `fact_acs_wages.parquet`, `fact_processing_times.parquet`, `fact_trac_adjudications.parquet`
 
@@ -518,9 +519,10 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 **Components — Wage Intelligence**
 | File | Purpose |
 |------|------|
-| `src/components/wage/WageIntelligenceHub.tsx` | Main orchestrator — dual-mode search (`employer` default / `role`), two Fuse.js indices, EmptyStateEmployer (Top H-1B quick picks) + EmptyStateRole (popular SOC quick picks), mode-exclusive selection (selectedEmployer XOR selectedSoc), WageGrowthLeaderboard always at bottom when trend data available. Loads `employer_role_profiles.json` (employer-centric 485 employers × top-25 roles) and passes as `roleProfiles` prop to EmployerProfile |
-| `src/components/wage/EmployerProfile.tsx` | Employer deep-dive — 4-up growth badges (CAGR, YoY, streak, total filings), AreaChart (FY trend), top roles table; accepts `roleProfiles?: EmployerWageRanking[]` (employer-centric, preferred) with fallback to `rankings` (SOC-centric); shows roles when `roles.length > 0` |
-| `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; guards `growers.length === 0 → return null` when data insufficient (requires ≥5 years + ≥30 filings) |
+| `src/components/wage/WageIntelligenceHub.tsx` | Main orchestrator — dual-mode search (`employer` default / `role`), two Fuse.js indices, EmptyStateEmployer (Top H-1B quick picks) + EmptyStateRole (popular SOC quick picks), mode-exclusive selection (selectedEmployer XOR selectedSoc), loads `employer_role_profiles.json` (employer-centric 485 employers × top-25 roles) and `employer_role_trends.json` (multi-year percentile data), passes both as props to EmployerProfile |
+| `src/components/wage/EmployerProfile.tsx` | Employer deep-dive — 4-up growth badges (CAGR, YoY, streak, total filings), AreaChart (FY trend), top roles table with search + clickable drill-down; accepts `roleTrends?: EmployerRoleTrend[]` for inline percentile charts; shows expand chevrons when trend data available |
+| `src/components/wage/RolePercentileTrend.tsx` | 5-year salary distribution chart — stacked area bands (p10/p25/median/p75/p90), OEWS reference line, TrendSummary badges (median growth, salary range, filings), rich tooltip with all percentiles |
+| `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; currently hidden from render but kept in codebase for future use |
 
 **Components — Providers**
 | File | Purpose |

@@ -66,6 +66,23 @@ export interface EmployerSearchIndex {
   latest_year: number;
 }
 
+/** Multi-year percentile data for a specific employer × SOC role. */
+export interface EmployerRoleTrend {
+  employer_name: string;
+  soc_code: string;
+  soc_title: string;
+  fiscal_year: number;
+  n_filings: number;
+  p10_salary: number;
+  p25_salary: number;
+  median_salary: number;
+  p75_salary: number;
+  p90_salary: number;
+  mean_salary: number;
+  oews_national_median: number;
+  visa_type: string;
+}
+
 // ---------------------------------------------------------------------------
 // Data quality thresholds
 // ---------------------------------------------------------------------------
@@ -127,6 +144,37 @@ export async function loadEmployerWageRankings(): Promise<EmployerWageRanking[]>
 export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]> {
   const raw = await loadDashboardData('wage', 'employer_role_profiles') as EmployerWageRanking[];
   return Array.isArray(raw) ? raw : [];
+}
+
+/**
+ * Load multi-year percentile trend data for employer × role drill-down.
+ * Source: employer_role_trends.json — top 500 employers × roles × last 5 fiscal years.
+ * Fields: p10, p25, median, p75, p90 salary at employer×role×year grain.
+ */
+export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
+  const raw = await loadDashboardData('wage', 'employer_role_trends') as EmployerRoleTrend[];
+  return Array.isArray(raw) ? raw : [];
+}
+
+/**
+ * Get multi-year percentile series for a specific employer + role + visa type.
+ * Returns rows sorted by fiscal_year ascending.
+ */
+export function getEmployerRoleTrendSeries(
+  roleTrends: EmployerRoleTrend[],
+  employerName: string,
+  socCode: string,
+  visaType: string = 'H-1B'
+): EmployerRoleTrend[] {
+  return roleTrends
+    .filter(
+      (r) =>
+        r.employer_name === employerName &&
+        r.soc_code === socCode &&
+        r.visa_type === visaType &&
+        r.median_salary >= WAGE_SANITY.SALARY_FLOOR
+    )
+    .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
 export async function loadEmployerSalaryTrend(): Promise<EmployerSalaryTrend[]> {

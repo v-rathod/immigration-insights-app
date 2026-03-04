@@ -52,6 +52,7 @@ import {
   loadEmployerSalaryTrend,
   loadEmployerSearchIndex,
   loadEmployerRoleProfiles,
+  loadEmployerRoleTrends,
   getSocList,
   getEmployerList,
   getNationalBenchmark,
@@ -65,6 +66,7 @@ import {
   type EmployerWageRanking,
   type EmployerSalaryTrend,
   type EmployerSearchIndex,
+  type EmployerRoleTrend,
 } from "@/lib/data/wage";
 
 // ---------------------------------------------------------------------------
@@ -216,6 +218,7 @@ export function WageIntelligenceHub() {
   const [trends, setTrends] = useState<EmployerSalaryTrend[]>([]);
   const [searchIndex, setSearchIndex] = useState<EmployerSearchIndex[]>([]);
   const [roleProfiles, setRoleProfiles] = useState<EmployerWageRanking[]>([]);
+  const [roleTrends, setRoleTrends] = useState<EmployerRoleTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -239,7 +242,7 @@ export function WageIntelligenceHub() {
   useEffect(() => {
     async function load() {
       try {
-        const [nat, sts, mkt, rnk, trd, searchIdx, rolePro] = await Promise.all([
+        const [nat, sts, mkt, rnk, trd, searchIdx, rolePro, roleTrd] = await Promise.all([
           loadSalaryBenchmarksNational(),
           loadSalaryBenchmarksStates(),
           loadSocSalaryMarket(),
@@ -247,6 +250,7 @@ export function WageIntelligenceHub() {
           loadEmployerSalaryTrend(),
           loadEmployerSearchIndex(),
           loadEmployerRoleProfiles(),
+          loadEmployerRoleTrends(),
         ]);
         setNational(nat);
         setStates(sts);
@@ -255,6 +259,7 @@ export function WageIntelligenceHub() {
         setTrends(trd);
         setSearchIndex(searchIdx);
         setRoleProfiles(rolePro);
+        setRoleTrends(roleTrd);
 
         // Build job category Fuse index — search by title only (no code knowledge required)
         const socList = getSocList(mkt);
@@ -881,6 +886,7 @@ export function WageIntelligenceHub() {
             trend={trends}
             rankings={rankings}
             roleProfiles={roleProfiles}
+            roleTrends={roleTrends}
             visaType="H-1B"
           />
         </div>
