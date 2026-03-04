@@ -621,8 +621,9 @@ export function WageIntelligenceHub() {
 
       {/* ── JOB CATEGORY SELECTED — Market detail view ────────────────────── */}
       {selectedSoc && (
-        <div className="space-y-8">
-          <AnimatePresence>
+        <GlassCard variant="default" padding="lg">
+          <div className="space-y-8">
+            <AnimatePresence>
             {userProfile?.wageOffered && nationalBenchmark && userPercentile && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -847,7 +848,19 @@ export function WageIntelligenceHub() {
               </div>
             </GlassCard>
           )}
-        </div>
+
+          {/* ── Rising Stars leaderboard (pushed down when content selected) ── */}
+          {trends.length > 0 && (
+            <WageGrowthLeaderboard
+              trend={trends}
+              onSelectEmployer={(name) => {
+                setSearchMode("employer");
+                selectEmployer(name);
+              }}
+            />
+          )}
+            </div>
+          </GlassCard>
       )}
 
       {/* ── EMPTY STATE — nothing selected ──────────────────────────────── */}
@@ -861,18 +874,7 @@ export function WageIntelligenceHub() {
         </FadeIn>
       )}
 
-      {/* ── Rising Stars leaderboard (always visible) ───────────────────── */}
-      {trends.length > 0 && (
-        <WageGrowthLeaderboard
-          trend={trends}
-          onSelectEmployer={(name) => {
-            setSearchMode("employer");
-            selectEmployer(name);
-          }}
-        />
-      )}
-
-      {/* ── EMPLOYER SELECTED — Profile view (below leaderboard) ───────── */}
+      {/* ── EMPLOYER SELECTED — Profile view ──────────────────────────── */}
       {selectedEmployer && (
         <div className="space-y-6">
           <FadeIn>
