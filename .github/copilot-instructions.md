@@ -533,6 +533,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | File | Purpose |
 |------|------|
 | `src/components/providers/theme-provider.tsx` | ThemeProvider — light/dark/system, localStorage persistence (key: compass_theme), system preference listener, blocking themeScript for `<head>` to prevent FOUC |
+| `src/components/providers/posthog-provider.tsx` | PostHogProvider — initialises posthog-js once, enables session recording (text masked), tracks `$pageview` on every route change via `usePathname`. Wraps the whole app in root layout. |
 
 **Libraries**
 | File | Purpose |
@@ -550,6 +551,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
 | `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
 | `src/lib/security/headers.ts` | Security headers for CloudFront — CSP, HSTS, X-Frame-Options, Permissions-Policy |
+| `src/lib/analytics/index.ts` | PostHog analytics helpers — 20 typed event functions (`dashboardViewed`, `filterChanged`, `employerSelected`, `ragQuestionAsked`, `navItemClicked`, etc.). All tracking goes through `analytics.*`. Never call posthog.capture() directly. |
 | `src/lib/utils/cn.ts` | Tailwind class merger (clsx + tailwind-merge) |
 | `src/lib/utils/format.ts` | Number/date/currency formatting — formatNumber, formatCurrency, formatPercent, formatCompact, formatMonthYear, formatFullDate (UTC), formatWaitTime, srsTierColor/Bg/Hex, srsScoreToTier |
 | `src/lib/utils/index.ts` | Barrel export |
@@ -602,6 +604,56 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | Groq free cloud LLM | Groq runs Llama 3.3 70B on custom LPU hardware; free tier: 30 RPM / 14,400 RPD; OpenAI-compatible API; `NEXT_PUBLIC_GROQ_API_KEY` in `.env.local`; for go-live, swap to OpenAI with CloudFront proxy. |
 | QA-first RAG search | 182 pre-computed QA pairs are searched first (Tier 1) — instant, high-quality answers without LLM cost. |
 | 200ms search debounce | Balances responsiveness with Fuse.js search efficiency on /ask page. |
+
+---
+
+## PostHog Analytics — MANDATORY Rules
+
+**Every UI change must keep PostHog instrumentation in sync.** Broken tracking is a silent bug — it never throws an error but produces misleading data.
+
+### Analytics stack
+- **SDK**: `posthog-js` — initialised in `src/components/providers/posthog-provider.tsx`
+- **Event helpers**: `src/lib/analytics/index.ts` — all tracking calls go through `analytics.*`
+- **Config**: `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` in `.env.local`
+- **Dashboard**: `app.posthog.com` (free cloud, works identically on localhost and AWS/CloudFront)
+
+### When you MUST update analytics
+
+| Change | Required analytics update |
+|--------|--------------------------|
+| **New dashboard page** | Add `analytics.dashboardViewed('your-dashboard-name')` in the data-load `.finally()` block. Add the name to the `DashboardName` union type in `analytics/index.ts`. |
+| **New filter / toggle / pill** | Add `analytics.filterChanged({ dashboard, filter, value })` in the handler or effect. |
+| **New page route** | Add the page name to the `PageName` union type in `analytics/index.ts`. PostHogProvider autocaptures `$pageview` but named pages give cleaner PostHog queries. |
+| **Employer / entity selection** | Add `analytics.employerSelected(...)` or create a new typed event helper. |
+| **New user input that unlocks a panel** | Add `analytics.insightPanelUnlocked(panel)` when the panel becomes visible. |
+| **New RAG/search interaction** | Add `analytics.ragQuestionAsked(...)`. |
+| **New sidebar nav item** | No change needed — `analytics.navItemClicked` fires on all items automatically. |
+| **Rename a dashboard route** | Update the `DashboardName` type and all `dashboardViewed` call sites. |
+| **Remove a feature** | Remove the corresponding `analytics.*` call and update the type union if needed. |
+| **New data file loaded** | Optionally call `analytics.dataLoaded({ source, bytes, loadTimeMs, dashboard })` after fetch to track payload sizes. |
+
+### How to add a new custom event
+
+```ts
+// 1. Add helper to src/lib/analytics/index.ts
+function myNewEvent(params: { foo: string; bar: number }) {
+  capture("my_new_event", { foo: params.foo, bar: params.bar });
+}
+
+// 2. Export it
+export const analytics = {
+  ...,
+  myNewEvent,
+};
+
+// 3. Call it at the right moment
+analytics.myNewEvent({ foo: "value", bar: 42 });
+```
+
+### Never do this
+- **Don't call `posthog.capture()` directly** — always go through `analytics.*` so events stay typed and consistent.
+- **Don't include PII** — no raw user-typed text, no employer names, no priority dates. Use buckets/tiers/counts instead.
+- **Don't add analytics to server components** — PostHog SDK is client-only. Only call `analytics.*` from `"use client"` components or event handlers.
 
 ---
 
