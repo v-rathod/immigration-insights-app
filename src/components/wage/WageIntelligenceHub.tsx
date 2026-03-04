@@ -552,7 +552,7 @@ export function WageIntelligenceHub() {
                 Wage Intelligence Hub
               </h2>
               <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                H-1B &amp; PERM salary benchmarks · {formatCompact(market.length)} market records · FY2008–2025
+                H-1B &amp; PERM salary benchmarks · {formatCompact(market.reduce((s, r) => s + (r.total_filings ?? 0), 0))} filings · FY2008–2025
               </p>
             </div>
 
