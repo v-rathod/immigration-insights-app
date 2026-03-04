@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { sanitizeUrl } from "@/lib/security";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Navigation Config
@@ -128,6 +129,7 @@ export function Sidebar() {
                 <li key={item.href}>
                   <button
                     onClick={() => {
+                      analytics.navItemClicked(item.label, item.href);
                       // Hard refresh using window.location for full page reload
                       window.location.href = item.href;
                     }}

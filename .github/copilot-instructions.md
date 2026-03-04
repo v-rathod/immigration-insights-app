@@ -378,15 +378,15 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [x] Responsive layout (mobile hamburger + collapsible sidebar)
 - [x] My Insights page (/insights — 7-field profile card, 3 smart panels, localStorage persistence, responsive chart scaling, proper layout spacing)
 
-### Phase 3: 8 Dashboards
+### Phase 3: 9 Dashboards ✅
 - [x] 1. Visa Bulletin Trends (PDI)
 - [x] 2. Sponsor Reliability Score (SRS)
-- [ ] 3. EB Category Comparison
-- [ ] 4. Geographic Heatmaps
+- [x] 3. EB Category Comparison
+- [x] 4. Geographic Heatmaps
 - [x] 5. Wage Competitiveness
-- [ ] 6. SOC Demand
-- [ ] 7. Processing Speed
-- [ ] 8. Backlog Visualization
+- [x] 6. SOC Demand
+- [x] 7. Processing Speed
+- [x] 8. Backlog Visualization
 
 ### Phase 4: Personalized Panels
 - [x] My Insights page (`/insights`) — profile form + 3 smart panels (Green Card, Sponsor, Salary)
@@ -460,15 +460,15 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-### Current File Inventory (as of Milestone 10.1)
+### Current File Inventory (as of Milestone 10.20)
 
-### Source Files (63 files)
+### Source Files (75+ files)
 
 **App Pages**
 | File | Purpose |
 |------|------|
 | `src/app/layout.tsx` | Root layout — Geist fonts, ThemeProvider + AppShell wrapper, blocking theme script in `<head>`, suppressHydrationWarning |
-| `src/app/page.tsx` | Landing page — hero, stats, 8 dashboards (neutral catalog), value props |
+| `src/app/page.tsx` | Landing page — hero, stats, 9 dashboards (neutral catalog), value props |
 | `src/app/globals.css` | Aurora design tokens — CSS custom properties for dark/light, gradients, glassmorphic effects |
 | `src/app/about/page.tsx` | About page — personal story, guiding principles, data sources, pipeline, tech stack, CTA |
 | `src/app/privacy/page.tsx` | Privacy Policy — zero data collection, local storage only, no cookies/tracking |
@@ -476,8 +476,13 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/app/dashboard/employer/page.tsx` | SRS Dashboard — employer search, score gauge, detail card, trend chart, methodology |
 | `src/app/dashboard/visa-bulletin/page.tsx` | PDI Dashboard — reactive category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats, methodology |
 | `src/app/dashboard/wage/page.tsx` | Wage Intelligence Hub — dual-mode search (employer default / role), EmployerProfile drill-down, WageGrowthLeaderboard, SOC stat cards + benchmark tabs |
+| `src/app/dashboard/eb-category/page.tsx` | EB Category Comparison — country pills, DFF/FAD toggle, EB1/EB2/EB3 summary cards, velocity AreaChart, volatility BarChart |
+| `src/app/dashboard/geographic/page.tsx` | Geographic Heatmaps — dataset selector, sort-by metric, KPI cards, top 15 states BarChart, sortable data table |
+| `src/app/dashboard/job-demand/page.tsx` | Occupation Demand — window/source pills, top 15 occupations BarChart, major group summary, searchable detail table |
+| `src/app/dashboard/processing/page.tsx` | Processing Speed — KPI cards, ComposedChart (EB pending + approval rate), throughput BarChart, USCIS forms table |
+| `src/app/dashboard/backlog/page.tsx` | Backlog Visualization — country/chart selectors, summary cards, AreaChart timeline, queue position lookup |
 | `src/app/ask/page.tsx` | Ask page — RAG-powered Q&A with 3-tier search (QA cache + chunks + cloud LLM via Groq), topic filter pills, suggested questions, AI answer button, result cards with expand/collapse |
-| `src/app/insights/page.tsx` | My Insights page — 7-field collapsible profile card (priorityDate, category pills, country pills, employerName, wageOffered, jobTitle, yearsOfExperience), 3 smart panels (Green Card Forecast with PDI chart + predictions, Sponsor panel with SRS gauge/detail/trend, Salary panel with percentile bar + benchmark), localStorage persistence via secureGet/secureSet, smart visibility CTAs, violet→purple gradient header |
+| `src/app/insights/page.tsx` | My Insights page — 7-field collapsible profile card, 3 smart panels (Green Card Forecast, Sponsor, Salary), localStorage persistence via secureGet/secureSet |
 
 **Components — Layout**
 | File | Purpose |
@@ -535,7 +540,12 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/data/loader.ts` | Generic JSON fetcher — loadDashboardData, loadDimensionData, loadModelData, loadRAGData |
 | `src/lib/data/srs.ts` | SRS data loaders — field remapping (efs→srs), filterOverallScores, filterRatedEmployers, mergeMLScores, getEmployerMetrics, getEmployerRisk, computeSrsStats |
 | `src/lib/data/pdi.ts` | PDI data loader — loadPdForecasts, getForecastSeries, computePdi, getVelocitySummary, constants (charts/categories/countries/labels) |
-| `src/lib/data/wage.ts` | Wage data loaders + helpers — loadWageData, getSocBenchmarks, getEmployerRankings, getEmployerTrends, getEmployerList, computeEmployerGrowth, getTopWageGrowers, getEmployerRoles, annotateWithYoy, **`loadEmployerRoleProfiles()`** (employer-centric top-25 roles per employer, use for EmployerProfile instead of employer_wage_rankings); EmployerGrowthStats interface; EmployerSalaryTrend extended with n_soc_codes/employer_id. **`getEmployerRoles(rankings, employerName, visaType?)`**: filters to latest fiscal year, deduplicates by soc_code (keeps highest n_filings), filters by visaType when provided |
+| `src/lib/data/wage.ts` | Wage data loaders + helpers — loadWageData, getSocBenchmarks, getEmployerRankings, getEmployerTrends, getEmployerList, computeEmployerGrowth, getTopWageGrowers, getEmployerRoles, annotateWithYoy |
+| `src/lib/data/eb-category.ts` | EB Category data loader — loadCategoryMovement, filterMovementSeries, buildCategorySummary, getAvailableCountries, COUNTRY_LABELS, EB_CATEGORIES |
+| `src/lib/data/geographic.ts` | Geographic data loader — loadGeoMetrics, getStateAggregates, getTopStates, getNationalSummary, STATE_NAMES (50+ states) |
+| `src/lib/data/soc-demand.ts` | SOC Demand data loader — loadSocDemand, loadDimSoc, enrichWithTitles, filterDemand, getTopOccupations, getMajorGroupSummary |
+| `src/lib/data/processing.ts` | Processing Speed data loader — loadProcessingTrends, loadUscisApprovals, computeProcessingKpis, aggregateByForm |
+| `src/lib/data/backlog.ts` | Backlog data loader — loadBacklogEstimates, loadQueueDepth, filterBacklog, buildBacklogSummary, getQueuePosition |
 | `src/lib/search/rag-search.ts` | RAG search engine — Fuse.js over 100 chunks + 182 QA pairs, topic filtering, getTopics, getByTopic |
 | `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
 | `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
@@ -545,7 +555,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (22 files, 471 tests)**
+**Tests (24 files, 552 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -553,24 +563,25 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/format.test.ts` | 33 | All format functions + srsTierColor/Bg/Hex, srsScoreToTier |
 | `src/__tests__/security.test.ts` | 48 | XSS, validation, localStorage, URL safety, nonce |
 | `src/__tests__/security-headers.test.ts` | 11 | Header values |
-| `src/__tests__/loader.test.ts` | 10 | Data loaders with mocked fetch |
+| `src/__tests__/loader.test.ts` | 12 | Data loaders with mocked fetch |
 | `src/__tests__/theme-provider.test.tsx` | 6 | Theme state, toggle, persistence |
 | `src/__tests__/theme-toggle.test.tsx` | 4 | Accessibility, aria attributes |
 | `src/__tests__/glass-card.test.tsx` | 6 | Variants, glow, children |
 | `src/__tests__/sidebar.test.tsx` | 8 | Nav items, Insights group (PDI+SRS), active state, mobile |
-| `src/__tests__/landing-page.test.tsx` | 10 | Hero, stats, 8 dashboards (neutral catalog) |
+| `src/__tests__/landing-page.test.tsx` | 10 | Hero, stats, 9 dashboards (neutral catalog) |
 | `src/__tests__/srs-data.test.ts` | 18 | SRS data helpers + efs→srs remapping |
 | `src/__tests__/srs-components.test.tsx` | 21 | SRS components (search, gauge, detail, chart, overview) |
-| `src/__tests__/pdi-data.test.ts` | 29 | PDI constants, getForecastSeries, computePdi, getVelocitySummary, extrapolateForChart, loadPdForecasts, loadCutoffTrends, getHistoricalSeries |
+| `src/__tests__/pdi-data.test.ts` | 28 | PDI constants, getForecastSeries, computePdi, getVelocitySummary, extrapolateForChart, loadPdForecasts, loadCutoffTrends, getHistoricalSeries |
 | `src/__tests__/pdi-components.test.tsx` | 19 | PdiQuickLook (11 tests), SrsTeaser (8 tests) |
-| `src/__tests__/visa-bulletin.test.tsx` | 33 | PriorityDateChart (11), VisaBulletinPage (20 incl. historical+forecast chart integration): selectors, velocity toggle, predictions, extrapolation, chart, error states |
+| `src/__tests__/visa-bulletin.test.tsx` | 33 | PriorityDateChart (11), VisaBulletinPage (20 incl. historical+forecast chart integration) |
 | `src/__tests__/site-pages.test.tsx` | 31 | Footer (7), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
-| `src/__tests__/wage-dashboard.test.tsx` | 34 | WageIntelligenceHub: default employer mode (placeholder, Top H-1B Sponsors, mode toggles), role mode flow (switch → SOC select → stat cards/tabs/clear/visa toggle), EmployerProfile, WageGrowthLeaderboard, loadWageData, getSocBenchmarks, getEmployerList, computeEmployerGrowth; **getEmployerRoles** (6 tests: latest-year filter, soc_code dedup, visaType filter, sort order, unknown employer) |
-| `src/__tests__/employer-normalization.test.ts` | 25 | Data integrity tests for canonical employer names in public JSON files: `employer_salary_trend.json`, `employer_wage_rankings.json`, `employer_features.json`, `employer_friendliness_scores.json`, `employer_monthly_metrics.json` (no dirty ALL-CAPS multi-word names), `dim_employer.json` (unique employer_ids), cross-file contract. Uses `isDirtyAllCaps()` helper and NaN-safe `loadJson()` |
-| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: page structure (title, privacy note, 3 section headers), profile card (form open by default, EB pills, country pills, Done button, collapsed prompt), field interactions (category pill, priority date, salary, collapsed summary), persistence (localStorage pre-populated object), Green Card panel (CTA without PD, optimistic/realistic toggle with PD), Sponsor panel (always shows search, CTA before select, gauge+detail after select, employer name synced), Salary panel (CTA without salary, benchmark card, formatted currency, vs-median), loading state (data-testid spinner) |
-| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: page structure (title, privacy note, 3 section headers), profile card (form open by default, EB pills, country pills, Done button, collapsed prompt), field interactions (category pill, priority date, salary, collapsed summary), persistence (localStorage pre-populated object), Green Card panel (CTA without PD, toggle with PD), Sponsor panel (always shows search, CTA before select, gauge+detail after select, employer name synced), Salary panel (CTA without salary, benchmark card, formatted currency, vs-median), loading state (data-testid spinner) |
+| `src/__tests__/wage-dashboard.test.tsx` | 33 | WageIntelligenceHub: employer/role modes, EmployerProfile, WageGrowthLeaderboard, data loaders, getEmployerRoles |
+| `src/__tests__/employer-normalization.test.ts` | 25 | Data integrity tests for canonical employer names in public JSON files |
+| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
+| `src/__tests__/dashboard-data-loaders.test.ts` | 46 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (10), processing (8), backlog (12) |
+| `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

@@ -5,7 +5,7 @@
  *   - RagSearchEngine: initialize, search, topic filtering, getTopics, getByTopic
  *   - LLM Service: getLlmAnswer, isLlmEnabled, mockLlmAnswer
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { RagSearchEngine, type SearchResult } from "@/lib/search/rag-search";
 import { getLlmAnswer, isLlmEnabled, detectLlmBackend } from "@/lib/search/llm-service";
 import type { RagChunk, RagQaPair } from "@/types/p2-artifacts";

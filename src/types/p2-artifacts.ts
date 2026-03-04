@@ -216,74 +216,109 @@ export interface SalaryBenchmark {
 
 export interface WorksiteGeoMetric {
   state: string;
-  area_code: string;
-  area_title: string;
-  soc_code: string;
   filings_count: number;
   approvals_count: number;
-  avg_wage_offer: number;
-  competitiveness_ratio: number;
+  offered_median: number | null;
   distinct_employers: number;
-  perm_filings: number;
-  lca_filings: number;
-  oews_median: number;
-  oews_p75: number;
+  dataset: string;               // "PERM" | "LCA" | "PERM+LCA"
+  grain: string;                 // "state" | "soc_area" | "city"
+  area_code: string | null;
+  soc_code: string | null;
+  filings_count_soc_area: number | null;
+  offered_median_soc_area: number | null;
+  city: string | null;
+  competitiveness_ratio: number | null;
 }
 
 export interface SocDemandMetric {
   soc_code: string;
-  soc_title: string;
-  filings_12m: number;
-  filings_24m: number;
-  filings_36m: number;
+  window: string;               // "12m" | "24m" | "36m"
+  dataset: string;              // "PERM" | "LCA"
+  filings_count: number;
+  approvals_count: number;
   approval_rate: number;
-  avg_offered_wage: number;
+  offered_avg: number;
+  offered_median: number;
   competitiveness_percentile: number;
-  trend_direction: string;
-  top_employers: string;
+  top_employers_json: string;   // JSON-encoded array of {employer_id, filings}
 }
 
 export interface CategoryMovementMetric {
   bulletin_year: number;
   bulletin_month: number;
-  category: string;
-  country: string;
-  chart_type: string;
-  cutoff_date: string;
-  monthly_advancement_days: number;
-  velocity_3m: number;
-  velocity_6m: number;
-  is_retrogression: boolean;
+  chart: string;             // "DFF" | "FAD"
+  category: string;           // EB1, EB2, EB3, EB3-Other, EB4, EB5
+  country: string;            // CHN, IND, ROW, MEX, PHL, VIETNAM, etc.
+  avg_monthly_advancement_days: number | null;
+  median_advancement_days: number | null;
+  volatility_score: number | null;
+  retrogression_events_12m: number;
+  next_movement_prediction: string; // "Flat" | "Advancing" | "Unknown" | etc.
 }
 
 export interface BacklogEstimate {
   bulletin_year: number;
   bulletin_month: number;
+  chart: string;             // "DFF" | "FAD"
   category: string;
   country: string;
-  chart_type: string;
-  cutoff_date: string;
-  estimated_backlog: number;
-  years_to_clear: number;
+  inflow_estimate_12m: number | null;
+  advancement_days_12m_avg: number | null;
+  backlog_months_to_clear_est: number | null;
 }
 
 export interface QueueDepthEstimate {
   category: string;
   country: string;
-  chart_type: string;
-  priority_date: string;
-  estimated_position: number;
-  estimated_ahead: number;
-  estimated_wait_months: number;
-  annual_limit: number;
-  fiscal_year: number;
-  confidence: string;
-  methodology: string;
-  perm_proxy_count: number;
-  cutoff_date: string;
-  days_behind_cutoff: number;
+  pd_month: string;            // ISO date: "2009-04-01"
+  perm_filings_certified: number;
+  eb_category_ratio: number;
+  est_category_filings: number;
+  est_applicants_with_dependents: number;
+  current_cutoff_date: string;  // ISO date
+  is_ahead_of_cutoff: boolean;
+  annual_visa_allocation: number;
   velocity_days_per_month: number;
-  data_vintage: string;
+  cumulative_ahead: number;
+  est_wait_years: number;
+  est_months_to_current: number | null;
+  confidence: string;            // "medium-low" | "medium" | "high"
+  generated_at: string;
+}
+
+/** Processing times trends — I-485 quarterly data */
+export interface ProcessingTimesTrend {
+  fiscal_year: number;
+  quarter: number;
+  reporting_period: string;     // "FY2014 Q1"
+  period_end_date: string;      // ISO date
+  form_type: string;            // "I-485"
+  category: string;             // "Employment-based"
+  eb_received: number | null;
+  eb_approved: number | null;
+  eb_denied: number | null;
+  eb_pending: number | null;
+  total_received: number | null;
+  total_approved: number | null;
+  total_denied: number | null;
+  total_pending: number | null;
+  approval_rate: number | null;
+  throughput: number | null;
+  net_intake: number | null;
+  backlog_months: number | null;
+  pending_change: number | null;
+  throughput_change: number | null;
+}
+
+/** USCIS approval/denial by form + category */
+export interface FactUscisApproval {
+  fiscal_year: string;         // "FY2014"
+  form: string;                // "I140" | "I485" | "I765" | "I360"
+  category: string;
+  approvals: number;
+  denials: number;
+  source_file: string;
+  ingested_at: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -31,6 +31,7 @@ import { loadRagChunks, loadRagQaPairs } from "@/lib/data/loader";
 import { RagSearchEngine, type SearchResult } from "@/lib/search/rag-search";
 import { getLlmAnswer, detectLlmBackend, type LlmResponse, type LlmBackend } from "@/lib/search/llm-service";
 import type { RagTopic } from "@/types/p2-artifacts";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -144,6 +145,12 @@ export default function AskPage() {
       setHasSearched(true);
       setLlmResponse(null);
       setExpandedIdx(null);
+      analytics.ragQuestionAsked({
+        topic: topic ?? "general",
+        resultCount: r.length,
+        usedLlm: false,
+        llmBackend: undefined,
+      });
 
       // Auto-trigger AI answer when search yields no results
       if (r.length === 0) {
@@ -193,14 +200,21 @@ export default function AskPage() {
   // LLM answer request — always callable, even with zero results
   const handleGetAiAnswer = useCallback(async () => {
     if (llmLoading || query.trim().length < 2) return;
+    analytics.llmAnswerRequested(llmBackend ?? "unknown");
     setLlmLoading(true);
     try {
       const response = await getLlmAnswer({ query, context: results });
       setLlmResponse(response);
+      analytics.ragQuestionAsked({
+        topic: activeTopic ?? "general",
+        resultCount: results.length,
+        usedLlm: true,
+        llmBackend: llmBackend ?? "mock",
+      });
     } finally {
       setLlmLoading(false);
     }
-  }, [query, results, llmLoading]);
+  }, [query, results, llmLoading, activeTopic, llmBackend]);
 
   // Clear search
   const handleClear = useCallback(() => {

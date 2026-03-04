@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { sortSocResults, sortWageEmployerResults } from "@/lib/search/smart-sort";
 import { formatCurrency, formatNumber, formatCompact } from "@/lib/utils/format";
 import { secureGet } from "@/lib/security";
+import { analytics } from "@/lib/analytics";
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatCard } from "@/components/ui/stat-card";
 import { StaggerContainer, StaggerItem, FadeIn } from "@/components/ui/animations";
@@ -329,6 +330,7 @@ export function WageIntelligenceHub() {
         console.error("[WageHub] load error", e);
       } finally {
         setLoading(false);
+        analytics.dashboardViewed("wage");
       }
     }
     load();

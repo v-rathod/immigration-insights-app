@@ -1,5 +1,79 @@
 # Compass Progress Tracker
 
+## 2026-03-05 — Milestone 10.20: Build All 5 Missing Dashboards + Full Test Suite
+
+### Objective
+Comprehensive system audit revealed 5 of 9 dashboards listed on the landing page were not built (EB Category, Geographic, SOC Demand, Processing, Backlog). All P2 data artifacts existed. Build all 5 dashboards, fix TypeScript types, create data loaders, write tests, and achieve zero errors.
+
+### What Was Done
+
+**TypeScript Type Fixes** (`src/types/p2-artifacts.ts`)
+- Fixed 5 interfaces to match actual JSON schemas: `CategoryMovementMetric`, `BacklogEstimate`, `QueueDepthEstimate`, `SocDemandMetric`, `WorksiteGeoMetric`
+- Added 2 new types: `ProcessingTimesTrend` (20 fields), `FactUscisApproval` (7 fields)
+
+**Data Loaders (5 new files)**
+- `src/lib/data/eb-category.ts` — `loadCategoryMovement()`, `filterMovementSeries()`, `buildCategorySummary()`, `getAvailableCountries()`, constants
+- `src/lib/data/geographic.ts` — `loadGeoMetrics()`, `getStateAggregates()`, `getTopStates()`, `getNationalSummary()`, 50+ `STATE_NAMES`
+- `src/lib/data/soc-demand.ts` — `loadSocDemand()`, `loadDimSoc()`, `enrichWithTitles()`, `filterDemand()`, `getTopOccupations()`, `getMajorGroupSummary()`
+- `src/lib/data/processing.ts` — `loadProcessingTrends()`, `loadUscisApprovals()`, `computeProcessingKpis()`, `aggregateByForm()`
+- `src/lib/data/backlog.ts` — `loadBacklogEstimates()`, `loadQueueDepth()`, `filterBacklog()`, `buildBacklogSummary()`, `getQueuePosition()`
+
+**Dashboard Pages (5 new)**
+- `/dashboard/eb-category/` — Country pills, DFF/FAD toggle, EB1/EB2/EB3 summary cards, velocity AreaChart, volatility BarChart
+- `/dashboard/geographic/` — Dataset selector, sort-by metric, KPI cards, top 15 states BarChart, sortable data table
+- `/dashboard/job-demand/` — Window pills, source pills, top 15 occupations BarChart, major group summary, searchable detail table
+- `/dashboard/processing/` — KPI cards, ComposedChart (EB pending + approval rate), throughput BarChart, USCIS forms table
+- `/dashboard/backlog/` — Country/chart selectors, summary cards, AreaChart timeline, queue position lookup
+
+**Bug Fixes**
+- Added `decimals` parameter to `formatNumber()` in format.ts
+- Fixed Recharts Tooltip formatter types across all new dashboards
+- Fixed `secureGet` double-parsing bug in ApprovalDenialDashboard
+- Fixed `as Record<string, unknown>` cast in EmployerProfile
+- Added missing `afterEach` imports in 2 test files
+- Landing page: "8 Interactive Dashboards" → "9 Interactive Dashboards"
+
+**Tests**
+- `dashboard-data-loaders.test.ts` — 46 tests for all 5 data loaders (all passing)
+- `new-dashboards.test.tsx` — 34 tests for all 5 dashboard pages (all passing)
+
+### Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Tests | 472 (22 files) | **552 (24 files)** |
+| Dashboards built | 4 / 9 | **9 / 9** |
+| TypeScript errors | Multiple | **0** |
+| Pages | 10 | **15** |
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/lib/data/eb-category.ts` | ~113 | EB Category data loader |
+| `src/lib/data/geographic.ts` | ~180 | Geographic data loader |
+| `src/lib/data/soc-demand.ts` | ~150 | SOC Demand data loader |
+| `src/lib/data/processing.ts` | ~120 | Processing Speed data loader |
+| `src/lib/data/backlog.ts` | ~144 | Backlog data loader |
+| `src/app/dashboard/eb-category/page.tsx` | ~469 | EB Category dashboard |
+| `src/app/dashboard/geographic/page.tsx` | ~402 | Geographic Heatmaps dashboard |
+| `src/app/dashboard/job-demand/page.tsx` | ~495 | Occupation Demand dashboard |
+| `src/app/dashboard/processing/page.tsx` | ~422 | Processing Speed dashboard |
+| `src/app/dashboard/backlog/page.tsx` | ~487 | Backlog Visualization dashboard |
+| `src/__tests__/dashboard-data-loaders.test.ts` | ~699 | Data loader tests (46) |
+| `src/__tests__/new-dashboards.test.tsx` | ~581 | Dashboard page tests (34) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/types/p2-artifacts.ts` | Fixed 5 interfaces, added 2 new types |
+| `src/lib/utils/format.ts` | Added `decimals` parameter to `formatNumber()` |
+| `src/app/page.tsx` | "8" → "9" Interactive Dashboards |
+| `src/components/approvals/ApprovalDenialDashboard.tsx` | Fixed secureGet double-parsing |
+| `src/components/wage/EmployerProfile.tsx` | Fixed `as unknown as` cast |
+| `src/__tests__/ask-page.test.tsx` | Added `afterEach` import |
+| `src/__tests__/rag-search.test.ts` | Added `afterEach` import |
+
+---
+
 ## 2026-03-04 — Milestone 10.18: Wage Role Search — Employer Count Fix, Aliases, Dropdown
 
 ### Objective
@@ -1122,30 +1196,30 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.19 — 2026-03-04)
+## Quick Reference (Current State as of Milestone 10.20 — 2026-03-05)
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 3 — 8 Dashboards (3/8) + Phase 4 — Personalized Panels (1/5) + Phase 5 — RAG Q&A ✅ |
+| **Current Phase** | Phase 3 — 9 Dashboards (9/9 ✅) + Phase 4 — Personalized Panels (1/5) + Phase 5 — RAG Q&A ✅ |
 | Framework | Next.js 16.1.6 (App Router, static export) |
 | TypeScript | 5.x (strict mode) |
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **472 passing** across 22 test files |
+| Tests | **552 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
-| Pages scaffolded | 10 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/_not-found`) |
+| Pages scaffolded | 15 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/_not-found`) |
 | Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
 | Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) with **Session Persistence** |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
-| Dashboards built | **3 / 8** (SRS ✅, Visa Bulletin/PDC ✅, Wage ✅) |
+| Dashboards built | **9 / 9** ✅ (SRS, Visa Bulletin/PDC, Wage, EB Category, Geographic, SOC Demand, Processing, Backlog, Approvals) |
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Unified FAB (Quick Actions → Ask NorthStar + Send Feedback) |
 | AWS deploy | Not started |
-| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (10 pages) |
+| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (15 pages) |
 
 ### Quick Commands
 ```bash
@@ -1203,15 +1277,15 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 - [x] Responsive layout (mobile hamburger + collapsible sidebar)
 - [ ] User input form (/setup — 8 fields, localStorage persistence)
 
-### Phase 3: 8 Dashboards 🔄
+### Phase 3: 9 Dashboards ✅
 - [x] 1. Visa Bulletin Trends (PDI) — category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats
 - [x] 2. Sponsor Reliability Score (SRS) — employer search, score gauge, detail card, trend chart, methodology
-- [ ] 3. EB Category Comparison — movement metrics across EB1/EB2/EB3
-- [ ] 4. Geographic Heatmaps — worksite distribution via react-simple-maps
+- [x] 3. EB Category Comparison — country pills, DFF/FAD toggle, summary cards, velocity & volatility charts
+- [x] 4. Geographic Heatmaps — dataset selector, top states bar chart, sortable data table
 - [x] 5. Wage Competitiveness — WageIntelligenceHub with Fuse.js SOC search, 5 P2 artifacts, 4 tabs, personal context card
-- [ ] 6. SOC Demand — occupation demand metrics across time windows
-- [ ] 7. Processing Speed — USCIS approval trends, processing times
-- [ ] 8. Backlog Visualization — backlog estimates, queue depth charts
+- [x] 6. SOC Demand — window/source pills, top occupations chart, major group summary, searchable table
+- [x] 7. Processing Speed — KPI cards, I-485 trend chart, throughput chart, USCIS forms table
+- [x] 8. Backlog Visualization — country/chart selectors, summary cards, timeline chart, queue position lookup
 
 ### Phase 4: Personalized Panels (/insights)
 - [ ] A. Green Card Forecast — priority date prediction using pd_forecasts
@@ -1284,6 +1358,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.17 | 2026-03-04 | Rename OEWS → Industry Average | RolePercentileTrend chart: reference line, tooltip, footer now say "Industry Average"; commit 003fd84 |
 | 10.18 | 2026-03-04 | Wage Role Search Fixes | Fix activeEmployers (47→17K+); ROLE_ALIASES (45+ SOC aliases); opaque dropdown bg; `n_employers`/`total_filings` in SocSalaryMarket interface; 472 tests; commit 6c9b756 |
 | 10.19 | 2026-03-04 | Fix Salary Data Source Mismatch | Stat cards (soc_salary_market, LCA) vs Distribution tab (OEWS survey) showed different numbers for same role. P2: added market_p10/p90 to soc_salary_market via weighted avg. P3: `marketAsBenchmark()` helper + Distribution tab now uses LCA data throughout. Data Scientists: median $139,918 now consistent everywhere. 472 tests; commit bd34f9a |
+| 10.20 | 2026-03-05 | Build All 5 Missing Dashboards | System audit found 5/9 dashboards unbuilt (EB Category, Geographic, SOC Demand, Processing, Backlog). Built all 5 with data loaders, fixed 5 TypeScript interfaces, added 80 new tests. **9/9 dashboards complete.** 552 tests (24 files); 15 pages |
 
 ---
 

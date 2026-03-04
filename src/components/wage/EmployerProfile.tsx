@@ -422,8 +422,8 @@ export function EmployerProfile({
                       <div className="hidden md:flex flex-col items-end">
                         <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
                         <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
-                          {(role as Record<string, unknown>).prior_year_median_salary
-                            ? formatCurrency((role as Record<string, unknown>).prior_year_median_salary as number)
+                          {(role as unknown as Record<string, unknown>).prior_year_median_salary
+                            ? formatCurrency((role as unknown as Record<string, unknown>).prior_year_median_salary as number)
                             : "—"}
                         </span>
                       </div>

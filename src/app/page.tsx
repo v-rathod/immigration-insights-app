@@ -223,7 +223,7 @@ export default function LandingPage() {
             <Star className="h-5 w-5 text-amber-400" strokeWidth={1.5} />
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
-                8 Interactive Dashboards
+                9 Interactive Dashboards
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Explore every dimension of the U.S. immigration system

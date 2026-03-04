@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider, themeScript } from "@/components/providers/theme-provider";
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import "./globals.css";
 
@@ -49,7 +50,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeScript }}
         />
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <PostHogProvider>
+            <AppShell>{children}</AppShell>
+          </PostHogProvider>
         </ThemeProvider>
       </body>
     </html>

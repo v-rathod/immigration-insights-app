@@ -37,6 +37,7 @@ import {
 } from "@/lib/data/pdi";
 import type { PdForecast } from "@/types/p2-artifacts";
 import type { PdiResult, CutoffTrendRecord } from "@/lib/data/pdi";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -100,6 +101,7 @@ export default function VisaBulletinPage() {
     try {
       const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
       secureSet("session_pdi_filters", { ...current, category });
+      analytics.filterChanged({ dashboard: "visa-bulletin", filter: "category", value: category });
     } catch {}
   }, [category]);
 
@@ -108,6 +110,7 @@ export default function VisaBulletinPage() {
     try {
       const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
       secureSet("session_pdi_filters", { ...current, country });
+      analytics.filterChanged({ dashboard: "visa-bulletin", filter: "country", value: country });
     } catch {}
   }, [country]);
 
@@ -116,8 +119,11 @@ export default function VisaBulletinPage() {
     try {
       const current = secureGet<{ category?: string; country?: string; priorityDate?: string }>("session_pdi_filters") || {};
       secureSet("session_pdi_filters", { ...current, priorityDate });
+      if (priorityDate) {
+        analytics.priorityDateEntered({ category, country });
+      }
     } catch {}
-  }, [priorityDate]);
+  }, [priorityDate, category, country]);
 
   // Extended charts and toggle state
   const [showExtended, setShowExtended] = useState(false);
@@ -136,7 +142,10 @@ export default function VisaBulletinPage() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load data")
       )
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        analytics.dashboardViewed("visa-bulletin");
+      });
   }, []);
 
   // Compute DFF + FAD series for selected category/country

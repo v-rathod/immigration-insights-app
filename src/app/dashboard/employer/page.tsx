@@ -35,6 +35,7 @@ import type {
   EmployerMonthlyMetric,
   EmployerRiskFeature,
 } from "@/types/p2-artifacts";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Page Component
@@ -79,6 +80,7 @@ export default function SrsDashboardPage() {
         );
       } finally {
         setLoading(false);
+        analytics.dashboardViewed("employer");
       }
     }
     load();
@@ -103,6 +105,11 @@ export default function SrsDashboardPage() {
       setSelectedRisk(
         getEmployerRisk(riskFeatures, employer.employer_id)
       );
+      analytics.employerSelected({
+        tier: employer.srs_tier ?? "Unrated",
+        score: employer.srs ?? null,
+        hasMLScore: !!mlMatch?.srs_ml,
+      });
     },
     [mlScores, monthlyMetrics, riskFeatures]
   );

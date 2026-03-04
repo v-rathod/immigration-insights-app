@@ -19,9 +19,18 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
-/** Format a number with commas: 1234567 → "1,234,567" */
-export function formatNumber(n: number | null | undefined): string {
+/** Format a number with commas: 1234567 → "1,234,567". Optional decimals. */
+export function formatNumber(
+  n: number | null | undefined,
+  decimals?: number
+): string {
   if (n == null || isNaN(n)) return "—";
+  if (decimals !== undefined) {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(n);
+  }
   return numberFormatter.format(n);
 }
 

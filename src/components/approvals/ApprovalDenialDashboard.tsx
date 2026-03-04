@@ -619,12 +619,9 @@ function RiskWindow({ data }: { data: PermDetailPoint[] }) {
   const [priorityDate, setPriorityDate] = useState<string | null>(null);
 
   useEffect(() => {
-    const profile = secureGet("user_profile");
-    if (profile) {
-      try {
-        const p = JSON.parse(profile);
-        if (p.priorityDate) setPriorityDate(p.priorityDate);
-      } catch { /* ignore */ }
+    const profile = secureGet<{ priorityDate?: string }>("user_profile");
+    if (profile?.priorityDate) {
+      setPriorityDate(profile.priorityDate);
     }
   }, []);
 

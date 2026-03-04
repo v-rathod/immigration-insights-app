@@ -79,6 +79,7 @@ import type {
   EmployerRiskFeature,
 } from "@/types/p2-artifacts";
 import type { SalaryBenchmark } from "@/lib/data/wage";
+import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -146,6 +147,23 @@ function loadProfile(): UserProfile {
 function saveProfile(profile: UserProfile) {
   try {
     secureSet<UserProfile>(STORAGE_KEY, profile);
+    analytics.insightProfileSaved({
+      fieldsFilled: [
+        profile.priorityDate,
+        profile.country,
+        profile.category,
+        profile.employerName,
+        profile.jobTitle,
+        profile.wageOffered,
+        profile.yearsOfExperience,
+      ].filter(Boolean).length,
+      hasPriorityDate: !!profile.priorityDate,
+      hasCountry: !!profile.country,
+      hasCategory: !!profile.category,
+      hasEmployer: !!profile.employerName,
+      hasJobTitle: !!profile.jobTitle,
+      hasWage: !!profile.wageOffered,
+    });
   } catch {
     // ignore storage errors
   }
