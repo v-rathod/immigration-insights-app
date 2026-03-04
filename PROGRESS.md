@@ -1,6 +1,89 @@
 # Compass Progress Tracker
 
-## 2026-03-04 — Milestone 10.15: Employer Role Drill-Down with 5-Year Percentile Trends
+## 2026-03-04 — Milestone 10.18: Wage Role Search — Employer Count Fix, Aliases, Dropdown
+
+### Objective
+Fix three bugs in the Wage dashboard's "By Role" search mode: (1) "Active Employers: 47" showed wrong count, (2) searching "backend engineer" or "web developer" returned no results, (3) dropdown appeared semi-transparent and overlapped content behind it.
+
+### What Was Done
+
+**activeEmployers count fix (`WageIntelligenceHub.tsx`)**
+- Root cause: `activeEmployers` was computing `rankings.filter(...).length` — counting rows in `employer_wage_rankings.json` (a top-25-per-SOC list, always ~25–50 rows), NOT unique employers
+- Fix: now reads `latestMarket?.n_employers ?? 0` from `soc_salary_market.json`, which has the correctly pre-computed `nunique(employer_id)` per SOC × year × visa type
+- Software Developers H-1B now correctly shows 17,241 employers (FY2025) instead of 47
+
+**SocSalaryMarket interface update (`wage.ts`)**
+- Added `n_employers?: number` — unique employer count (was missing from TS interface, present in JSON)
+- Added `total_filings?: number` — total LCA/PERM filings (JSON field is `total_filings`, not `n_filings`)
+- Fixed role search enrichment to use `total_filings` instead of `n_filings` — smart-sort filing volume now works correctly
+
+**ROLE_ALIASES for role discoverability (`WageIntelligenceHub.tsx`)**
+- Added `ROLE_ALIASES` constant: maps 45+ SOC codes to user-friendly search terms
+- Examples: "15-1252" → `["backend developer", "backend engineer", "frontend developer", "fullstack developer", "web developer", "software engineer", "mobile developer", ...]`
+- Fuse.js now uses weighted keys: `title (0.7) + aliases (0.3)` with threshold 0.35
+- Searching "backend engineer", "web developer", "devops", "dba", "ml engineer" now surfaces correct official SOC roles
+
+**Dropdown visual fix (`WageIntelligenceHub.tsx`)**
+- Changed dropdown background from `bg-[var(--card)]` (3% opaque — almost invisible) to `bg-[var(--background)]/95 backdrop-blur-2xl` (matching the SRS employer search dropdown style)
+- Stronger border: `border-white/[0.15]` (was `border-white/[0.12]`)
+- Dropdown is now visually distinct and clearly floats above page content
+
+**UX polish**
+- Removed "Code: 15-1252" sub-label from role dropdown results — SOC codes are jargon for general users
+- Replaced "Job category: {socCode}" info chip with `selectedSoc.title` (human-readable) after role selection; SOC code shown on hover via `title` attribute
+
+### Test Results
+- **472 tests, 22 files — all passing** (no regression)
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/lib/data/wage.ts` | +`n_employers`, +`total_filings` to `SocSalaryMarket` interface; `n_filings` deprecated |
+| `src/components/wage/WageIntelligenceHub.tsx` | `activeEmployers` fix; `ROLE_ALIASES` constant; Fuse.js multikey search; dropdown bg fix; `SocOption.aliases` field; role info chip shows title |
+
+### Commit
+`6c9b756` — "Fix wage role search: real employer count, role aliases, opaque dropdown"
+
+---
+
+## 2026-03-04 — Milestone 10.17: Wage Role Chart — Rename "OEWS National" to "Industry Average"
+
+### Objective
+User feedback: "OEWS National" in the `RolePercentileTrend` chart is jargon. Rename to "Industry Average" everywhere in that component.
+
+### What Was Done
+- Changed reference line label from "OEWS" to "Avg $XXX" (short, data-forward)
+- Changed tooltip label from "OEWS National" to "Industry Average"
+- Changed chart footer from "OEWS National Median" to "Industry average from occupational salary surveys"
+
+### Files Changed
+- `src/components/wage/RolePercentileTrend.tsx`
+
+### Commit
+`003fd84` — "Rename OEWS National to Industry Average in role percentile chart"
+
+---
+
+## 2026-03-04 — Milestone 10.16: Fix Role Rows Unclickable in EmployerProfile
+
+### Objective
+User reported roles in `EmployerProfile` were not responding to clicks.
+
+### Root Cause
+`if (!hasTrendData) return;` guard in the onClick handler blocked all clicks before `roleTrends` had loaded/matched, preventing any interaction.
+
+### Fix
+Removed the early-return guard. Roles are always clickable; the chart shows a clean empty state when no trend data is available.
+
+### Files Changed
+- `src/components/wage/EmployerProfile.tsx`
+
+### Commit
+`2ef6307` — "Fix role rows unclickable in EmployerProfile"
+
+---
+
+
 
 ### Objective
 When a user selects an employer, provide a searchable "Top Roles" section. When a role is clicked, show an inline 5-year salary distribution chart (p10, p25, p50, p75, p90 percentile bands) for that employer × role combination.
@@ -1039,7 +1122,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.14 — 2026-03-03)
+## Quick Reference (Current State as of Milestone 10.18 — 2026-03-04)
 
 | Metric | Value |
 |--------|-------|
@@ -1194,6 +1277,12 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.10 | 2026-03-02 | Fix Page Refresh on Sidebar Navigation | Converted sidebar Link → button with `window.location.href`; hard page reload on nav |
 | 10.11 | 2026-03-03 | Approvals Dashboard Visual Redesign | Muted aurora gradient palette; removed Visa Applications bar from Cross-Track; SVG gradient defs in charts; commit 2fac694 |
 | 10.12 | 2026-03-03 | My Insights Personalized Page | New `/insights` page: 7-field profile card, 3 smart panels (Green Card Forecast, Sponsor, Salary), persistence via secureSet/secureGet, smart visibility CTAs, 471 tests (22 files) |
+| 10.13 | 2026-03-03 | Smart Sort + Wage Hub Fixes | Role click fix (removed hasTrendData guard), smart sort for employer+SOC results, 472 tests |
+| 10.14 | 2026-03-03 | Approvals Dashboard + Insights UX | USCIS approvals dashboard, My Insights layout/spacing fixes, 472 tests |
+| 10.15 | 2026-03-04 | Employer Role Drill-Down (5-Year Percentile Trends) | `RolePercentileTrend` component; p10–p90 bands + OEWS reference line; role search in EmployerProfile; `employer_role_trends.json` (26,989 rows); 472 tests; commit 7226b1a |
+| 10.16 | 2026-03-04 | Fix Role Rows Unclickable | Removed `!hasTrendData` guard blocking clicks; roles always interactive; commit 2ef6307 |
+| 10.17 | 2026-03-04 | Rename OEWS → Industry Average | RolePercentileTrend chart: reference line, tooltip, footer now say "Industry Average"; commit 003fd84 |
+| 10.18 | 2026-03-04 | Wage Role Search Fixes | Fix activeEmployers (47→17K+); ROLE_ALIASES (45+ SOC aliases); opaque dropdown bg; `n_employers`/`total_filings` in SocSalaryMarket interface; 472 tests; commit 6c9b756 |
 
 ---
 
