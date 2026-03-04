@@ -25,6 +25,11 @@ export interface SocSalaryMarket {
   market_median: number;
   market_p25: number;
   market_p75: number;
+  /** Total LCA/PERM filings for this SOC × year × visa type (JSON field: total_filings). */
+  total_filings?: number;
+  /** Count of unique employers sponsoring this SOC × year × visa type. */
+  n_employers?: number;
+  /** @deprecated Use total_filings — kept for backward compat if any consumers reference it. */
   n_filings?: number;
 }
 

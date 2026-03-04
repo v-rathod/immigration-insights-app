@@ -76,6 +76,7 @@ import {
 interface SocOption {
   code: string;
   title: string;
+  aliases?: string[];  // additional search terms for alias matching
 }
 
 interface UserProfile {
@@ -122,6 +123,44 @@ const POPULAR_EMPLOYERS = [
   "Amazon Com Services",
   "Google",
 ];
+
+/**
+ * Maps SOC codes → additional user-friendly search aliases.
+ * This lets users find "Software Developers" by typing "backend engineer",
+ * "web developer", "programmer", etc. — without needing to know official titles.
+ */
+const ROLE_ALIASES: Record<string, string[]> = {
+  "15-1252": ["backend developer", "backend engineer", "frontend developer", "fullstack developer", "full stack developer", "web developer", "software engineer", "app developer", "mobile developer", "programmer", "application developer"],
+  "15-1254": ["web developer", "website developer", "web programmer", "front-end developer"],
+  "15-1255": ["ui designer", "ux designer", "web designer", "digital designer", "frontend designer", "interface designer"],
+  "15-1253": ["qa engineer", "quality assurance engineer", "test engineer", "sdet"],
+  "15-2051": ["ml engineer", "machine learning engineer", "ai engineer", "artificial intelligence", "data engineer", "deep learning", "data science"],
+  "15-2041": ["statistician", "biostatistician", "quantitative analyst", "quant"],
+  "15-1211": ["it consultant", "systems consultant", "business systems analyst", "it analyst", "erm analyst"],
+  "15-1299": ["qa engineer", "sqa", "test analyst", "quality engineer", "software tester"],
+  "15-1241": ["network engineer", "network admin", "network administrator", "cloud engineer", "devops", "devops engineer", "sre", "site reliability engineer", "infrastructure engineer"],
+  "15-1212": ["security engineer", "cybersecurity", "cybersecurity analyst", "information security", "infosec", "penetration tester"],
+  "15-1245": ["dba", "database admin", "database administrator", "database engineer", "data warehouse"],
+  "15-1246": ["database architect", "data architect"],
+  "11-3021": ["it manager", "technology manager", "cto", "vp engineering", "engineering manager", "tech lead", "head of engineering"],
+  "29-1216": ["hospitalist", "internist", "general practitioner", "gp", "doctor", "medical doctor"],
+  "29-1214": ["psychiatrist", "mental health physician"],
+  "29-1215": ["family medicine", "family physician"],
+  "29-1141": ["rn", "registered nurse", "clinical nurse", "nurse", "nursing", "bedside nurse"],
+  "29-1071": ["physician", "doctor", "medical specialist", "attending physician"],
+  "29-1123": ["physical therapist", "pt", "physiotherapist", "rehabilitation therapist"],
+  "29-1122": ["occupational therapist", "ot"],
+  "13-2051": ["financial analyst", "investment analyst", "equity analyst", "portfolio analyst", "buy side analyst"],
+  "13-2011": ["accountant", "auditor", "cpa", "accounting"],
+  "13-1111": ["business analyst", "ba", "management analyst", "process analyst", "business consultant"],
+  "13-1161": ["market research analyst", "marketing analyst", "consumer insights"],
+  "17-2141": ["mechanical engineer", "product engineer", "manufacturing engineer", "mech engineer"],
+  "17-2051": ["civil engineer", "structural engineer", "construction engineer"],
+  "17-2071": ["electrical engineer", "ee", "electronics engineer", "power engineer"],
+  "17-2061": ["electronics engineer", "circuit designer", "hardware engineer"],
+  "17-2011": ["aerospace engineer", "aeronautical engineer", "aviation engineer"],
+  "17-2112": ["industrial engineer", "process improvement", "lean engineer", "operations engineer"],
+};
 
 const SEARCH_MODES: Array<{ id: SearchMode; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: "employer", label: "By Employer", icon: Building2 },
@@ -261,11 +300,18 @@ export function WageIntelligenceHub() {
         setRoleProfiles(rolePro);
         setRoleTrends(roleTrd);
 
-        // Build job category Fuse index — search by title only (no code knowledge required)
-        const socList = getSocList(mkt);
+        // Build job category Fuse index — enriched with role aliases for better discoverability.
+        // Searching "backend engineer" or "web developer" surfaces "Software Developers (15-1252)".
+        const socList = getSocList(mkt).map((soc) => ({
+          ...soc,
+          aliases: ROLE_ALIASES[soc.code] ?? [],
+        }));
         socFuseRef.current = new Fuse(socList, {
-          keys: ["title"],
-          threshold: 0.3,
+          keys: [
+            { name: "title", weight: 0.7 },
+            { name: "aliases", weight: 0.3 },
+          ],
+          threshold: 0.35,
           minMatchCharLength: 2,
           ignoreLocation: true,
         });
@@ -337,7 +383,7 @@ export function WageIntelligenceHub() {
             item: {
               code: soc.code,
               title: soc.title,
-              n_filings: marketData?.n_filings ?? 0,
+              n_filings: marketData?.total_filings ?? 0, // JSON field is total_filings, not n_filings
               median_salary: marketData?.market_median ?? 0,
             },
             refIndex: r.refIndex,
@@ -442,8 +488,10 @@ export function WageIntelligenceHub() {
     [states, socCode]
   );
   const activeEmployers = useMemo(
-    () => rankings.filter((r) => r.soc_code === socCode && r.visa_type === visaType).length,
-    [rankings, socCode, visaType]
+    // Use the pre-aggregated unique-employer count from soc_salary_market (n_employers field),
+    // NOT the row count in employer_wage_rankings which is capped at 25 rows per SOC/year.
+    () => latestMarket?.n_employers ?? 0,
+    [latestMarket]
   );
   const userPercentile = useMemo(() => {
     if (!userProfile?.wageOffered || !nationalBenchmark) return null;
@@ -560,7 +608,7 @@ export function WageIntelligenceHub() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 right-0 mt-2 z-[9999] rounded-xl border border-white/[0.12] bg-[var(--card)] backdrop-blur-xl shadow-2xl overflow-y-auto max-h-96"
+                    className="absolute top-full left-0 right-0 mt-2 z-[9999] rounded-xl border border-white/[0.15] bg-[var(--background)]/95 backdrop-blur-2xl shadow-2xl overflow-y-auto max-h-96"
                     role="listbox"
                   >
                     {searchResults.map((result, i) => (
@@ -579,11 +627,6 @@ export function WageIntelligenceHub() {
                           <p className="text-sm font-medium text-[var(--foreground)] truncate">
                             {result.label}
                           </p>
-                          {result.sub && (
-                            <p className="text-xs font-mono text-[var(--muted-foreground)]">
-                              Code: {result.sub}
-                            </p>
-                          )}
                         </div>
                         <ChevronRight className="h-4 w-4 text-[var(--muted-foreground)] shrink-0" />
                       </button>
@@ -613,7 +656,7 @@ export function WageIntelligenceHub() {
                 ))}
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
                   <Info className="h-3 w-3" />
-                  <span>Job category: {socCode}</span>
+                  <span className="truncate max-w-[200px]" title={`SOC ${socCode}`}>{selectedSoc.title}</span>
                 </div>
               </div>
             )}
