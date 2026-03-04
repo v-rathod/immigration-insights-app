@@ -848,17 +848,6 @@ export function WageIntelligenceHub() {
               </div>
             </GlassCard>
           )}
-
-          {/* ── Rising Stars leaderboard (pushed down when content selected) ── */}
-          {trends.length > 0 && (
-            <WageGrowthLeaderboard
-              trend={trends}
-              onSelectEmployer={(name) => {
-                setSearchMode("employer");
-                selectEmployer(name);
-              }}
-            />
-          )}
             </div>
           </GlassCard>
       )}
@@ -872,6 +861,17 @@ export function WageIntelligenceHub() {
             <EmptyStateRole onQuickPick={selectSoc} />
           )}
         </FadeIn>
+      )}
+
+      {/* ── Rising Stars leaderboard (always visible at bottom) ──────────── */}
+      {trends.length > 0 && (
+        <WageGrowthLeaderboard
+          trend={trends}
+          onSelectEmployer={(name) => {
+            setSearchMode("employer");
+            selectEmployer(name);
+          }}
+        />
       )}
 
       {/* ── EMPLOYER SELECTED — Profile view ──────────────────────────── */}

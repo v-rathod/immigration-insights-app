@@ -133,7 +133,7 @@ export function Sidebar() {
                     }}
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
-                      "group w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 text-left",
+                      "group w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 text-left cursor-pointer",
                       isActive(item.href)
                         ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] font-medium"
                         : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
@@ -168,7 +168,7 @@ export function Sidebar() {
           <button
             onClick={toggleCollapse}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="hidden rounded-lg p-1.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)] lg:flex"
+            className="hidden rounded-lg p-1.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)] lg:flex cursor-pointer"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function Sidebar() {
       <button
         onClick={toggleMobile}
         aria-label="Open navigation menu"
-        className="fixed left-4 top-4 z-50 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 shadow-lg lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 shadow-lg lg:hidden cursor-pointer"
       >
         {mobileOpen ? (
           <X className="h-5 w-5" />
