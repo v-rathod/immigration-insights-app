@@ -307,6 +307,7 @@ function navItemClicked(label: string, href: string) {
  *   - feedback_type: "feedback" | "feature" | "bug"
  *   - feedback_message: the verbatim text (user-volunteered for this purpose)
  *   - page_path: current route (e.g. "/dashboard/visa-bulletin")
+ *   - environment: "dev" or "prod" for filtering dev vs production feedback
  */
 function feedbackSubmitted(params: {
   type: "feedback" | "feature" | "bug";
@@ -317,6 +318,7 @@ function feedbackSubmitted(params: {
     feedback_type: params.type,
     feedback_message: params.message,
     page_path: params.pagePath,
+    environment: typeof window !== "undefined" && process.env.NODE_ENV === "production" ? "prod" : "dev",
   });
 }
 
