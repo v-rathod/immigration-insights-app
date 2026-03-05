@@ -1,5 +1,55 @@
 # Compass Progress Tracker
 
+## 2026-03-07 — Milestone 10.23: Fix Occupation Titles + Top 25 Chart
+
+### Objective
+Occupation Demand dashboard displayed raw SOC codes (e.g. `15-1132`) instead of readable occupation names in the 3-year window and in the Occupation Details table. Also increase top-N chart from 15 → 25 by filing volume. Fix the root cause in P2 by embedding titles at build time.
+
+### Root Cause
+`soc_demand_metrics.parquet` had no `soc_title` column — P2 built it without joining `dim_soc`. P3's `enrichWithTitles()` joined `dim_soc` at runtime, but `dim_soc` itself has `soc_title = NaN` for 405 "inferred_from_lca" legacy SOC 2010 codes. For these codes (e.g. 15-1132, 29-2011, 15-1133), the fallback `r.soc_code` was returned as title, displaying raw codes in the UI.
+
+**Additional detail**: The NaN codes all have `mapping_confidence: 'inferred_from_lca'` — they were inferred from LCA filing data. The LCA data itself carries a `soc_title` string field with the correct human-readable title. The P2 fix captures these titles during ingestion as a fallback.
+
+### What Was Done
+
+**P2 Changes** (`immigration-model-builder`)
+- `scripts/make_soc_demand_metrics.py`:
+  - Added `BLS_MAJOR_GROUPS` dict (23 standard 2-digit group labels)
+  - Added `_build_title_map()` — loads canonical titles from `dim_soc.parquet`
+  - When loading LCA/PERM: also capture `soc_title` strings from raw filings into `lca_title_map` as fallback for NaN-titled legacy SOC 2010 codes
+  - After aggregation: resolve `soc_title` (dim_soc > LCA raw > code itself) and `soc_major_title` (from BLS_MAJOR_GROUPS via 2-digit prefix)
+  - Both added to output columns
+- Artifact rebuilt: 3,968 rows (vs 4,241 — PERM now uses current SOC 2018 codes)
+
+**P3 Changes** (`immigration-insights-app`)
+- `src/types/p2-artifacts.ts` — `SocDemandMetric`: added `soc_title?: string` and `soc_major_title?: string`
+- `src/lib/data/soc-demand.ts` — `enrichWithTitles`: prefers embedded title (r.soc_title), then dim_soc fallback, then BLS_MAJOR_GROUPS. No more async race condition.
+- `src/app/dashboard/job-demand/page.tsx`:
+  - `getTopOccupations` N: 20 → **25**
+  - Chart slice: 15 → **25**  
+  - Chart height: 400 → **600px**
+  - Header: "Top 15" → **"Top 25 Occupations by Filing Volume"**
+- `PRODUCT_GUIDE.md` — Updated chart heading
+- `src/__tests__/dashboard-data-loaders.test.ts` — Added test for embedded soc_title priority
+
+### Test Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Total tests | 549 | **550** |
+| New test | — | enrichWithTitles prefers embedded soc_title |
+| All passing | ✅ | ✅ |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/types/p2-artifacts.ts` | `SocDemandMetric` gains `soc_title?`, `soc_major_title?` |
+| `src/lib/data/soc-demand.ts` | `enrichWithTitles` uses embedded title first |
+| `src/app/dashboard/job-demand/page.tsx` | Top 25 chart, 600px height |
+| `src/__tests__/dashboard-data-loaders.test.ts` | +1 embedded title test |
+| `PRODUCT_GUIDE.md` | "Top 25" label |
+
+---
+
 ## 2026-03-07 — Milestone 10.22: Fix USCIS Approvals Data (P2 Ingestion Bugs)
 
 ### Objective
@@ -1315,7 +1365,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.21 — 2026-03-06)
+## Quick Reference (Current State as of Milestone 10.23 — 2026-03-07)
 
 | Metric | Value |
 |--------|-------|
@@ -1325,7 +1375,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **549 passing** across 24 test files |
+| Tests | **550 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
 | Pages scaffolded | 15 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/_not-found`) |
 | Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
