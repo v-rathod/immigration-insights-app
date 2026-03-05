@@ -3,7 +3,7 @@
  *
  * Consumes:
  *   - processing_times_trends.json (35 rows, I-485 quarterly)
- *   - fact_uscis_approvals.json (146 rows, form-level)
+ *   - fact_uscis_approvals.json (1,036 rows, form-level)
  * Source: P2 make_processing_times_trends.py, build_fact_uscis_approvals.py
  */
 
@@ -79,9 +79,14 @@ export function aggregateByForm(
   totalApprovals: number;
   totalDenials: number;
   approvalRate: number;
-  years: number;
+  fyMin: string;
+  fyMax: string;
+  fyCount: number;
 }> {
-  const groups = new Map<string, { approvals: number; denials: number; years: Set<string> }>();
+  const groups = new Map<
+    string,
+    { approvals: number; denials: number; years: Set<string> }
+  >();
 
   for (const r of data) {
     const existing = groups.get(r.form);
@@ -99,15 +104,22 @@ export function aggregateByForm(
   }
 
   return Array.from(groups.entries())
-    .map(([form, g]) => ({
-      form,
-      totalApprovals: g.approvals,
-      totalDenials: g.denials,
-      approvalRate:
-        g.approvals + g.denials > 0
-          ? g.approvals / (g.approvals + g.denials)
-          : 0,
-      years: g.years.size,
-    }))
+    .map(([form, g]) => {
+      const sortedFy = [...g.years]
+        .filter((fy) => fy !== "FY_UNKNOWN")
+        .sort();
+      return {
+        form,
+        totalApprovals: g.approvals,
+        totalDenials: g.denials,
+        approvalRate:
+          g.approvals + g.denials > 0
+            ? g.approvals / (g.approvals + g.denials)
+            : 0,
+        fyMin: sortedFy[0] ?? "—",
+        fyMax: sortedFy[sortedFy.length - 1] ?? "—",
+        fyCount: g.years.size,
+      };
+    })
     .sort((a, b) => b.totalApprovals - a.totalApprovals);
 }

@@ -534,9 +534,13 @@ describe("processing data", () => {
     expect(agg[0].form).toBe("I-485"); // higher total
     expect(agg[0].totalApprovals).toBe(110000);
     expect(agg[0].totalDenials).toBe(9000);
-    expect(agg[0].years).toBe(2);
+    expect(agg[0].fyCount).toBe(2);
+    expect(agg[0].fyMin).toBe("FY2023");
+    expect(agg[0].fyMax).toBe("FY2024");
     expect(agg[0].approvalRate).toBeCloseTo(110000 / 119000, 3);
     expect(agg[1].form).toBe("I-140");
+    expect(agg[1].fyMin).toBe("FY2024");
+    expect(agg[1].fyMax).toBe("FY2024");
   });
 });
 

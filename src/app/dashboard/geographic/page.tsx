@@ -310,7 +310,7 @@ export default function GeographicDashboardPage() {
                 onClick={() => setShowAll((v) => !v)}
                 className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
               >
-                {showAll ? "Show Top 15" : `Show All ${allStates.filter((s) => US_50_STATE_CODES.has(s.state)).length} States`}
+                {showAll ? "Show Top 15" : `Show All ${allStates.filter((s) => US_50_STATE_CODES.has(s.state)).length} States + ${allStates.filter((s) => !US_50_STATE_CODES.has(s.state)).length} Territories`}
               </button>
             </div>
             <div className="overflow-x-auto">

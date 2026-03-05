@@ -1,5 +1,60 @@
 # Compass Progress Tracker
 
+## 2026-03-07 — Milestone 10.22: Fix USCIS Approvals Data (P2 Ingestion Bugs)
+
+### Objective
+Processing dashboard showed I-485 with only 9 total approvals and 211 denials over 4 years (clearly wrong). Also different FY spans across forms (I-765: FY2025 only vs I-140: FY2014–FY2025). Full audit of P2 ingestion code, root-cause all bugs, fix P2 script, rebuild artifact, sync to P3, update UI.
+
+### Root Causes Found (5 bugs in `build_fact_uscis_approvals.py`)
+
+| Bug | Form | Symptom | Root Cause | Fix |
+|-----|------|---------|-----------|-----|
+| 1 | I-485 | 9 approvals | Wide field-office format: all 87 files produce PK=(FY,I485,ALL), dedup kept last (tiny field office) | New `parse_i485_wide()` reads Grand Total row only |
+| 2a | I-765 | FY2025 only | 2-digit filenames `fy23`/`fy24` not matched by 4-digit regex → FY_UNKNOWN | New `FISCAL_YEAR_SHORT` regex + `_short_year_to_full()` |
+| 2b | I-765 | FY2025 only | Multi-year XLSX (20 sheets) all assigned filename FY | New `extract_fy_from_sheet_data()` reads per-sheet FY from cell data |
+| 2c | I-765 | Deflated totals | Initial+Renewal dual columns deduplicated, dropping Renewal | New `_sum_duplicate_col()` sums all occurrences |
+| 3 | I-765 | Wrong columns | Two-level headers: `find_header_row()` picked group label row | Metric-weighted row scoring (actual metric keywords score 2x) |
+| 4 | All | Inconsistent codes | `i-765...` → `I-765`, but `i765...` → `I765` | Strip dashes in `extract_form_from_name()`, `parse_xlsx`, `parse_csv_uscis` |
+| 5 | CSV files | Encoding error | Older USCIS CSVs use latin-1 | Try `utf-8-sig` then `latin-1` fallback |
+
+### Results
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Total rows | 146 | **1,036** |
+| FY span | FY1992–FY2025 (gaps) | FY1992–FY2025 (continuous) |
+| I-485 approvals | **9** | **1,932,273** |
+| I-485 FY range | FY2021–FY2025 | **FY2012–FY2025** |
+| I-765 rows | 50 (FY2025 only) | **897 (FY2004–FY2025)** |
+| I-765 approvals | 1,534,602 | **29,433,208** |
+| I-140 | Unchanged | 95 rows, FY2014–FY2025 |
+| Tests | 549 | **549** (all passing) |
+
+### What Was Done
+
+**P2 Changes** (`immigration-model-builder`)
+- `scripts/build_fact_uscis_approvals.py` — 5 bug fixes (see table above)
+  - New: `FISCAL_YEAR_SHORT`, `_short_year_to_full()`, `extract_fy_from_sheet_data()`, `is_i485_file()`, `parse_i485_wide()`, `_sum_duplicate_col()`
+  - Modified: `extract_form_from_name()`, `extract_fy_from_name()`, `find_header_row()`, `parse_xlsx()`, `parse_csv_uscis()`
+- Artifact rebuilt: `artifacts/tables/fact_uscis_approvals.parquet` (1,036 rows)
+- P2 committed: "fix: correct USCIS approvals ingestion script"
+
+**P3 Changes** (`immigration-insights-app`)
+- `public/data/dashboards/processing/fact_uscis_approvals.json` — Synced (1,036 rows, 211 KB)
+- `src/lib/data/processing.ts` — `aggregateByForm()` now returns `fyMin`/`fyMax`/`fyCount` instead of just `years`; updated file-header comment
+- `src/app/dashboard/processing/page.tsx` — "FY Span" column now shows `FY2012–FY2025` range; form codes rendered in `font-mono`
+- `src/__tests__/dashboard-data-loaders.test.ts` — Updated test to use `fyCount`/`fyMin`/`fyMax`
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/lib/data/processing.ts` | `aggregateByForm` returns `fyMin`/`fyMax`/`fyCount` |
+| `src/app/dashboard/processing/page.tsx` | FY Range column shows actual year range |
+| `src/__tests__/dashboard-data-loaders.test.ts` | Updated aggregateByForm test assertions |
+| `public/data/dashboards/processing/fact_uscis_approvals.json` | Rebuilt from corrected P2 artifact |
+
+---
+
 ## 2026-03-06 — Milestone 10.21: Cross-Artifact Velocity Fix (EB Category + Backlog)
 
 ### Objective

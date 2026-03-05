@@ -348,7 +348,7 @@ export default function ProcessingDashboardPage() {
                       Approval Rate
                     </th>
                     <th className="text-right py-2 px-3 text-[var(--muted-foreground)] font-medium">
-                      FY Span
+                      FY Range
                     </th>
                   </tr>
                 </thead>
@@ -358,7 +358,7 @@ export default function ProcessingDashboardPage() {
                       key={f.form}
                       className="border-b border-white/[0.04] hover:bg-white/[0.02]"
                     >
-                      <td className="py-2 px-3 text-[var(--foreground)] font-medium">
+                      <td className="py-2 px-3 text-[var(--foreground)] font-medium font-mono">
                         {f.form}
                       </td>
                       <td className="py-2 px-3 text-right font-mono text-[var(--foreground)]">
@@ -370,8 +370,8 @@ export default function ProcessingDashboardPage() {
                       <td className="py-2 px-3 text-right font-mono text-[var(--foreground)]">
                         {formatNumber(f.approvalRate * 100, 1)}%
                       </td>
-                      <td className="py-2 px-3 text-right font-mono text-[var(--muted-foreground)]">
-                        {f.years} years
+                      <td className="py-2 px-3 text-right font-mono text-[var(--muted-foreground)] whitespace-nowrap">
+                        {f.fyMin === f.fyMax ? f.fyMin : `${f.fyMin}–${f.fyMax}`}
                       </td>
                     </tr>
                   ))}
