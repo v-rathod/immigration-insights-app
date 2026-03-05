@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { Compass, Github, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ContactButton } from "@/components/ui/contact-modal";
 
 // ---------------------------------------------------------------------------
 // Link Groups
@@ -71,6 +72,7 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
+            <ContactButton />
             <a
               href="https://github.com"
               target="_blank"

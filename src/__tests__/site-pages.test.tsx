@@ -76,6 +76,7 @@ vi.mock("framer-motion", async () => {
 
 import { Footer } from "@/components/layout/footer";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
+import { ContactModal, ContactButton } from "@/components/ui/contact-modal";
 import AboutPage from "@/app/about/page";
 import PrivacyPage from "@/app/privacy/page";
 import TermsPage from "@/app/terms/page";
@@ -124,6 +125,96 @@ describe("Footer", () => {
       "target",
       "_blank"
     );
+  });
+
+  it("renders Contact button in footer", () => {
+    render(<Footer />);
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByRole("button", { name: /contact/i })).toBeInTheDocument();
+  });
+});
+
+// =========================================================================
+// ContactModal
+// =========================================================================
+
+describe("ContactModal", () => {
+  it("does not render when isOpen is false", () => {
+    render(<ContactModal isOpen={false} onClose={vi.fn()} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders modal when isOpen is true", () => {
+    render(<ContactModal isOpen={true} onClose={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: /contact us/i })).toBeInTheDocument();
+  });
+
+  it("renders all required form fields", () => {
+    render(<ContactModal isOpen={true} onClose={vi.fn()} />);
+    expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/subject/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
+  });
+
+  it("send button is disabled when form is empty", () => {
+    render(<ContactModal isOpen={true} onClose={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /send message/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("send button enables once all required fields are filled", () => {
+    render(<ContactModal isOpen={true} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "Alice" } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "alice@test.com" } });
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: "Hello!" } });
+    expect(screen.getByRole("button", { name: /send message/i })).not.toBeDisabled();
+  });
+
+  it("calls onClose when close button is clicked", () => {
+    const onClose = vi.fn();
+    render(<ContactModal isOpen={true} onClose={onClose} />);
+    fireEvent.click(screen.getByLabelText("Close contact form"));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("calls onClose when backdrop is clicked", () => {
+    const onClose = vi.fn();
+    render(<ContactModal isOpen={true} onClose={onClose} />);
+    // The backdrop is the first div with bg-black
+    const backdrop = document.querySelector(".bg-black\\/50");
+    if (backdrop) fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("shows all subject options in select", () => {
+    render(<ContactModal isOpen={true} onClose={vi.fn()} />);
+    const select = screen.getByLabelText(/subject/i) as HTMLSelectElement;
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain("General Question");
+    expect(options).toContain("Data Issue");
+    expect(options).toContain("Feature Request");
+    expect(options).toContain("Bug Report");
+    expect(options).toContain("Press & Media");
+    expect(options).toContain("Other");
+  });
+});
+
+// =========================================================================
+// ContactButton
+// =========================================================================
+
+describe("ContactButton", () => {
+  it("renders a button labeled Contact", () => {
+    render(<ContactButton />);
+    expect(screen.getByRole("button", { name: /contact/i })).toBeInTheDocument();
+  });
+
+  it("opens ContactModal on click", () => {
+    render(<ContactButton />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /contact/i }));
+    expect(screen.getByRole("dialog", { name: /contact us/i })).toBeInTheDocument();
   });
 });
 

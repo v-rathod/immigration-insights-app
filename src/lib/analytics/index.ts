@@ -332,6 +332,18 @@ function feedbackSubmitted(params: {
 }
 
 // ---------------------------------------------------------------------------
+// Contact
+// ---------------------------------------------------------------------------
+
+/**
+ * User sent a contact form message.
+ * Only the subject category is captured — no name/email/message text (PII).
+ */
+function contactSubmitted(subject: string) {
+  capture("contact_submitted", { contact_subject: subject });
+}
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 
@@ -356,4 +368,5 @@ export const analytics = {
   geoDatasetChanged,
   navItemClicked,
   feedbackSubmitted,
+  contactSubmitted,
 };
