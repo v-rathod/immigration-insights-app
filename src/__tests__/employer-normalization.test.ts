@@ -174,9 +174,7 @@ describe("Cross-file canonical employer name contract", () => {
   const wageRankings = loadJson(
     "dashboards/wage/employer_wage_rankings.json"
   ) as Array<{ employer_name?: string }>;
-  const features = loadJson(
-    "dashboards/employer/employer_features.json"
-  ) as Array<{ employer_name?: string }>;
+  // employer_features.json removed — not consumed by any P3 component
   const monthly = loadJson(
     "dashboards/employer/employer_monthly_metrics.json"
   ) as Array<{ employer_name?: string }>;
@@ -189,17 +187,17 @@ describe("Cross-file canonical employer name contract", () => {
   }
 
   it("no dataset contains 'INFOSYS LIMITED' — should be 'Infosys'", () => {
-    const names = allNames([salaryTrend, wageRankings, features, monthly]);
+    const names = allNames([salaryTrend, wageRankings, monthly]);
     expect(names).not.toContain("INFOSYS LIMITED");
   });
 
   it("no dataset contains 'TATA CONSULTANCY SERVICES LIMITED'", () => {
-    const names = allNames([salaryTrend, wageRankings, features, monthly]);
+    const names = allNames([salaryTrend, wageRankings, monthly]);
     expect(names).not.toContain("TATA CONSULTANCY SERVICES LIMITED");
   });
 
   it("no dataset contains 'COGNIZANT TECHNOLOGY SOLUTIONS'", () => {
-    const names = allNames([salaryTrend, wageRankings, features, monthly]);
+    const names = allNames([salaryTrend, wageRankings, monthly]);
     const allCapsVariant = names.filter(
       (n) => n.toUpperCase() === "COGNIZANT TECHNOLOGY SOLUTIONS"
     );
@@ -207,40 +205,8 @@ describe("Cross-file canonical employer name contract", () => {
   });
 
   it("no dataset contains 'AMAZON WEB SERVICES INC'", () => {
-    const names = allNames([salaryTrend, wageRankings, features, monthly]);
+    const names = allNames([salaryTrend, wageRankings, monthly]);
     expect(names).not.toContain("AMAZON WEB SERVICES INC");
-  });
-});
-
-// ─── employer_features.json ──────────────────────────────────────────────────
-
-describe("public/data/dashboards/employer/employer_features.json", () => {
-  const data = loadJson(
-    "dashboards/employer/employer_features.json"
-  ) as Array<{ employer_name?: string; employer_id?: string }>;
-
-  it("has data (sync has been run)", () => {
-    expect(data.length).toBeGreaterThan(0);
-  });
-
-  it("contains canonical 'Google' entry", () => {
-    const names = data.map((r) => r.employer_name ?? "");
-    if (names.some((n) => n.toLowerCase().includes("google"))) {
-      expect(names).toContain("Google");
-    }
-  });
-
-  it("no dirty all-caps names in top 200 rows", () => {
-    const dirtyNames = data
-      .slice(0, 200)
-      .map((r) => r.employer_name ?? "")
-      .filter(isDirtyAllCaps);
-    expect(dirtyNames).toStrictEqual([]);
-  });
-
-  it("has employer_id on each row", () => {
-    const missing = data.filter((r) => !r.employer_id).length;
-    expect(missing).toBe(0);
   });
 });
 
@@ -297,3 +263,42 @@ describe("public/data/dashboards/employer/employer_monthly_metrics.json", () => 
     expect(missing).toBe(0);
   });
 });
+
+// ─── JSON spec compliance: no bare NaN tokens ────────────────────────────────
+
+describe("JSON spec compliance", () => {
+  const readdirSync = (dir: string): string[] => {
+    const { readdirSync: rd, statSync } = require("fs");
+    const { join } = require("path");
+    const entries = rd(dir, { withFileTypes: true });
+    const files: string[] = [];
+    for (const e of entries) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) files.push(...readdirSync(full));
+      else if (e.name.endsWith(".json")) files.push(full);
+    }
+    return files;
+  };
+
+  const DATA_DIR = join(process.cwd(), "public", "data");
+  const allJsonFiles = (() => {
+    const { existsSync } = require("fs");
+    if (!existsSync(DATA_DIR)) return [];
+    return readdirSync(DATA_DIR);
+  })();
+
+  it("no JSON file contains bare NaN tokens (invalid JSON spec)", () => {
+    const { readFileSync } = require("fs");
+    const BAD_NAN = /(?<=[:\[,])\s*NaN\b/;
+    const violators: string[] = [];
+    for (const file of allJsonFiles) {
+      const raw = readFileSync(file, "utf-8");
+      if (BAD_NAN.test(raw)) {
+        const rel = file.replace(process.cwd() + "/", "");
+        violators.push(rel);
+      }
+    }
+    expect(violators).toStrictEqual([]);
+  });
+});
+

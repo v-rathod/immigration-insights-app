@@ -48,7 +48,7 @@ DASHBOARD_ARTIFACTS = {
         "employer_friendliness_scores.parquet",
         "employer_friendliness_scores_ml.parquet",
         "employer_monthly_metrics.parquet",
-        "employer_features.parquet",
+        # employer_features.parquet removed — not consumed by any P3 component
         "employer_risk_features.parquet",
     ],
     "eb-category": [
@@ -93,6 +93,47 @@ MODEL_JSON = [
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Artifact-specific transforms applied during sync to reduce payload sizes
+# ---------------------------------------------------------------------------
+def _transform_worksite_geo_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only state-grain rows.
+
+    P3 Geographic dashboard exclusively uses grain='state' aggregates.
+    Dropping city/area/soc_area rows eliminates ~134K of 134.8K rows,
+    reducing file size from ~37 MB to <50 KB.
+    """
+    if df.empty or "grain" not in df.columns:
+        return df
+    result = df[df["grain"] == "state"].reset_index(drop=True)
+    print(f"      [geo filter] {len(df):,} → {len(result):,} rows (state grain only)")
+    return result
+
+
+def _transform_employer_monthly_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only employers with ≥ 6 months of data.
+
+    91K+ employers with 1-2 monthly entries create 51 MB of sparse data.
+    Keeping only employers with meaningful time series (≥6 months) preserves
+    trend charts while cutting the file to ~10 MB.
+    """
+    if df.empty or "employer_id" not in df.columns:
+        return df
+    month_col = "month" if "month" in df.columns else df.columns[2]
+    month_counts = df.groupby("employer_id")[month_col].nunique()
+    keep_ids = month_counts[month_counts >= 6].index
+    result = df[df["employer_id"].isin(keep_ids)].reset_index(drop=True)
+    print(f"      [monthly filter] {len(df):,} → {len(result):,} rows ({result['employer_id'].nunique():,} employers with ≥6 months)")
+    return result
+
+
+# Maps artifact stem → transform function applied before writing JSON
+ARTIFACT_TRANSFORMS: dict = {
+    "worksite_geo_metrics": _transform_worksite_geo_metrics,
+    "employer_monthly_metrics": _transform_employer_monthly_metrics,
+}
+
+
 def read_parquet_safe(path: Path) -> pd.DataFrame:
     """Read a Parquet file or partitioned directory."""
     if path.is_dir():
@@ -105,7 +146,11 @@ def read_parquet_safe(path: Path) -> pd.DataFrame:
 
 
 def df_to_json(df: pd.DataFrame, out_path: Path, orient: str = "records") -> int:
-    """Write DataFrame to JSON, return row count."""
+    """Write DataFrame to JSON, return row count.
+
+    Uses pandas to_json() rather than json.dump() so that float NaN values
+    are serialised as JSON null instead of the invalid bare NaN token.
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Convert timestamps to ISO strings for JSON serialization
@@ -122,9 +167,9 @@ def df_to_json(df: pd.DataFrame, out_path: Path, orient: str = "records") -> int
         except Exception:
             pass
 
-    records = df.to_dict(orient=orient)
-    with open(out_path, "w") as f:
-        json.dump(records, f, separators=(",", ":"), default=str)
+    # pandas to_json correctly serialises NaN → null (JSON spec compliant).
+    # default_handler=str catches any remaining non-serialisable types.
+    df.to_json(out_path, orient=orient, default_handler=str, force_ascii=False)
 
     return len(df)
 
@@ -146,6 +191,9 @@ def sync_dashboards(dashboard_filter: str | None = None):
             if df.empty:
                 continue
             stem = Path(artifact_name).stem
+            # Apply artifact-specific transform if registered
+            if stem in ARTIFACT_TRANSFORMS:
+                df = ARTIFACT_TRANSFORMS[stem](df)
             out_path = OUT_DASHBOARDS / slug / f"{stem}.json"
             n = df_to_json(df, out_path)
             size_kb = out_path.stat().st_size / 1024
@@ -339,10 +387,10 @@ def sync_wage_dashboard():
         size_kb = (out_dir / "employer_wage_rankings.json").stat().st_size / 1024
         print(f"    ✓ employer_wage_rankings: {n:,} rows → {size_kb:.0f} KB")
 
-        # ── 4a. employer_search_index — ALL employers (no cutoff) for search ───
+        # ── 4a. employer_search_index — employers with ≥10 filings for search ──
         esy = read_parquet_safe(P2_TABLES / "employer_salary_yearly.parquet")
         if not esy.empty:
-            # Export ALL H-1B employers with minimal metadata for full-text search
+            # Export H-1B employers (≥10 filings) with minimal metadata for full-text search
             esy_all = esy[esy["visa_type"] == "H-1B"].copy()
             
             # Get total filings per employer
@@ -367,12 +415,17 @@ def sync_wage_dashboard():
             employer_stats["latest_median_salary"] = employer_stats["latest_median_salary"].fillna(0).round(0).astype(int)
             employer_stats["latest_year"] = employer_stats["latest_year"].fillna(0).astype(int)
             
+            # Prune to employers with ≥10 H-1B filings — eliminates ~86% of single-
+            # filing shell entries while keeping all meaningful search results.
+            # Reduces file from 402K rows / 47 MB → ~56K rows / 7 MB.
+            employer_stats = employer_stats[employer_stats["total_filings"] >= 10].copy()
+
             # Sort by filing count (most relevant first)
             employer_stats = employer_stats.sort_values("total_filings", ascending=False).reset_index(drop=True)
-            
+
             n = df_to_json(employer_stats, out_dir / "employer_search_index.json")
             size_kb = (out_dir / "employer_search_index.json").stat().st_size / 1024
-            print(f"    ✓ employer_search_index: {n:,} rows (ALL employers) → {size_kb:.0f} KB")
+            print(f"    ✓ employer_search_index: {n:,} rows (≥10 filings) → {size_kb:.0f} KB")
 
         # ── 4b. employer_salary_trend — top 300 employers' wage trend ───────
         if not esy.empty:

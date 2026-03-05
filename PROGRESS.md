@@ -1,5 +1,81 @@
 # Compass Progress Tracker
 
+## 2026-03-08 — Milestone 10.24: Pre-Deploy Data Optimization (221 MB Saved + JSON NaN Fix)
+
+### Objective
+Final pre-deployment audit before AWS static hosting. Identify and eliminate unnecessary payload from `public/data/` to minimize CloudFront egress costs. Discover and fix a long-standing invalid JSON bug (bare `NaN` tokens) that silently broke dashboard data fetching.
+
+### Problem Discovered
+Total `public/data/` payload was **~362 MB** including:
+- **3 completely unused files** (not loaded by any P3 component): 118 MB dead weight
+- **3 oversized files** needing pre-filtering: 135 MB reducible to ~30 MB
+- **15+ JSON files** with bare `NaN` tokens (invalid JSON spec) — `JSON.parse()` in browsers silently returns `null` or throws, causing empty dashboards
+
+### What Was Done
+
+**Deleted 3 unused data files (P3):**
+- `employer_features.json` — 66 MB, confirmed not consumed by any dashboard component
+- `salary_benchmarks.json` — 42 MB, remnant from old sync; no loader in P3
+- `salary_benchmarks_metro.json` — 11 MB, remnant from old sync; no loader in P3
+
+**P3: `scripts/sync_p2_data.py` — 4 surgical changes:**
+1. Removed `employer_features.parquet` from `DASHBOARD_ARTIFACTS["employer"]`
+2. Added `_transform_worksite_geo_metrics()` — keeps only `grain='state'` rows (134K→116 rows)
+3. Added `_transform_employer_monthly_metrics()` — keeps only employers with ≥6 months of data (91K→7K employers)
+4. Added `ARTIFACT_TRANSFORMS` dispatch dict — applied in `sync_dashboards()` loop
+5. Added `employer_search_index` filter `total_filings >= 10` — cuts 402K→56K rows
+6. Rewrote `df_to_json()` to use `pd.DataFrame.to_json()` instead of `json.dump()` — **fixes NaN→null serialisation permanently**
+
+**Applied transforms immediately to current JSON files:**
+- `worksite_geo_metrics.json`: 37 MB → **32 KB** (filter state grain)
+- `employer_monthly_metrics.json`: 51 MB → **22 MB** (filter ≥6 months)
+- `employer_search_index.json`: 47 MB → **6.8 MB** (filter ≥10 filings)
+
+**Fixed bare NaN tokens in all JSON files (`scripts/_fix_nan.py`):**
+- 14 files fixed: dim tables, employer_friendliness_scores, backlog, visa-bulletin, geographic, processing, wage rankings, EB-category
+- 694K+ individual NaN→null replacements
+- `fact_uscis_approvals.json` has `NaN` inside a quoted string value — valid JSON, left untouched
+
+**Tests:**
+- Removed 4 tests for the deleted `employer_features.json`
+- Added 1 new `JSON spec compliance` test that scans all files for bare NaN tokens
+- Net: 550 → **547 tests** (cleaner coverage, no dead-file tests)
+
+### Size Reduction Summary
+
+| File | Before | After | Saved |
+|------|--------|-------|-------|
+| `employer_features.json` | 66 MB | deleted | **66 MB** |
+| `salary_benchmarks.json` | 42 MB | deleted | **42 MB** |
+| `salary_benchmarks_metro.json` | 11 MB | deleted | **11 MB** |
+| `worksite_geo_metrics.json` | 37 MB | 32 KB | **37 MB** |
+| `employer_search_index.json` | 47 MB | 6.8 MB | **40 MB** |
+| `employer_monthly_metrics.json` | 51 MB | 22 MB | **29 MB** |
+| **TOTAL** | **~254 MB** | **~29 MB** | **~225 MB** |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `scripts/sync_p2_data.py` | 6 changes: remove employer_features, 2 transform functions, ARTIFACT_TRANSFORMS dict, search index ≥10 filter, df_to_json NaN fix |
+| `scripts/_fix_nan.py` | New — bulk NaN→null fix for all existing JSON files |
+| `scripts/_apply_optimizations.py` | New — one-time data file transform script |
+| `src/__tests__/employer-normalization.test.ts` | Remove employer_features block; add JSON spec compliance test |
+| `public/data/dashboards/geographic/worksite_geo_metrics.json` | 134K→116 rows |
+| `public/data/dashboards/employer/employer_monthly_metrics.json` | 224K→99K rows |
+| `public/data/dashboards/wage/employer_search_index.json` | 402K→56K rows |
+| `public/data/dims/*.json` + multiple dashboards | NaN→null in 14 files |
+
+### Test Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Total tests | 550 | **547** |
+| Removed | `employer_features.json` tests (4) | expected — file deleted |
+| Added | JSON spec compliance test (1) | catches future NaN regressions |
+| All passing | ✅ | ✅ |
+
+---
+
 ## 2026-03-07 — Milestone 10.23: Fix Occupation Titles + Top 25 Chart
 
 ### Objective
@@ -1365,7 +1441,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.23 — 2026-03-07)
+## Quick Reference (Current State as of Milestone 10.24 — 2026-03-08)
 
 | Metric | Value |
 |--------|-------|
@@ -1375,8 +1451,9 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **550 passing** across 24 test files |
+| Tests | **547 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
+| **public/data/ payload** | **~85 MB** (was ~362 MB — 225 MB eliminated pre-deploy) |
 | Pages scaffolded | 15 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/_not-found`) |
 | Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
@@ -1388,8 +1465,8 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Single-click feedback dialog (MessageSquarePlus icon) |
 | PostHog | Super properties: `environment` tag on all events |
-| AWS deploy | Not started |
-| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (15 pages) |
+| AWS deploy | Ready — static export clean, 547 tests passing, JSON files valid |
+| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (15 pages) · JSON NaN-free ✅ |
 
 ### Quick Commands
 ```bash
@@ -1530,6 +1607,9 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.19 | 2026-03-04 | Fix Salary Data Source Mismatch | Stat cards (soc_salary_market, LCA) vs Distribution tab (OEWS survey) showed different numbers for same role. P2: added market_p10/p90 to soc_salary_market via weighted avg. P3: `marketAsBenchmark()` helper + Distribution tab now uses LCA data throughout. Data Scientists: median $139,918 now consistent everywhere. 472 tests; commit bd34f9a |
 | 10.20 | 2026-03-05 | Build All 5 Missing Dashboards | System audit found 5/9 dashboards unbuilt (EB Category, Geographic, SOC Demand, Processing, Backlog). Built all 5 with data loaders, fixed 5 TypeScript interfaces, added 80 new tests. **9/9 dashboards complete.** 552 tests (24 files); 15 pages |
 | 10.21 | 2026-03-06 | Cross-Artifact Velocity Fix | EB2/IND velocity wrong (55.8→19.0) due to r12m spillover spikes. Applied blended formula to CMM + backlog_estimates in P2; cross-verified all artifacts; updated P3 dashboards/tests. PostHog super properties. FAB redesign. 549 tests |
+| 10.22 | 2026-03-07 | Fix USCIS Approvals Data (P2 Ingestion) | Form-level approvals ingestion fix; 549 tests |
+| 10.23 | 2026-03-07 | Fix Occupation Titles + Top 25 Chart | SOC title fallback chain (dim_soc > LCA raw > code); chart N=15→25; 550 tests |
+| 10.24 | 2026-03-08 | Pre-Deploy Optimization (221 MB Reduction) | Delete 3 dead files (119 MB); filter geo/monthly/search (-102 MB); fix NaN→null in 14 JSON files; new JSON spec compliance test; 547 tests |
 
 ---
 
