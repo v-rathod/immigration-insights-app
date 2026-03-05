@@ -248,6 +248,40 @@ resource "aws_cloudfront_response_headers_policy" "security" {
 }
 
 # =============================================================================
+# CloudFront Function — SPA URL Rewriter
+# Rewrites /about → /about/index.html so Next.js static export routes work
+# =============================================================================
+
+resource "aws_cloudfront_function" "url_rewriter" {
+  name    = "${var.s3_bucket_name}-url-rewriter"
+  runtime = "cloudfront-js-2.0"
+  comment = "Rewrite clean URLs to index.html for Next.js static export"
+  publish = true
+
+  code = <<-EOF
+    async function handler(event) {
+      const request = event.request;
+      let uri = request.uri;
+
+      // Already has a file extension — let it pass through unchanged
+      if (/\.[a-zA-Z0-9]+$/.test(uri)) {
+        return request;
+      }
+
+      // Ends with / → append index.html
+      if (uri.endsWith('/')) {
+        request.uri = uri + 'index.html';
+        return request;
+      }
+
+      // No extension, no trailing slash → append /index.html
+      request.uri = uri + '/index.html';
+      return request;
+    }
+  EOF
+}
+
+# =============================================================================
 # CloudFront Cache Policies
 # =============================================================================
 
@@ -348,6 +382,11 @@ resource "aws_cloudfront_distribution" "site" {
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
     viewer_protocol_policy     = "redirect-to-https"
     compress                   = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.url_rewriter.arn
+    }
   }
 
   # /data/* — immutable JSON (30-day cache)
