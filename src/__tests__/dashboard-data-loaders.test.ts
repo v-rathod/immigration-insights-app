@@ -180,6 +180,7 @@ const makeGeo = (
   offered_median_soc_area: 130000,
   city: "San Jose",
   competitiveness_ratio: 0.85,
+  approval_rate: 0.9,
   ...overrides,
 });
 
@@ -236,10 +237,12 @@ describe("geographic data", () => {
     expect(datasets).toEqual(["LCA", "PERM"]);
   });
 
-  it("STATE_NAMES maps all 50 states + DC", () => {
+  it("STATE_NAMES maps all 50 states + non-state jurisdictions", () => {
     expect(STATE_NAMES["CA"]).toBe("California");
     expect(STATE_NAMES["NY"]).toBe("New York");
-    expect(STATE_NAMES["DC"]).toBe("District of Columbia");
+    expect(STATE_NAMES["DC"]).toContain("Washington"); // Federal District
+    expect(STATE_NAMES["PR"]).toContain("Puerto Rico"); // Territory
+    expect(STATE_NAMES["GU"]).toContain("Territory");
     expect(Object.keys(STATE_NAMES).length).toBeGreaterThanOrEqual(51);
   });
 });

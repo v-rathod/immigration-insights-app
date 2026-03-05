@@ -27,9 +27,21 @@ export interface StateAggregate {
   approvals: number;
   employers: number;
   medianWage: number | null;
+  /** Real approval rate: approvals / filings. Always ≤ 1.0. */
+  approvalRate: number | null;
+  /** Wage vs OEWS market benchmark: offered_median ÷ OEWS median. Can exceed 1.0. */
   competitiveness: number | null;
   dataset: string;
 }
+
+/** 50 US states (excludes DC, territories, and Compact of Free Association nations) */
+export const US_50_STATE_CODES = new Set([
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+]);
 
 /** Get state-level aggregates for a given dataset */
 export function getStateAggregates(
@@ -44,6 +56,12 @@ export function getStateAggregates(
       approvals: r.approvals_count,
       employers: r.distinct_employers,
       medianWage: r.offered_median,
+      // Prefer the P2-computed approval_rate if present, otherwise derive from counts
+      approvalRate: r.approval_rate != null
+        ? r.approval_rate
+        : r.filings_count > 0
+          ? Math.min(1, r.approvals_count / r.filings_count)
+          : null,
       competitiveness: r.competitiveness_ratio,
       dataset,
     }))
@@ -59,8 +77,13 @@ export function getTopStates(
   return getStateAggregates(data, dataset).slice(0, n);
 }
 
-/** State name mapping (abbrev → full name) */
+/**
+ * Display names for all jurisdictions in the data.
+ * Non-state entries are labeled with their type to avoid presenting
+ * them as equivalent to US states in the UI.
+ */
 export const STATE_NAMES: Record<string, string> = {
+  // 50 US States
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas",
   CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware",
   FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho",
@@ -73,10 +96,19 @@ export const STATE_NAMES: Record<string, string> = {
   OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
   SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah",
   VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia",
-  WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia",
-  PR: "Puerto Rico", GU: "Guam", VI: "Virgin Islands",
-  AS: "American Samoa", MP: "Northern Mariana Islands",
-  FM: "Micronesia", MH: "Marshall Islands", PW: "Palau",
+  WI: "Wisconsin", WY: "Wyoming",
+  // Federal District
+  DC: "Washington, D.C. (Fed. District)",
+  // US Territories
+  PR: "Puerto Rico (Territory)",
+  GU: "Guam (Territory)",
+  VI: "U.S. Virgin Islands (Territory)",
+  AS: "American Samoa (Territory)",
+  MP: "N. Mariana Islands (Territory)",
+  // Compact of Free Association nations (independent but use US immigration process)
+  FM: "Micronesia (Compact)",
+  MH: "Marshall Islands (Compact)",
+  PW: "Palau (Compact)",
 };
 
 /** Get available datasets in the data */
@@ -93,16 +125,31 @@ export function getNationalSummary(
   totalApprovals: number;
   totalEmployers: number;
   stateCount: number;
+  territoryCount: number;
+  avgApprovalRate: number;
   avgCompetitiveness: number;
 } {
-  const states = getStateAggregates(data, dataset);
-  const totalFilings = states.reduce((s, r) => s + r.filings, 0);
-  const totalApprovals = states.reduce((s, r) => s + r.approvals, 0);
-  const totalEmployers = states.reduce((s, r) => s + r.employers, 0);
-  const compRatios = states.filter((r) => r.competitiveness !== null);
+  const all = getStateAggregates(data, dataset);
+  const states = all.filter((r) => US_50_STATE_CODES.has(r.state));
+  const territories = all.filter((r) => !US_50_STATE_CODES.has(r.state));
+  const totalFilings = all.reduce((s, r) => s + r.filings, 0);
+  const totalApprovals = all.reduce((s, r) => s + r.approvals, 0);
+  const totalEmployers = all.reduce((s, r) => s + r.employers, 0);
+  const withRate = all.filter((r) => r.approvalRate !== null);
+  const avgApprovalRate =
+    withRate.length > 0
+      ? withRate.reduce((s, r) => s + (r.approvalRate ?? 0), 0) / withRate.length
+      : 0;
+  const compRatios = all.filter((r) => r.competitiveness !== null);
   const avgCompetitiveness =
     compRatios.length > 0
       ? compRatios.reduce((s, r) => s + (r.competitiveness ?? 0), 0) / compRatios.length
       : 0;
-  return { totalFilings, totalApprovals, totalEmployers, stateCount: states.length, avgCompetitiveness };
+  return {
+    totalFilings, totalApprovals, totalEmployers,
+    stateCount: states.length,
+    territoryCount: territories.length,
+    avgApprovalRate,
+    avgCompetitiveness,
+  };
 }

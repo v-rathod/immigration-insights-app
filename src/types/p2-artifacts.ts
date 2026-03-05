@@ -227,7 +227,8 @@ export interface WorksiteGeoMetric {
   filings_count_soc_area: number | null;
   offered_median_soc_area: number | null;
   city: string | null;
-  competitiveness_ratio: number | null;
+  competitiveness_ratio: number | null; // offered_median ÷ OEWS median — WAGE metric, not approval rate
+  approval_rate: number | null;         // approvals_count / filings_count, always ≤ 1.0
 }
 
 export interface SocDemandMetric {

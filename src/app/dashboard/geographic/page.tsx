@@ -23,6 +23,7 @@ import {
   getNationalSummary,
   getAvailableDatasets,
   STATE_NAMES,
+  US_50_STATE_CODES,
   type StateAggregate,
 } from "@/lib/data/geographic";
 import type { WorksiteGeoMetric } from "@/types/p2-artifacts";
@@ -33,14 +34,15 @@ import { analytics } from "@/lib/analytics";
 // Constants
 // ---------------------------------------------------------------------------
 
-type SortField = "filings" | "approvals" | "employers" | "medianWage" | "competitiveness";
+type SortField = "filings" | "approvals" | "employers" | "medianWage" | "approvalRate" | "competitiveness";
 
 const METRIC_OPTIONS: Array<{ key: SortField; label: string }> = [
   { key: "filings",         label: "Total Filings" },
   { key: "approvals",       label: "Approvals" },
   { key: "employers",       label: "Unique Employers" },
   { key: "medianWage",      label: "Median Wage" },
-  { key: "competitiveness", label: "Approval Rate" },
+  { key: "approvalRate",    label: "Approval Rate" },
+  { key: "competitiveness", label: "Wage vs Market" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -187,25 +189,29 @@ export default function GeographicDashboardPage() {
             {
               icon: MapPin,
               label: "States",
-              value: formatNumber(national.stateCount),
+              value: String(national.stateCount),
+              sub: national.territoryCount > 0 ? `+ ${national.territoryCount} territories` : undefined,
               color: "text-amber-400",
             },
             {
               icon: TrendingUp,
               label: `${dataset} Filings`,
               value: formatNumber(national.totalFilings),
+              sub: undefined,
               color: "text-blue-400",
             },
             {
               icon: Building2,
               label: "Employers",
               value: formatNumber(national.totalEmployers),
+              sub: undefined,
               color: "text-emerald-400",
             },
             {
               icon: Users,
               label: "Avg Approval Rate",
-              value: `${formatNumber(national.avgCompetitiveness * 100, 1)}%`,
+              value: `${formatNumber(national.avgApprovalRate * 100, 1)}%`,
+              sub: undefined,
               color: "text-purple-400",
             },
           ].map((kpi) => (
@@ -220,6 +226,9 @@ export default function GeographicDashboardPage() {
                 <p className="text-xl font-bold font-mono text-[var(--foreground)]">
                   {kpi.value}
                 </p>
+                {kpi.sub && (
+                  <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">{kpi.sub}</p>
+                )}
               </GlassCard>
             </StaggerItem>
           ))}
@@ -244,7 +253,7 @@ export default function GeographicDashboardPage() {
                   tickFormatter={(v: number) =>
                     metric === "medianWage"
                       ? `$${formatNumber(v / 1000, 0)}K`
-                      : metric === "competitiveness"
+                      : metric === "approvalRate" || metric === "competitiveness"
                       ? `${formatNumber(v * 100, 0)}%`
                       : formatNumber(v)
                   }
@@ -257,16 +266,18 @@ export default function GeographicDashboardPage() {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "rgba(0,0,0,0.85)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "rgba(9,9,11,0.95)",
+                    border: "1px solid rgba(255,255,255,0.12)",
                     borderRadius: "12px",
                     fontSize: 12,
                   }}
+                  labelStyle={{ color: "rgba(255,255,255,0.9)", fontWeight: 600, marginBottom: 2 }}
+                  itemStyle={{ color: "rgba(255,255,255,0.75)" }}
                   formatter={(value: string | number) => [
                     typeof value !== "number" ? String(value) :
                     metric === "medianWage"
                       ? formatCurrency(value)
-                      : metric === "competitiveness"
+                      : metric === "approvalRate" || metric === "competitiveness"
                       ? `${formatNumber(value * 100, 1)}%`
                       : formatNumber(value),
                     METRIC_OPTIONS.find((m) => m.key === metric)?.label ?? metric,
@@ -327,6 +338,9 @@ export default function GeographicDashboardPage() {
                     <th className="text-right py-2 px-2 text-[var(--muted-foreground)] font-medium">
                       Approval Rate
                     </th>
+                    <th className="text-right py-2 px-2 text-[var(--muted-foreground)] font-medium">
+                      Wage vs Market
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -340,9 +354,16 @@ export default function GeographicDashboardPage() {
                       </td>
                       <td className="py-2 px-2 text-[var(--foreground)] font-medium">
                         {STATE_NAMES[s.state] ?? s.state}
-                        <span className="text-[var(--muted-foreground)] ml-1.5">
+                        <span className="text-[var(--muted-foreground)] ml-1.5 font-mono text-[10px]">
                           {s.state}
                         </span>
+                        {!US_50_STATE_CODES.has(s.state) && (
+                          <span className="ml-1.5 text-[10px] text-amber-400/70 font-normal">
+                            {["DC"].includes(s.state) ? "Fed. District" :
+                             ["PR", "GU", "VI", "AS", "MP"].includes(s.state) ? "Territory" :
+                             "Compact"}
+                          </span>
+                        )}
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
                         {formatNumber(s.filings)}
@@ -355,6 +376,11 @@ export default function GeographicDashboardPage() {
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
                         {s.medianWage !== null ? formatCurrency(s.medianWage) : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
+                        {s.approvalRate !== null
+                          ? `${formatNumber(s.approvalRate * 100, 1)}%`
+                          : "—"}
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
                         {s.competitiveness !== null
@@ -383,9 +409,13 @@ export default function GeographicDashboardPage() {
                   certified applications.
                 </p>
                 <p>
-                  <strong>Competitiveness Ratio:</strong> Approvals divided by
-                  total filings for the state — indicates the overall success
-                  rate of immigration sponsorship in each location.
+                  <strong>Approval Rate:</strong> Cases approved divided by
+                  total filings for the state — always between 0% and 100%.
+                </p>
+                <p>
+                  <strong>Wage vs Market:</strong> Median offered salary compared
+                  to the OEWS occupational wage benchmark for that state. Values
+                  above 100% mean employers pay above the regional median.
                 </p>
                 <p>
                   <strong>Employer Count:</strong> Distinct sponsoring employers
@@ -394,7 +424,7 @@ export default function GeographicDashboardPage() {
                 <p className="pt-2 border-t border-white/[0.06]">
                   Source: DOL PERM & LCA data, processed by P2 Meridian
                   (make_worksite_geo_metrics.py). {formatNumber(data.length)} data
-                  points across {national.stateCount} states.
+                  points across {national.stateCount} states and {national.territoryCount} territories/other jurisdictions.
                 </p>
               </div>
             </details>
