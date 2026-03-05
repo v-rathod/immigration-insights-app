@@ -13,7 +13,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid, Legend, Cell,
 } from "recharts";
-import { TrendingUp, AlertTriangle, Activity, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { TrendingUp, AlertTriangle, Activity, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui";
 import { GlassCard } from "@/components/ui";
 import {
@@ -220,23 +220,6 @@ export default function EbCategoryDashboardPage() {
                         : "—"}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[var(--muted-foreground)]">Volatility</p>
-                    <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.volatility !== null
-                        ? formatNumber(s.volatility, 1)
-                        : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--muted-foreground)]">Retrogressions</p>
-                    <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.retrogressions}
-                      <span className="text-[var(--muted-foreground)] ml-1">
-                        (12m)
-                      </span>
-                    </p>
-                  </div>
                 </div>
 
                 <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
@@ -360,73 +343,6 @@ export default function EbCategoryDashboardPage() {
           </GlassCard>
         </FadeIn>
 
-        {/* Retrogression Event Bar Chart */}
-        <FadeIn>
-          <GlassCard className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-5 w-5 text-amber-400" />
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">
-                Volatility & Retrogression Risk
-              </h2>
-            </div>
-            <p className="text-xs text-[var(--muted-foreground)] mb-5">
-              Higher volatility scores indicate more unpredictable movement.
-              Retrogression events count backward movements in the past 12 months.
-            </p>
-
-            {summary.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={summary.filter((s) => s.volatility !== null)}
-                  margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis
-                    dataKey="category"
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "rgba(0,0,0,0.85)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "12px",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar
-                    dataKey="volatility"
-                    name="Volatility Score"
-                    radius={[6, 6, 0, 0]}
-                  >
-                    {summary
-                      .filter((s) => s.volatility !== null)
-                      .map((s) => (
-                        <Cell
-                          key={s.category}
-                          fill={CATEGORY_COLORS[s.category] ?? "#8b5cf6"}
-                        />
-                      ))}
-                  </Bar>
-                  <Bar
-                    dataKey="retrogressions"
-                    name="Retrogressions (12m)"
-                    fill="#f43f5e"
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-[var(--muted-foreground)] py-16">
-                No volatility data available.
-              </p>
-            )}
-          </GlassCard>
-        </FadeIn>
-
         {/* Methodology */}
         <FadeIn>
           <GlassCard className="p-6">
@@ -450,15 +366,6 @@ export default function EbCategoryDashboardPage() {
                   <strong>Net Velocity:</strong> Full-history average
                   advancement from the first recorded cutoff date to the
                   current date, in days per month.
-                </p>
-                <p>
-                  <strong>Volatility Score:</strong> Standard deviation of
-                  monthly advancement within the 12-month window. Higher values
-                  indicate more unpredictable movement.
-                </p>
-                <p>
-                  <strong>Retrogression Events:</strong> Count of months where
-                  the cutoff date moved backward within the past 12 months.
                 </p>
                 <p>
                   <strong>Prediction:</strong> Based on recent velocity trend
