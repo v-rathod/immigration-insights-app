@@ -557,7 +557,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (24 files, 552 tests)**
+**Tests (24 files, 550 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -582,7 +582,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/wage-dashboard.test.tsx` | 33 | WageIntelligenceHub: employer/role modes, EmployerProfile, WageGrowthLeaderboard, data loaders, getEmployerRoles |
 | `src/__tests__/employer-normalization.test.ts` | 25 | Data integrity tests for canonical employer names in public JSON files |
 | `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
-| `src/__tests__/dashboard-data-loaders.test.ts` | 46 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (10), processing (8), backlog (12) |
+| `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
 | `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
 
 ### Key Technical Decisions Log
