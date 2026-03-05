@@ -9,7 +9,7 @@ import {
   DollarSign,
   Clock,
   Layers,
-  Search,
+  Briefcase,
   User,
   ChevronLeft,
   ChevronRight,
@@ -40,12 +40,13 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/visa-bulletin", label: "Priority Date Cortex", icon: Calendar, group: "Analytics" },
   { href: "/dashboard/employer", label: "Sponsor Score", icon: Shield, group: "Analytics" },
   { href: "/dashboard/wage", label: "Wage Intelligence", icon: DollarSign, group: "Analytics" },
+  { href: "/insights", label: "My Insights", icon: User, group: "Personal" },
   { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Dashboards" },
   { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Dashboards" },
+  { href: "/dashboard/job-demand", label: "Occupation Demand", icon: Briefcase, group: "Dashboards" },
   { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Dashboards" },
   { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Dashboards" },
-  { href: "/dashboard/backlog", label: "Backlog", icon: Layers, group: "Dashboards" },
-  { href: "/insights", label: "My Insights", icon: User, group: "Personal" },
+  // { href: "/dashboard/backlog", label: "Backlog", icon: Layers, group: "Dashboards" }, // Hidden for now, work on in later phases
   { href: "/about", label: "About", icon: Compass, group: "Project" },
 ];
 

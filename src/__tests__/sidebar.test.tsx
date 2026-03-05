@@ -61,9 +61,9 @@ describe("Sidebar", () => {
     const dashboardLabels = [
       "EB Categories",
       "Geographic",
+      "Occupation Demand",
       "Processing",
       "Approvals",
-      "Backlog",
     ];
 
     for (const label of dashboardLabels) {

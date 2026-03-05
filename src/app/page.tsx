@@ -37,6 +37,7 @@ const HERO_STATS = [
 /**
  * All 8 dashboards — presented equally as an informational catalog.
  * PDI (Visa Bulletin) and SRS (Employer) are promoted in sidebar navigation.
+ * (Backlog hidden for now, will be worked on in later phases.)
  */
 const DASHBOARDS = [
   {
@@ -87,13 +88,6 @@ const DASHBOARDS = [
       "Case processing velocity, I-485 approval trends, and center backlog",
     href: "/dashboard/processing/",
     gradient: "from-teal-500 to-emerald-400",
-  },
-  {
-    title: "Backlog Visualization",
-    description:
-      "Queue position estimates and years-to-clear projections by category",
-    href: "/dashboard/backlog/",
-    gradient: "from-fuchsia-500 to-purple-400",
   },
   {
     title: "Approval & Denial Trends",
@@ -223,7 +217,7 @@ export default function LandingPage() {
             <Star className="h-5 w-5 text-amber-400" strokeWidth={1.5} />
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
-                9 Interactive Dashboards
+                8 Interactive Dashboards
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Explore every dimension of the U.S. immigration system

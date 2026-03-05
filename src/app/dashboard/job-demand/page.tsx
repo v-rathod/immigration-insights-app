@@ -1,7 +1,7 @@
 /**
  * Occupation Demand (SOC Demand) Dashboard
  *
- * High-demand occupations, filing trends by SOC code, approval rates,
+ * High-demand occupations, filing volumes by occupation type, approval rates,
  * and wage premiums. Searchable with major-group aggregation.
  *
  * Route: /dashboard/job-demand/
@@ -54,6 +54,7 @@ export default function SocDemandDashboardPage() {
   const [window, setWindow] = useState("12m");
   const [dataset, setDataset] = useState("PERM");
   const [search, setSearch] = useState("");
+  const [chartSearch, setChartSearch] = useState("");
   const [showMajorGroups, setShowMajorGroups] = useState(false);
 
   useEffect(() => {
@@ -94,11 +95,7 @@ export default function SocDemandDashboardPage() {
     const all = filterDemand(enrichedData, window, dataset);
     if (!search.trim()) return all.slice(0, 50);
     const q = search.toLowerCase();
-    return all.filter(
-      (r) =>
-        r.soc_title.toLowerCase().includes(q) ||
-        r.soc_code.includes(q)
-    );
+    return all.filter((r) => r.soc_title.toLowerCase().includes(q));
   }, [enrichedData, window, dataset, search]);
 
   // KPIs
@@ -119,15 +116,23 @@ export default function SocDemandDashboardPage() {
     return weighted / totalFilings;
   }, [enrichedData, window, dataset, totalFilings]);
 
-  // Chart data
+  // Chart data — filtered by chartSearch, capped at 15
+  const filteredChartOccupations = useMemo(() => {
+    if (!chartSearch.trim()) return topOccupations.slice(0, 15);
+    const q = chartSearch.toLowerCase();
+    return topOccupations
+      .filter((r) => r.soc_title.toLowerCase().includes(q))
+      .slice(0, 15);
+  }, [topOccupations, chartSearch]);
+
   const chartData = useMemo(
     () =>
-      topOccupations.slice(0, 15).map((r) => ({
+      filteredChartOccupations.map((r) => ({
         code: r.soc_code,
         title: r.soc_title.length > 30 ? r.soc_title.slice(0, 28) + "…" : r.soc_title,
         filings: r.filings_count,
       })),
-    [topOccupations]
+    [filteredChartOccupations]
   );
 
   if (loading) {
@@ -260,9 +265,21 @@ export default function SocDemandDashboardPage() {
         {/* Top Occupations Chart */}
         <FadeIn>
           <GlassCard className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-              Top 15 Occupations by Filing Volume
-            </h2>
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <h2 className="text-lg font-semibold text-[var(--foreground)] shrink-0">
+                Top 15 Occupations by Filing Volume
+              </h2>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                <input
+                  type="text"
+                  value={chartSearch}
+                  onChange={(e) => setChartSearch(e.target.value)}
+                  placeholder="Filter chart occupations…"
+                  className="bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-indigo-500/40 w-52"
+                />
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart
                 data={chartData}
@@ -288,9 +305,11 @@ export default function SocDemandDashboardPage() {
                     borderRadius: "12px",
                     fontSize: 12,
                   }}
+                  labelStyle={{ color: "#e2e8f0", fontWeight: 600, marginBottom: 4 }}
+                  itemStyle={{ color: "#94a3b8" }}
                   formatter={(value: string | number) => [
                     typeof value === "number" ? formatNumber(value) : String(value),
-                    "Filings",
+                    "Sponsorship Filings",
                   ]}
                 />
                 <Bar dataKey="filings" radius={[0, 6, 6, 0]}>
@@ -325,7 +344,7 @@ export default function SocDemandDashboardPage() {
                   <thead>
                     <tr className="border-b border-white/[0.08]">
                       <th className="text-left py-2 px-2 text-[var(--muted-foreground)] font-medium">
-                        SOC Group
+                        Occupation Category
                       </th>
                       <th className="text-right py-2 px-2 text-[var(--muted-foreground)] font-medium">
                         Occupations
@@ -348,9 +367,6 @@ export default function SocDemandDashboardPage() {
                         className="border-b border-white/[0.04] hover:bg-white/[0.02]"
                       >
                         <td className="py-2 px-2 text-[var(--foreground)]">
-                          <span className="font-mono text-[var(--muted-foreground)] mr-2">
-                            {g.majorCode}
-                          </span>
                           {g.majorTitle}
                         </td>
                         <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
@@ -387,7 +403,7 @@ export default function SocDemandDashboardPage() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by title or SOC code…"
+                  placeholder="Search by occupation name…"
                   className="bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-indigo-500/40 w-64"
                 />
               </div>
@@ -412,7 +428,7 @@ export default function SocDemandDashboardPage() {
                       Median Wage
                     </th>
                     <th className="text-right py-2 px-2 text-[var(--muted-foreground)] font-medium">
-                      %ile
+                      Demand %ile
                     </th>
                   </tr>
                 </thead>
@@ -424,9 +440,6 @@ export default function SocDemandDashboardPage() {
                     >
                       <td className="py-2 px-2 text-[var(--foreground)]">
                         <div className="font-medium">{r.soc_title}</div>
-                        <div className="text-[var(--muted-foreground)] font-mono">
-                          {r.soc_code}
-                        </div>
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-[var(--foreground)]">
                         {formatNumber(r.filings_count)}
@@ -471,7 +484,7 @@ export default function SocDemandDashboardPage() {
               <div className="mt-4 text-xs text-[var(--muted-foreground)] space-y-2">
                 <p>
                   Occupation demand metrics aggregate PERM and LCA filings by
-                  6-digit SOC code within rolling time windows (12m, 24m, 36m).
+                  occupation type within rolling time windows (12m, 24m, 36m).
                 </p>
                 <p>
                   <strong>Competitiveness Percentile:</strong> Rank of this
