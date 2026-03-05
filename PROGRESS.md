@@ -1,5 +1,70 @@
 # Compass Progress Tracker
 
+## 2026-03-05 — Milestone 10.27: AWS Deployment (S3 + CloudFront + Logging)
+
+### Objective
+Deploy Compass to AWS with infrastructure-as-code (Terraform), full security headers, access logging, and CloudWatch monitoring.
+
+### What Was Done
+
+**Terraform configuration rewritten (`terraform/`):**
+- Fixed 5 bugs in original `main.tf` (nested default_cache_behavior, invalid permissions_policy, count+for_each conflict, wrong cache_behavior block name, timestamp() in tags)
+- Added S3 access logging bucket with 90-day lifecycle auto-deletion
+- Added CloudFront standard access logging to S3
+- Added CloudWatch dashboard (6 widgets: requests, error rates, bytes, cache hits, bucket size, object count)
+- Added CloudWatch alarms (4xx > 10%, 5xx > 1%)
+- 3 named cache policies: immutable data (30d), static assets (1d), HTML pages (1h)
+- Security headers policy: HSTS (2y, preload), CSP, X-Frame-Options DENY, XSS protection, Permissions-Policy, nosniff
+- OAC-only S3 access (zero public access)
+- HTTP → HTTPS redirect (301)
+- SPA routing (404/403 → index.html)
+- Simplified variables (removed stale cache_default_ttl, cache_max_ttl, enable_logging, tags)
+
+**AWS resources created (22 total):**
+| Resource | Name/ID |
+|----------|---------|
+| S3 bucket (site) | `compass-immigration-insights-883107059193` |
+| S3 bucket (logs) | `compass-immigration-insights-883107059193-logs` |
+| CloudFront distribution | `E1LPLTVZ0035Q5` |
+| CloudFront domain | `d10immmzyp7xgr.cloudfront.net` |
+| CloudFront OAC | `E1EPWV5DC7FIG` |
+| Security headers policy | `27f45051-7b96-4021-b6b8-7b3df5c81095` |
+| 3 cache policies | immutable-data, static-assets, html-pages |
+| CloudWatch dashboard | `Compass-Operations` |
+| CloudWatch alarms (2) | 4xx rate, 5xx rate |
+| S3 configs (8) | versioning, encryption, public-access-block, logging, lifecycle, ownership, ACL, bucket-policy |
+
+**Deployment verified:**
+- All 15 pages return HTTP 200
+- 236 objects, 168.7 MiB deployed to S3
+- All 8 security headers present and correct
+- HTTP → HTTPS redirect working (301)
+- Data files (pd_forecasts, SRS, RAG) load correctly through CDN
+- Estimated cost: ~$1–3/month
+
+### Live URL
+**https://d10immmzyp7xgr.cloudfront.net**
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `terraform/main.tf` | Complete rewrite — 22 resources, logging, monitoring, security |
+| `terraform/variables.tf` | Simplified — 6 variables, create_certificate defaults false |
+| `terraform/outputs.tf` | Updated resource refs, added CloudWatch dashboard URL |
+| `terraform/terraform.tfvars.example` | Simplified template |
+| `terraform/.gitignore` | Include .terraform.lock.hcl for reproducible builds |
+
+### Test Results
+```
+Pages tested:  15/15 → HTTP 200
+Security headers: 8/8 present
+HTTPS redirect: ✓ (301)
+Data files: ✓ (pd_forecasts 346KB, SRS 53MB, qa_cache 626KB)
+```
+
+---
+
 ## 2026-03-09 — Milestone 10.26: Documentation Overhaul + Agent Guidebook
 
 ### Objective

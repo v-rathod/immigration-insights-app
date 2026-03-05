@@ -10,7 +10,8 @@ terraform.tfvars
 
 # Terraform directories
 .terraform/
-.terraform.lock.hcl
+
+# Keep .terraform.lock.hcl in version control (reproducible builds)
 
 # Crash log files
 crash.log
@@ -38,3 +39,4 @@ terraform.rc
 
 # Ignore Mac specific files
 .DS_Store
+terraform/tfplan
