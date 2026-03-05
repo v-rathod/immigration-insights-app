@@ -1,0 +1,40 @@
+# Terraform state files (sensitive - keep locally or in S3 backend)
+*.tfstate
+*.tfstate.*
+terraform.tfstate
+terraform.tfstate.backup
+
+# Terraform variables (may contain sensitive values)
+terraform.tfvars
+!terraform.tfvars.example
+
+# Terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (keep only .example)
+*.tfvars
+*.tfvars.json
+
+# Ignore override files (local development)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Include override files as they are checked in
+!example_override.tf
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore plan files
+*.tfplan
+
+# Ignore Mac specific files
+.DS_Store

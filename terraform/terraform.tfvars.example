@@ -1,0 +1,41 @@
+# AWS region
+aws_region = "us-east-1"
+
+# Environment (dev, staging, prod)
+environment = "prod"
+
+# S3 bucket name (MUST BE GLOBALLY UNIQUE ACROSS ALL AWS ACCOUNTS)
+# Examples: my-compass-app-prod, vrathod-compass-2026, immigration-compass-prod
+s3_bucket_name = "my-compass-app-prod"
+
+# Custom domain name (optional)
+# Leave empty "" to use CloudFront auto-generated domain (d123abc.cloudfront.net)
+# Set to your domain: "compass.example.com"
+domain_name = ""
+
+# Route 53 hosted zone ID (optional, only needed if using custom domain)
+# Get from: AWS Console → Route 53 → Hosted zones → Your zone → Zone ID
+# Example: Z1234567890ABC
+route53_zone_id = ""
+
+# Create ACM HTTPS certificate
+# Set to false if you're using CloudFront default certificate
+create_certificate = true
+
+# Cache settings
+# Cache TTL for HTML/JS/CSS (1 hour = 3600 seconds)
+cache_default_ttl = 3600
+
+# Max cache TTL (1 day = 86400 seconds)
+cache_max_ttl = 86400
+
+# Enable CloudWatch logging (adds cost, recommended for debugging only)
+enable_logging = false
+
+# Additional tags for all resources
+tags = {
+  Project   = "NorthStar"
+  App       = "Compass"
+  CreatedBy = "Terraform"
+  Owner     = "your-email@example.com"
+}
