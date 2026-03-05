@@ -93,22 +93,21 @@ export function Sidebar() {
 
   const navContent = (
     <>
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-6">
+      {/* Logo — clickable, routes to home */}
+      <button
+        onClick={() => { window.location.href = "/"; }}
+        className="flex items-center gap-3 px-4 py-6 w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
+        aria-label="Go to home page"
+      >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">
           <Compass className="h-4 w-4 text-white" strokeWidth={2} />
         </div>
         {!collapsed && (
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-semibold tracking-tight text-[var(--foreground)] truncate">
-              Compass
-            </span>
-            <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
-              NorthStar
-            </span>
-          </div>
+          <span className="text-sm font-semibold tracking-tight text-[var(--foreground)] truncate">
+            Compass
+          </span>
         )}
-      </div>
+      </button>
 
       {/* Nav Groups */}
       <nav

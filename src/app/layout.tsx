@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NorthStar Compass — Immigration Insights",
+  title: "Compass — Immigration Insights",
   description:
     "Personalized immigration insights powered by 18M+ data points. Priority date forecasts, employer friendliness scores, salary benchmarks, and interactive dashboards.",
   keywords: [

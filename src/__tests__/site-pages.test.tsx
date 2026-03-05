@@ -87,26 +87,13 @@ import TermsPage from "@/app/terms/page";
 describe("Footer", () => {
   it("renders brand name and tagline", () => {
     render(<Footer />);
-    expect(screen.getByText("NorthStar Compass")).toBeInTheDocument();
+    expect(screen.getByText("Compass")).toBeInTheDocument();
     expect(
       screen.getByText(/personalized immigration insights/i)
     ).toBeInTheDocument();
   });
 
-  it("renders all link group headings", () => {
-    render(<Footer />);
-    expect(screen.getByText("Dashboards")).toBeInTheDocument();
-    expect(screen.getByText("Tools")).toBeInTheDocument();
-    expect(screen.getByText("Project")).toBeInTheDocument();
-  });
-
-  it("renders dashboard links", () => {
-    render(<Footer />);
-    expect(screen.getByText("Visa Bulletin")).toBeInTheDocument();
-    expect(screen.getByText("Sponsor Score")).toBeInTheDocument();
-  });
-
-  it("renders project links (About, Privacy, Terms)", () => {
+  it("renders project links horizontally (About, Privacy, Terms)", () => {
     render(<Footer />);
     const footer = screen.getByRole("contentinfo");
     expect(within(footer).getByText("About")).toBeInTheDocument();
@@ -127,7 +114,7 @@ describe("Footer", () => {
     render(<Footer />);
     const year = new Date().getFullYear().toString();
     expect(
-      screen.getByText((text) => text.includes(year) && text.includes("NorthStar"))
+      screen.getByText((text) => text.includes(year) && text.includes("Compass"))
     ).toBeInTheDocument();
   });
 

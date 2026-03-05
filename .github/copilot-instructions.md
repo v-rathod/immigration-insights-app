@@ -1,5 +1,12 @@
 # Immigration Insights App — Copilot Context
 
+> **START HERE — Cross-Project Context:**
+> All three NorthStar projects live under `/Users/vrathod1/dev/NorthStar/`.
+> Before starting work, read these shared docs:
+> 1. **`/Users/vrathod1/dev/NorthStar/NORTHSTAR_VISION.md`** — Program vision, architecture, guardrails
+> 2. **`ARCHITECTURE.md`** (this repo) — P3 technical design
+> 3. This file — P3 detailed context
+>
 > **NorthStar Program Codenames**:
 > | Internal | Codename | Repository | Role |
 > |----------|----------|------------|------|
@@ -8,6 +15,7 @@
 > | P3 | **Compass** | immigration-insights-app (THIS REPO) | User experience — guides with insights |
 >
 > Use P1/P2/P3 in internal code and comments. Use Horizon/Meridian/Compass in public docs.
+> **NorthStar** is the internal program name — never show it in the web app UI. The app is called **Compass**.
 
 ---
 
