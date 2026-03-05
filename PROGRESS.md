@@ -1,5 +1,66 @@
 # Compass Progress Tracker
 
+## 2026-03-09 — Milestone 10.26: Documentation Overhaul + Agent Guidebook
+
+### Objective
+Create a permanent engineering guidebook for future AI agents, update all three NorthStar READMEs to reflect current state, and wire the guidebook into agent context across all projects.
+
+### What Was Done
+
+**New file — `/Users/vrathod1/dev/NorthStar/BEST_PRACTICES.md`:**
+- Central 10-section engineering guidebook covering all three NorthStar projects
+- §0: Quick reference paths table
+- §1: Cross-project rules (git conventions, session workflow, doc maintenance, naming)
+- §2: P3 Compass — static export constraints, TS rules, component architecture, Smart Visibility Principle, PostHog analytics trigger table, security rules, testing strategy
+- §3: P2 Meridian — architecture philosophy, Python conventions, data quality standards, export contract
+- §4: P1 Horizon — handler conventions, config-driven architecture, manifest-based incremental downloads
+- §5: Aurora design system — CSS variable color tokens, glassmorphic card patterns, Recharts theming
+- §6: Environment variables table for P3
+- §7: AWS deployment commands
+- §8: Testing pyramid summary for all 3 projects
+- §9: Common pitfalls (NaN/JSON, FOUC, happy-dom, EFS→SRS rename, localStorage isolation)
+- §10: Agent instructions (5-step session start, 5-step session end, "when in doubt" rules)
+
+**P3 README (`README.md`) — comprehensive update:**
+- Badges: 556 tests, 9/9 dashboards
+- Added "For AI Assistants" ordered list (NORTHSTAR_VISION → BEST_PRACTICES → ARCHITECTURE → copilot-instructions → PROGRESS)
+- Updated project structure block: 24 test files / 556 tests, all 9 dashboard dirs shown
+- Updated dashboards table: all 9 shown as built with P2 artifact mappings
+- Updated personalized panels section: reflects what’s built (Green Card, Sponsor, Salary)
+- Updated design system section: references BEST_PRACTICES.md §5, shows key patterns concisely
+- Tech stack: added PostHog + Formspree rows; Vitest 4 noted
+- Env vars: `NEXT_PUBLIC_FORMSPREE_ID=xojkabny` added
+
+**P1 README (`fetch-immigration-data/README.md`):**
+- Updated file count: 900+ → 1,033+
+- Added "For AI Assistants" section with ordered 5-item reading list
+
+**P2 README (`immigration-model-builder/README.md`):**
+- Upgraded "For AI Assistants" block to ordered 4-item reading list including BEST_PRACTICES.md
+
+**All 3 copilot-instructions.md — START HERE block updated:**
+- Added BEST_PRACTICES.md as item 2 in all three files
+- Re-numbered: NORTHSTAR_VISION (1) → BEST_PRACTICES (2) → ARCHITECTURE (3) → This file (4)
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `/Users/vrathod1/dev/NorthStar/BEST_PRACTICES.md` | New — 10-section engineering guidebook |
+| `README.md` | Major update — badges, For AI Assistants, structure, dashboards, panels, design system |
+| `.github/copilot-instructions.md` | Add BEST_PRACTICES.md as item 2 in START HERE |
+| `../fetch-immigration-data/README.md` | Add For AI Assistants section, update file count |
+| `../fetch-immigration-data/.github/copilot-instructions.md` | Add BEST_PRACTICES.md as item 2 in START HERE |
+| `../immigration-model-builder/README.md` | Upgrade For AI Assistants block |
+| `../immigration-model-builder/.github/copilot-instructions.md` | Add BEST_PRACTICES.md as item 2 in START HERE |
+
+### Commits
+- P3: `8af93bb` — all P3 doc changes pushed to `origin/main`
+- P1: `469e8ea` — P1 doc changes pushed to `origin/main`
+- P2: `58f8a01` — P2 doc changes pushed to `origin/main`
+
+---
+
 ## 2026-03-08 — Milestone 10.25: Contact Us Modal + Footer Polish
 
 ### Objective
@@ -1664,6 +1725,8 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.22 | 2026-03-07 | Fix USCIS Approvals Data (P2 Ingestion) | Form-level approvals ingestion fix; 549 tests |
 | 10.23 | 2026-03-07 | Fix Occupation Titles + Top 25 Chart | SOC title fallback chain (dim_soc > LCA raw > code); chart N=15→25; 550 tests |
 | 10.24 | 2026-03-08 | Pre-Deploy Optimization (221 MB Reduction) | Delete 3 dead files (119 MB); filter geo/monthly/search (-102 MB); fix NaN→null in 14 JSON files; new JSON spec compliance test; 547 tests |
+| 10.25 | 2026-03-08 | Contact Us Modal + Footer Polish | ContactModal (Formspree + mailto fallback), ContactButton client island, footer link, analytics.contactSubmitted(); 556 tests |
+| 10.26 | 2026-03-09 | Documentation Overhaul + Agent Guidebook | BEST_PRACTICES.md (10 sections); all 3 READMEs updated; BEST_PRACTICES.md wired into all 3 copilot-instructions.md START HERE blocks; 3 commits pushed |
 
 ---
 
