@@ -2,10 +2,19 @@
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-338%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-556%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
+[![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+
+## For AI Assistants — Read Before Changing Anything
+
+1. **[`NORTHSTAR_VISION.md`](../NORTHSTAR_VISION.md)** — Program vision, architecture, guardrails
+2. **[`BEST_PRACTICES.md`](../BEST_PRACTICES.md)** — Engineering conventions, design system, testing rules, agent checklist
+3. **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — P3 technical design, component map, security model
+4. **[`.github/copilot-instructions.md`](.github/copilot-instructions.md)** — Current file inventory, test counts, phase status
+5. **[`PROGRESS.md`](PROGRESS.md)** (last 100 lines) — Pick up from the last milestone
 
 ## The NorthStar Program
 
@@ -34,33 +43,43 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 
 ## What's Built
 
-### Dashboards (2/8 complete)
-- **Visa Bulletin (PDC)** — Priority Date Cortex with category/country selectors, unified historical+forecast chart (DFF & FAD lines), optimistic/realistic toggle, prediction cards, velocity stats
-- **Sponsor Reliability Score (SRS)** — Fuzzy employer search (243K employers), animated SVG gauge, subscore breakdown, trend chart, risk alerts, methodology section
+### Dashboards — 9 / 9 ✅
+
+| # | Dashboard | Key Feature |
+|---|-----------|-------------|
+| 1 | **Visa Bulletin / Priority Date Cortex (PDC)** | Unified historical+forecast chart, DFF/FAD lines, prediction cards, velocity stats |
+| 2 | **Sponsor Reliability Score (SRS)** | Fuzzy search 243K employers, animated SVG gauge, subscore breakdown, trend chart |
+| 3 | **EB Category Comparison** | Country pills, DFF/FAD toggle, velocity AreaChart, volatility BarChart |
+| 4 | **Geographic Heatmaps** | Dataset selector, top-15 states BarChart, sortable state table |
+| 5 | **Wage Intelligence Hub** | Dual-mode search (employer/role), 5-year salary percentile chart (p10–p90) |
+| 6 | **Occupation Demand** | BLS major groups, demand percentiles, occupations chart with filter |
+| 7 | **Processing Speed** | USCIS form throughput, approval trends, FY range table |
+| 8 | **Backlog Visualization** | Category AreaChart, queue position lookup, country filter |
+| 9 | **USCIS Approvals** | I-485/I-765/I-140 volume FY1992–2025 |
+
+### Personalized Panel (`/insights`)
+- 7-field profile form (priority date, country, category, employer, job title, location, wage)
+- Green Card Forecast, Sponsor Reliability, and Salary Benchmark smart panels
+- Session persistence via localStorage (`compass_` prefix)
 
 ### RAG-Powered Q&A (`/ask`)
-- **3-tier search**: QA cache (182 pairs) → chunk retrieval (100 chunks) → LLM synthesis
-- **4-backend LLM cascade**: Groq (free cloud, Llama 3.3 70B) → OpenAI → Ollama → Mock
-- Search-as-you-type with Fuse.js, topic filter pills (10 topics), AI answer cards
-- Zero-result searches auto-trigger AI answer — no dead-end screens
+- **3-tier search**: QA cache (684 pairs) → chunk retrieval (341 chunks) → LLM synthesis
+- **4-backend LLM cascade**: Groq (Llama 3.3 70B) → OpenAI → Ollama → Mock fallback
+- Topic filter pills (10 topics), AI answer cards, source attribution
 
-### Site Pages
-- **Landing** — Hero with animated stat cards, 8-dashboard catalog grid, value propositions
-- **About** — Personal story, guiding principles, data pipeline diagram, tech stack
-- **Privacy** — Zero data collection policy (localStorage only)
-- **Terms** — Not legal advice, data accuracy, open source license
-
-### UI & UX
-- **Aurora design system** — Dark-first glassmorphic UI inspired by Linear/Vercel/Raycast
-- **25 custom components** — GlassCard, NumberTicker, StatCard, ScoreGauge, animations
-- **Unified FAB** — Floating action button with Ask NorthStar + Send Feedback
-- **Responsive** — Mobile hamburger menu, collapsible sidebar (240→60px)
-- **Theme toggle** — Dark/Light/System with zero-FOUC blocking script
-- **Security module** — XSS prevention, prototype pollution defense, URL sanitization, CSP headers
+### Site & UX
+- **Landing** — animated stat cards, 9-dashboard catalog, value propositions
+- **About / Privacy / Terms / Contact Us** — Contact Us opens a modal → Formspree → email
+- **Aurora design system** — Dark-first glassmorphic UI (Linear/Vercel/Raycast-inspired)
+- **35 custom components** — GlassCard, NumberTicker, StatCard, ScoreGauge, ContactModal, ...
+- **Feedback FAB** — floating Send Feedback button (PostHog-tracked)
+- **Responsive** — mobile hamburger, collapsible sidebar (240→60px)
+- **Theme toggle** — Dark/Light/System, zero-FOUC blocking script
+- **Security** — XSS prevention, proto pollution defense, URL sanitization, CSP headers
 
 ### Testing
-- **338 tests** across 18 test files (Vitest + React Testing Library + happy-dom)
-- Covers all components, utilities, data loaders, security, and page integrations
+- **556 tests** across 24 test files (Vitest 4 + React Testing Library + happy-dom)
+- Covers all components, data loaders, utilities, security, and page integrations
 
 ---
 
@@ -153,8 +172,10 @@ All new tables and RAG/QA artifacts will appear in `public/data/` for static use
 | Icons | Lucide React | 0.470.x |
 | Search | Fuse.js (client-side fuzzy) | 7.x |
 | LLM | Groq (Llama 3.3 70B) / OpenAI (GPT-4o-mini) | — |
-| Testing | Vitest + React Testing Library + happy-dom | 4.x |
-| Font | Geist (Sans + Mono) | System |
+| Analytics | PostHog (free cloud) | Latest |
+| Contact Form | Formspree | Free tier |
+| Testing | Vitest 4 + React Testing Library + happy-dom | 4.x |
+| Font | Geist Sans + Geist Mono | System |
 
 ## Setup
 
@@ -175,101 +196,105 @@ npm test
 npm run build    # → out/
 ```
 
-### LLM Configuration (optional)
-
-To enable real AI-powered answers on the `/ask` page:
+### Environment Variables (`.env.local`)
 
 ```bash
-# Copy example env file
-cp .env.local.example .env.local
+# AI-powered Q&A — free at https://console.groq.com
+NEXT_PUBLIC_GROQ_API_KEY=gsk_...
 
-# Add your free Groq API key (get one at https://console.groq.com)
-echo "NEXT_PUBLIC_GROQ_API_KEY=gsk_your_key_here" >> .env.local
+# Product analytics — free at https://app.posthog.com
+NEXT_PUBLIC_POSTHOG_KEY=phc_...
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 
-# Restart dev server
-npm run dev
+# Contact form email delivery — formspree.io/f/xojkabny → v.s.rathod@gmail.com
+NEXT_PUBLIC_FORMSPREE_ID=xojkabny
 ```
-
-Without an API key, the app falls back to a mock LLM that stitches pre-computed data summaries — still useful, just not as natural.
 
 ## Project Structure
 
 ```
 immigration-insights-app/
 ├── .github/
-│   └── copilot-instructions.md    # AI assistant context (comprehensive)
+│   └── copilot-instructions.md    # AI assistant context (auto-loaded by Copilot)
 ├── public/
-│   └── data/                      # Pre-built JSON (from sync_p2_data.py)
-│       ├── dashboards/            # 8 dashboard data dirs
-│       ├── dims/                  # Dimension lookups (employer, SOC, etc.)
-│       ├── models/                # Forecast model outputs
+│   └── data/                      # ~85 MB pre-built JSON (from sync_p2_data.py)
+│       ├── dashboards/            # 9 dashboard data dirs
+│       ├── dims/                  # Dimension lookups (employer, SOC, country, area)
+│       ├── models/                # Forecast model outputs (pd_forecasts.json)
 │       └── rag/                   # RAG chunks + QA cache
 ├── scripts/
-│   └── sync_p2_data.py            # Parquet → JSON converter
+│   └── sync_p2_data.py            # Parquet → JSON converter with optimization transforms
 ├── src/
-│   ├── __tests__/                 # 18 test files, 338 tests
+│   ├── __tests__/                 # 24 test files, 556 tests
 │   ├── app/
-│   │   ├── layout.tsx             # Root layout (Geist font, theme)
+│   │   ├── layout.tsx             # Root layout (Geist font, theme, PostHog)
 │   │   ├── page.tsx               # Landing page
-│   │   ├── globals.css            # Aurora design tokens
-│   │   ├── about/                 # About page
-│   │   ├── ask/                   # RAG Q&A page
-│   │   ├── privacy/               # Privacy policy
-│   │   ├── terms/                 # Terms of use
+│   │   ├── globals.css            # Aurora design tokens (CSS variables)
+│   │   ├── about/ ask/ privacy/ terms/ insights/
 │   │   └── dashboard/
 │   │       ├── employer/          # SRS dashboard
-│   │       └── visa-bulletin/     # PDC dashboard
+│   │       ├── visa-bulletin/     # PDC dashboard
+│   │       ├── wage/              # Wage Intelligence Hub
+│   │       ├── eb-category/       # EB Category Comparison
+│   │       ├── geographic/        # Geographic Heatmaps
+│   │       ├── job-demand/        # Occupation Demand
+│   │       ├── processing/        # Processing Speed
+│   │       ├── backlog/           # Backlog Visualization
+│   │       └── approvals/         # USCIS Approvals
 │   ├── components/
 │   │   ├── layout/                # AppShell, Sidebar, Footer
-│   │   ├── pdi/                   # PDC chart, quick-look, teaser
-│   │   ├── providers/             # ThemeProvider
-│   │   ├── srs/                   # Search, gauge, detail, trend, overview
-│   │   └── ui/                    # GlassCard, NumberTicker, StatCard, etc.
+│   │   ├── pdi/                   # PriorityDateChart, PdiQuickLook
+│   │   ├── providers/             # ThemeProvider, PostHogProvider
+│   │   ├── srs/                   # EmployerSearch, ScoreGauge, TrendChart, SrsOverview
+│   │   ├── wage/                  # WageIntelligenceHub, EmployerProfile, RolePercentileTrend
+│   │   └── ui/                    # GlassCard, NumberTicker, StatCard, ContactModal, FeedbackWidget, ...
 │   ├── lib/
-│   │   ├── data/                  # Data loaders (loader, srs, pdi)
-│   │   ├── search/                # RAG engine + LLM service
-│   │   ├── security/              # XSS, CSP, URL sanitization
+│   │   ├── analytics/             # PostHog typed event helpers (21 events)
+│   │   ├── data/                  # Data loaders per dashboard (9 files)
+│   │   ├── search/                # RAG engine + LLM service (4 backends)
+│   │   ├── security/              # XSS, CSP, URL sanitization, secure localStorage
 │   │   └── utils/                 # cn(), formatters
 │   └── types/
-│       └── p2-artifacts.ts        # TypeScript types from Meridian schemas
-├── PROGRESS.md                    # Detailed milestone log
-├── next.config.ts                 # Static export config
-├── vitest.config.mts              # Test configuration
-└── package.json
+│       └── p2-artifacts.ts        # TypeScript interfaces for all Meridian schemas
+├── ARCHITECTURE.md                # P3 technical design diagrams
+├── PROGRESS.md                    # Detailed milestone log (Milestones 1–10.25)
+├── next.config.ts                 # Static export config (output: 'export')
+└── vitest.config.mts              # Test config (happy-dom, path aliases)
 ```
 
-## Dashboards
+## Dashboards (9 / 9 Built ✅)
 
-| # | Dashboard | Status | P2 Artifacts |
-|---|-----------|--------|--------------|
-| 1 | Visa Bulletin Trends (PDC) | ✅ Built | fact_cutoff_trends, pd_forecasts, fact_cutoffs_all |
-| 2 | Sponsor Reliability Score (SRS) | ✅ Built | employer_friendliness_scores, employer_monthly_metrics, employer_features, employer_risk_features |
-| 3 | EB Category Comparison | Planned | category_movement_metrics |
-| 4 | Geographic Heatmaps | Planned | worksite_geo_metrics |
-| 5 | Wage Competitiveness | Planned | salary_benchmarks, fact_oews |
-| 6 | SOC Demand | Planned | soc_demand_metrics |
-| 7 | Processing Speed | Planned | processing_times_trends, fact_uscis_approvals |
-| 8 | Backlog Visualization | Planned | backlog_estimates, queue_depth_estimates |
+| # | Dashboard | P2 Artifacts |
+|---|-----------|-------------|
+| 1 | Visa Bulletin / PDC | fact_cutoff_trends, pd_forecasts, fact_cutoffs_all |
+| 2 | Sponsor Reliability Score (SRS) | employer_friendliness_scores, employer_monthly_metrics, employer_risk_features |
+| 3 | EB Category Comparison | category_movement_metrics |
+| 4 | Geographic Heatmaps | worksite_geo_metrics |
+| 5 | Wage Intelligence Hub | employer_salary_profiles, employer_role_trends, soc_salary_market |
+| 6 | Occupation Demand | soc_demand_metrics, dim_soc |
+| 7 | Processing Speed | processing_times_trends, fact_uscis_approvals |
+| 8 | Backlog Visualization | backlog_estimates, queue_depth_estimates, dim_visa_ceiling |
+| 9 | USCIS Approvals | fact_uscis_approvals |
 
-## Personalized Panels (Planned)
+## Personalized Panel (`/insights`) ✅
 
-Users will enter 8 fields (priority date, country, category, employer, job title, location, wage, experience) and receive:
+Users enter a 7-field profile and receive:
 
-- **A. Green Card Forecast** — Wait time, retrogression risk, PD-becomes-current projection
-- **B. Employer Insights** — SRS score, audit risk, wage comparison
-- **C. Job Market** — Similar role locations, best employers for occupation, salary analysis
-- **D. Recommendations** — Switch employer advice, EB2 vs EB3, start PERM early
-- **E. Visual Dashboards** — Personalized chart mosaic
+- **Green Card Forecast** — Priority date tracking against current Visa Bulletin
+- **Sponsor Reliability** — SRS score, tier, and risk alerts for their employer
+- **Salary Benchmark** — Percentile position vs. market for their role and location
+
+*Full Phases C–E (Recommendations, Visual Mosaic) planned for Phase 4 completion.*
 
 ## Design System — "Aurora"
 
-Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired UI:
-- **Glassmorphic cards**: backdrop-blur, subtle borders, frosted glass
-- **Gradient accents**: blue→purple for primary, contextual colors per dashboard
-- **Animated number tickers**: Count-up on stat cards via Framer Motion springs
-- **Staggered reveals**: Cards animate in sequence on page load
-- **Geist typography**: Sans for UI, Mono for data/numbers
-- **Generous whitespace**: Data-dense but never cluttered
+Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired. Full patterns in [`BEST_PRACTICES.md §5`](../BEST_PRACTICES.md).
+
+- **Glassmorphic cards** — `backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl`
+- **Gradient text** (headlines only) — `bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent`
+- **All colors via CSS variables** — never hardcoded hex; supports dark/light theme
+- **Framer Motion easing** — `[0.25, 0.1, 0.25, 1]` throughout; 50ms stagger between card sequences
+- **Recharts theming** — `stroke="rgba(255,255,255,0.05)"` grid, `fill="var(--muted-foreground)"` axis ticks
 
 ## AWS Hosting (~$1–3/month)
 

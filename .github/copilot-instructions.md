@@ -4,8 +4,9 @@
 > All three NorthStar projects live under `/Users/vrathod1/dev/NorthStar/`.
 > Before starting work, read these shared docs:
 > 1. **`/Users/vrathod1/dev/NorthStar/NORTHSTAR_VISION.md`** — Program vision, architecture, guardrails
-> 2. **`ARCHITECTURE.md`** (this repo) — P3 technical design
-> 3. This file — P3 detailed context
+> 2. **`/Users/vrathod1/dev/NorthStar/BEST_PRACTICES.md`** — Engineering conventions, design rules, testing strategy, agent checklist
+> 3. **`ARCHITECTURE.md`** (this repo) — P3 technical design
+> 4. This file — P3 detailed context
 >
 > **NorthStar Program Codenames**:
 > | Internal | Codename | Repository | Role |
