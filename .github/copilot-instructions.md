@@ -429,6 +429,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
+- **Current count**: 556 tests across 24 files (all passing)
 
 ---
 
@@ -509,6 +510,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/components/ui/animations.tsx` | StaggerContainer, StaggerItem, FadeIn (up/down/left/right), ScaleIn, GlowPulse |
 | `src/components/ui/theme-toggle.tsx` | 3-way toggle — Sun/Moon/Monitor icons, role="radiogroup", aria-checked |
 | `src/components/ui/feedback-widget.tsx` | Unified FAB (Floating Action Button) — Plus/X rotating trigger, mini-menu with 2 items (Ask NorthStar link + Send Feedback button), glassmorphic feedback dialog with 3 categories (feedback/feature/bug), textarea with char limit, GitHub Issues integration; auto-hides Ask item on /ask page; route-change detection closes menu |
+| `src/components/ui/contact-modal.tsx` | ContactModal — Framer Motion dialog with Name/Email/Subject/Message fields; Formspree submission → email to v.s.rathod@gmail.com; fallback to mailto: if NEXT_PUBLIC_FORMSPREE_ID not set; success/error states; ContactButton self-contained trigger for use in server components |
 | `src/components/ui/index.ts` | Barrel export |
 
 **Components — SRS (Sponsor Reliability Score)**
@@ -559,7 +561,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
 | `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
 | `src/lib/security/headers.ts` | Security headers for CloudFront — CSP, HSTS, X-Frame-Options, Permissions-Policy |
-| `src/lib/analytics/index.ts` | PostHog analytics helpers — 20 typed event functions (`dashboardViewed`, `filterChanged`, `employerSelected`, `ragQuestionAsked`, `navItemClicked`, etc.). All tracking goes through `analytics.*`. Never call posthog.capture() directly. |
+| `src/lib/analytics/index.ts` | PostHog analytics helpers — 21 typed event functions (`dashboardViewed`, `filterChanged`, `employerSelected`, `ragQuestionAsked`, `navItemClicked`, `contactSubmitted`, etc.). All tracking goes through `analytics.*`. Never call posthog.capture() directly. |
 | `src/lib/utils/cn.ts` | Tailwind class merger (clsx + tailwind-merge) |
 | `src/lib/utils/format.ts` | Number/date/currency formatting — formatNumber, formatCurrency, formatPercent, formatCompact, formatMonthYear, formatFullDate (UTC), formatWaitTime, srsTierColor/Bg/Hex, srsScoreToTier |
 | `src/lib/utils/index.ts` | Barrel export |
@@ -584,7 +586,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/pdi-data.test.ts` | 28 | PDI constants, getForecastSeries, computePdi, getVelocitySummary, extrapolateForChart, loadPdForecasts, loadCutoffTrends, getHistoricalSeries |
 | `src/__tests__/pdi-components.test.tsx` | 19 | PdiQuickLook (11 tests), SrsTeaser (8 tests) |
 | `src/__tests__/visa-bulletin.test.tsx` | 33 | PriorityDateChart (11), VisaBulletinPage (20 incl. historical+forecast chart integration) |
-| `src/__tests__/site-pages.test.tsx` | 31 | Footer (7), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
+| `src/__tests__/site-pages.test.tsx` | 42 | Footer (8 incl. Contact button), ContactModal (7), ContactButton (2), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
 | `src/__tests__/wage-dashboard.test.tsx` | 33 | WageIntelligenceHub: employer/role modes, EmployerProfile, WageGrowthLeaderboard, data loaders, getEmployerRoles |

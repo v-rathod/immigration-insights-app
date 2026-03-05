@@ -1,5 +1,58 @@
 # Compass Progress Tracker
 
+## 2026-03-08 — Milestone 10.25: Contact Us Modal + Footer Polish
+
+### Objective
+Add a professional Contact Us feature accessible from the footer, delivering user messages as emails to `v.s.rathod@gmail.com` with zero backend infrastructure.
+
+### What Was Done
+
+**New component — `src/components/ui/contact-modal.tsx`:**
+- `ContactModal` — Framer Motion dialog matching Aurora design system
+  - Fields: Name (required), Email (required), Subject (6-option select), Message (required)
+  - Submits via POST to Formspree → forwards email to `v.s.rathod@gmail.com`
+  - Fallback: opens `mailto:` link if `NEXT_PUBLIC_FORMSPREE_ID` is not configured
+  - States: idle → submitting (spinner) → success (auto-close after 3s) / error
+  - Dismiss: backdrop click, Escape key, X button, Close after success
+- `ContactButton` — self-contained client component (trigger + modal) that can be dropped into server components
+
+**Footer updated (`src/components/layout/footer.tsx`):**
+- Imported `ContactButton` and added it as a link alongside About / Privacy / Terms
+- Footer remains a server component — only `ContactButton` is a client island
+
+**Analytics (`src/lib/analytics/index.ts`):**
+- Added `contactSubmitted(subject: string)` — fires `contact_submitted` event with subject category only (no PII)
+- Exported from `analytics.*`
+
+**Configuration (`.env.local`):**
+- Added `NEXT_PUBLIC_FORMSPREE_ID=` placeholder with step-by-step setup instructions for Formspree
+
+**To activate email delivery:**
+1. Sign up at https://formspree.io → New Form → set notification email to `v.s.rathod@gmail.com`
+2. Copy the form ID (8-char code) from the Formspree dashboard
+3. Add to `.env.local`: `NEXT_PUBLIC_FORMSPREE_ID=your_form_id`
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/ui/contact-modal.tsx` | New — ContactModal + ContactButton |
+| `src/components/layout/footer.tsx` | Add ContactButton, import |
+| `src/lib/analytics/index.ts` | Add contactSubmitted event |
+| `src/components/ui/index.ts` | Export ContactModal + ContactButton |
+| `.env.local` | Add NEXT_PUBLIC_FORMSPREE_ID placeholder |
+| `src/__tests__/site-pages.test.tsx` | 11 new tests (556 total) |
+
+### Test Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Total tests | 547 | **556** |
+| New tests | — | 11 (ContactModal × 7, ContactButton × 2, Footer Contact button × 1, import) |
+| All passing | ✅ | ✅ |
+| Build | ✅ | ✅ (16 static pages) |
+
+---
+
 ## 2026-03-08 — Milestone 10.24: Pre-Deploy Data Optimization (221 MB Saved + JSON NaN Fix)
 
 ### Objective
@@ -1441,7 +1494,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.24 — 2026-03-08)
+## Quick Reference (Current State as of Milestone 10.25 — 2026-03-08)
 
 | Metric | Value |
 |--------|-------|
@@ -1451,22 +1504,23 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **547 passing** across 24 test files |
+| Tests | **556 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
 | **public/data/ payload** | **~85 MB** (was ~362 MB — 225 MB eliminated pre-deploy) |
-| Pages scaffolded | 15 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/_not-found`) |
-| Components | 34 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
+| Pages scaffolded | 16 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/dashboard/approvals/`, `/_not-found`) |
+| Components | 35 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) with **Session Persistence** |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) + **Contact Us** (Formspree email) |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
 | Dashboards built | **9 / 9** ✅ (SRS, Visa Bulletin/PDC, Wage, EB Category, Geographic, SOC Demand, Processing, Backlog, Approvals) |
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
 | RAG Q&A | ✅ 3-tier architecture (QA cache + chunk retrieval + Cloud LLM via Groq) |
 | LLM backends | Groq (free cloud, Llama 3.3 70B) → OpenAI (reserved) → Ollama (local) → Mock |
 | FAB | Single-click feedback dialog (MessageSquarePlus icon) |
+| Contact Us | Footer modal → Formspree → `v.s.rathod@gmail.com` (configure `NEXT_PUBLIC_FORMSPREE_ID`) |
 | PostHog | Super properties: `environment` tag on all events |
-| AWS deploy | Ready — static export clean, 547 tests passing, JSON files valid |
-| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (15 pages) · JSON NaN-free ✅ |
+| AWS deploy | Ready — static export clean, 556 tests passing, JSON files valid |
+| **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
 
 ### Quick Commands
 ```bash
