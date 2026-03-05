@@ -233,6 +233,8 @@ export interface WorksiteGeoMetric {
 
 export interface SocDemandMetric {
   soc_code: string;
+  soc_title?: string;           // Embedded by P2 — canonical occupation title
+  soc_major_title?: string;     // Embedded by P2 — major group label
   window: string;               // "12m" | "24m" | "36m"
   dataset: string;              // "PERM" | "LCA"
   filings_count: number;

@@ -604,7 +604,7 @@ Understand which occupations are in highest demand based on immigration filing v
 
 ---
 
-### Top 15 Occupations Chart
+### Top 25 Occupations by Filing Volume Chart
 
 A horizontal bar chart ranking the top 15 most-filed occupations by volume. Each bar represents one occupation group (e.g., "Software Developers", "Computer Occupations", "Accountants"). Longer bars = more filings = higher demand.
 

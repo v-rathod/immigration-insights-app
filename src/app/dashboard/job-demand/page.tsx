@@ -81,7 +81,7 @@ export default function SocDemandDashboardPage() {
   const datasets = useMemo(() => getAvailableDatasetsForDemand(rawData), [rawData]);
 
   const topOccupations = useMemo(
-    () => getTopOccupations(enrichedData, window, dataset, 20),
+    () => getTopOccupations(enrichedData, window, dataset, 25),
     [enrichedData, window, dataset]
   );
 
@@ -116,13 +116,13 @@ export default function SocDemandDashboardPage() {
     return weighted / totalFilings;
   }, [enrichedData, window, dataset, totalFilings]);
 
-  // Chart data — filtered by chartSearch, capped at 15
+  // Chart data — filtered by chartSearch, capped at 25
   const filteredChartOccupations = useMemo(() => {
-    if (!chartSearch.trim()) return topOccupations.slice(0, 15);
+    if (!chartSearch.trim()) return topOccupations.slice(0, 25);
     const q = chartSearch.toLowerCase();
     return topOccupations
       .filter((r) => r.soc_title.toLowerCase().includes(q))
-      .slice(0, 15);
+      .slice(0, 25);
   }, [topOccupations, chartSearch]);
 
   const chartData = useMemo(
@@ -267,7 +267,7 @@ export default function SocDemandDashboardPage() {
           <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-4 gap-4">
               <h2 className="text-lg font-semibold text-[var(--foreground)] shrink-0">
-                Top 15 Occupations by Filing Volume
+                Top 25 Occupations by Filing Volume
               </h2>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
@@ -280,7 +280,7 @@ export default function SocDemandDashboardPage() {
                 />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={600}>
               <BarChart
                 data={chartData}
                 layout="vertical"

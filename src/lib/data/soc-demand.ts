@@ -62,24 +62,36 @@ export interface EnrichedSocDemand extends SocDemandMetric {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Enrich SOC demand data with SOC titles from dimension */
+/** Enrich SOC demand data with titles.
+ * P2 now embeds soc_title + soc_major_title directly in soc_demand_metrics;
+ * socDim is kept as a fallback for any stale JSON without embedded titles.
+ */
 export function enrichWithTitles(
   demand: SocDemandMetric[],
   socDim: DimSoc[]
 ): EnrichedSocDemand[] {
+  // Build fallback map from dim_soc (used only when embedded title is absent)
   const socMap = new Map(socDim.map((s) => [s.soc_code, s]));
   return demand.map((r) => {
-    const dim = socMap.get(r.soc_code);
+    const majorCode = r.soc_code.substring(0, 2);
     let topEmployers: Array<{ employer_id: string; filings: number }> = [];
     try {
       topEmployers = JSON.parse(r.top_employers_json || "[]");
     } catch {
       /* ignore parse errors */
     }
+    // Prefer embedded title (added by P2), then dim_soc fallback, then code itself
+    const dim = socMap.get(r.soc_code);
+    const resolvedTitle = r.soc_title || dim?.soc_title || r.soc_code;
+    const resolvedMajor =
+      r.soc_major_title ||
+      dim?.soc_major_title ||
+      BLS_MAJOR_GROUPS[majorCode] ||
+      "";
     return {
       ...r,
-      soc_title: dim?.soc_title ?? r.soc_code,
-      soc_major: dim?.soc_major_title ?? "",
+      soc_title: resolvedTitle,
+      soc_major: resolvedMajor,
       top_employers: topEmployers,
     };
   });

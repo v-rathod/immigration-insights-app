@@ -316,6 +316,14 @@ describe("soc-demand data", () => {
     expect(enriched[0].soc_major).toBe("Computer and Mathematical");
   });
 
+  it("enrichWithTitles prefers embedded soc_title over dim_soc", () => {
+    const demand = [makeSocDemand({ soc_code: "15-1132", soc_title: "Software Developers, Applications" })];
+    // dim_soc has NaN title for this legacy code — should not be used
+    const socDim = [makeDimSoc({ soc_code: "15-1132", soc_title: "" })];
+    const enriched = enrichWithTitles(demand, socDim);
+    expect(enriched[0].soc_title).toBe("Software Developers, Applications");
+  });
+
   it("enrichWithTitles falls back to soc_code if not found", () => {
     const demand = [makeSocDemand({ soc_code: "99-9999" })];
     const enriched = enrichWithTitles(demand, []);
