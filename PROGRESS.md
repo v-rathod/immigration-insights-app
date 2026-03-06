@@ -1,5 +1,62 @@
 # Compass Progress Tracker
 
+## 2026-03-10 — Milestone 10.32: 5-Year LCA Window, Collapsed Accordions & Author Credits
+
+### Objective
+Fix data scope for Raw Filings (last 5 fiscal years, no arbitrary row cap), add deferred-load collapsed accordions for Top Roles and Raw Filings, increase pagination to 100/page, and add author identity/links.
+
+### What Was Done
+
+**`scripts/sync_p2_data.py`:**
+- LCA window changed from FY2022+ with 2000-row cap → last 5 fiscal years with `LCA_MAX_ROWS = 5000`
+- Shard JSON now includes `lca_total` (total rows in 5-year window before cap) and `lca_fy_range` ([minFY, maxFY])
+- Infosys: 27,966 LCAs in FY2022–FY2026 (5000 most-recent shown)
+- 988 shard files regenerated
+
+**`src/lib/data/wage.ts`:**
+- `loadEmployerFilings` return type now includes `lca_total?: number` and `lca_fy_range?: [number, number]`
+
+**`src/components/wage/EmployerProfile.tsx`:**
+- Top Roles and Raw Filings are collapsed by default (`topRolesOpen`, `filingsOpen` states default false)
+- Side-by-side toggle headers using `grid-cols-2` layout
+- Raw Filings uses `triggerLoadFilings` deferred callback — shard only fetched on first panel open
+- `AnimatePresence` panel reveals content on toggle
+
+**`src/components/wage/RawFilingsTable.tsx`:**
+- `PAGE_SIZE` 25 → 100
+- Added `lcaTotal` and `lcaFyRange` props to `RawFilingsTableProps` and `LcaFilingsTab`
+- Filter bar count now shows "X of Y shown" + "FYmin–FYmax · N total" metadata row
+- Tab count badge cap updated from 2000+ → 5000+
+
+**`src/app/about/page.tsx`:**
+- Added "Built by Vivek Rathod" byline under page title with personal GitHub link (https://github.com/v-rathod)
+- Fixed "View on GitHub" CTA link → correct P3 project repo (https://github.com/v-rathod/immigration-insights-app)
+
+**`src/components/layout/footer.tsx`:**
+- GitHub icon link → P3 project repo (was placeholder `https://github.com`)
+- Copyright line credits "Vivek Rathod" with personal GitHub profile link
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **556 passing** (24 files, unchanged) |
+| Employer shards | 988 regenerated with 5-year window + metadata |
+| Infosys LCA | 27,966 total (5-year), 5000 shown (sorted by date) |
+| Commit | `a9ecdb4` pushed to origin/main |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/sync_p2_data.py` | 5-year window + 5000 cap + lca_total/lca_fy_range metadata |
+| `src/lib/data/wage.ts` | loadEmployerFilings return type adds lca_total + lca_fy_range |
+| `src/components/wage/EmployerProfile.tsx` | Collapsed accordions, deferred load, side-by-side toggles |
+| `src/components/wage/RawFilingsTable.tsx` | PAGE_SIZE→100, lcaTotal/lcaFyRange props + display |
+| `src/app/about/page.tsx` | Vivek Rathod byline, fix GitHub link |
+| `src/components/layout/footer.tsx` | Fix GitHub link, add author credit |
+| `public/data/employers/` | 988 shard files regenerated |
+
+---
+
 ## 2026-03-10 — Milestone 10.31: Raw Filings Table in Wage Dashboard
 
 ### Objective
