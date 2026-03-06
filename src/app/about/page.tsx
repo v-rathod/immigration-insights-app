@@ -162,12 +162,12 @@ export default function AboutPage() {
                   of the picture.
                 </p>
                 <p>
-                  I kept asking simple questions —{" "}
+                  I kept asking simple questions:{" "}
                   <span className="text-[var(--foreground)] font-medium italic">
                     &ldquo;When will my priority date become current? Is my employer
                     reliable for sponsorship? How does my salary compare?&rdquo;
-                  </span>{" "}
-                  — and finding that the answers required stitching together data from
+                  </span>.{" "}
+                  Answering them required stitching together data from
                   DOL PERM filings, DOS Visa Bulletins, BLS wage surveys, and USCIS
                   processing reports. Manually. Every month.
                 </p>
