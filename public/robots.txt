@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Exclude internal/ops pages from indexing
+Disallow: /ops/
+
+# Sitemap
+Sitemap: https://d10immmzyp7xgr.cloudfront.net/sitemap.xml

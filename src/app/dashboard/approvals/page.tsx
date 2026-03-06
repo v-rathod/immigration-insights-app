@@ -11,9 +11,25 @@ import type { Metadata } from "next";
 import { ApprovalDenialDashboard } from "@/components/approvals";
 
 export const metadata: Metadata = {
-  title: "Approval & Denial Trends | NorthStar Compass",
+  title: "PERM Approval & Denial Trends",
   description:
-    "PERM labor certification approval rates, cross-track comparisons (USCIS, NIV), administration-era analysis, and 19-year trend heatmaps.",
+    "PERM labor certification approval and denial trends from 1992 to 2025. Cross-track comparisons across USCIS employment-based, non-immigrant visas, and administration-era policy analysis. I-485, I-765, and I-140 volumes.",
+  keywords: [
+    "PERM approval rate",
+    "PERM denial rate",
+    "USCIS approval trends",
+    "I-485 approvals",
+    "I-140 approvals",
+    "employment based approval history",
+    "green card approval statistics",
+    "immigration approval denial",
+  ],
+  openGraph: {
+    title: "PERM Approval & Denial Trends | Compass",
+    description:
+      "PERM labor certification approval rates, cross-track comparisons, administration-era analysis, and 30-year trend heatmaps.",
+    url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/approvals/",
+  },
 };
 
 export default function ApprovalsDashboardPage() {

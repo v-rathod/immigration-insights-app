@@ -11,9 +11,26 @@ import type { Metadata } from "next";
 import { WageIntelligenceHub } from "@/components/wage/WageIntelligenceHub";
 
 export const metadata: Metadata = {
-  title: "Wage Competitiveness | NorthStar Compass",
+  title: "Wage Competitiveness: H-1B & PERM Salary Data",
   description:
-    "H-1B and PERM salary benchmarks, 10-year wage trends, employer rankings, and regional comparisons powered by BLS OEWS data.",
+    "Research H-1B and PERM salary benchmarks by employer and job title. Compare 5-year wage growth trends, salary percentile bands (p10 to p90), and benchmark against BLS national medians for your occupation.",
+  keywords: [
+    "H-1B salary data",
+    "PERM wage benchmark",
+    "employer salary comparison",
+    "H-1B wage by employer",
+    "immigration salary percentile",
+    "LCA wage disclosure",
+    "software engineer H-1B salary",
+    "data scientist immigration wage",
+    "prevailing wage",
+  ],
+  openGraph: {
+    title: "Wage Competitiveness: H-1B & PERM Salary Data | Compass",
+    description:
+      "Research H-1B and PERM salaries by employer and job title. 5-year trends, p10-p90 percentile bands, BLS benchmarks.",
+    url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/wage/",
+  },
 };
 
 export default function WageDashboardPage() {
