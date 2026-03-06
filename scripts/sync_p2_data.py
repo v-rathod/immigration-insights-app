@@ -467,9 +467,9 @@ def sync_wage_dashboard():
 
         # ── 4c. employer_role_profiles — employer-centric role breakdown ─────
         # ALL employers with ≥5 H-1B filings × their top 25 roles by filing count.
-        # This is the CORRECT data source for EmployerProfile's "Top Roles" section.
-        # employer_wage_rankings.json is SOC-centric (top employers per SOC) which
-        # causes large firms like Cognizant to appear for only 2 of their 33 roles.
+        # Uses last 3 fiscal years (≈36 months) to pick up roles that are active
+        # across the window but may not clear minimums in any single year alone.
+        # (e.g. Optum Services has many roles across FY22-FY24 but few in FY24 only)
         erp = esp[
             (esp["visa_type"] == "H-1B")
             & esp["employer_name"].notna()
@@ -495,20 +495,46 @@ def sync_wage_dashboard():
 
         erp = erp[erp["employer_name"].isin(all_qualified_by_filings)].copy()
 
-        # For each employer use their own latest available year (not a global benchmark)
-        latest_year_per_emp = (
-            erp.groupby("employer_name")["fiscal_year"].max().reset_index()
-            .rename(columns={"fiscal_year": "latest_year"})
+        # Use last 3 fiscal years per employer to aggregate role activity across ~36 months.
+        # This prevents roles that dipped below the single-year threshold from disappearing.
+        latest_year_per_emp = erp.groupby("employer_name")["fiscal_year"].max()
+        erp["latest_year"] = erp["employer_name"].map(latest_year_per_emp)
+        erp = erp[erp["fiscal_year"] >= erp["latest_year"] - 2].copy()  # last 3 years
+
+        # Drop roles with missing salary
+        erp = erp[erp["median_salary"].notna()].copy()
+
+        # Aggregate: sum filings across the window, take salary from most recent year
+        # Step 1: find the most recent year each employer×role has data
+        latest_role_year = (
+            erp.groupby(["employer_name", "soc_code"])["fiscal_year"]
+            .max()
+            .reset_index()
+            .rename(columns={"fiscal_year": "latest_role_year"})
         )
-        erp = erp.merge(latest_year_per_emp, on="employer_name")
-        erp = erp[erp["fiscal_year"] == erp["latest_year"]].drop(columns=["latest_year"])
+        # Step 2: sum filings across all years in the window
+        role_filings = (
+            erp.groupby(["employer_name", "soc_code"])["n_filings"]
+            .sum()
+            .reset_index()
+            .rename(columns={"n_filings": "n_filings_36mo"})
+        )
+        # Step 3: salary metrics from the most recent year only
+        erp_latest = erp.merge(latest_role_year, on=["employer_name", "soc_code"])
+        erp_latest = erp_latest[erp_latest["fiscal_year"] == erp_latest["latest_role_year"]].copy()
+        erp_latest = erp_latest.drop_duplicates(subset=["employer_name", "soc_code"], keep="last")
 
-        # Drop roles with implausibly few filings or missing salary
-        erp = erp[(erp["n_filings"] >= 2) & erp["median_salary"].notna()]
+        # Step 4: merge 36-month filing counts back onto latest-year salary rows
+        erp_merged = erp_latest.merge(role_filings, on=["employer_name", "soc_code"])
+        erp_merged["n_filings"] = erp_merged["n_filings_36mo"]  # replace with 36mo total
+        erp_merged = erp_merged.drop(columns=["latest_role_year", "n_filings_36mo", "latest_year"])
 
-        # Rank by filing count per employer, keep top 25
-        erp = erp.sort_values(["employer_name", "n_filings"], ascending=[True, False])
-        erp_top = erp.groupby("employer_name").head(25).reset_index(drop=True)
+        # Drop roles with implausibly few filings across the whole 36-month window
+        erp_merged = erp_merged[erp_merged["n_filings"] >= 3].copy()
+
+        # Rank by 36-month filing count per employer, keep top 25
+        erp_merged = erp_merged.sort_values(["employer_name", "n_filings"], ascending=[True, False])
+        erp_top = erp_merged.groupby("employer_name").head(25).reset_index(drop=True)
 
         # Enrich and round
         erp_top["soc_title"] = erp_top["soc_code"].map(soc_map).fillna("")

@@ -148,7 +148,7 @@ export function EmployerProfile({
   const [topRolesOpen, setTopRolesOpen] = useState(false);
   const [filingsOpen, setFilingsOpen] = useState(false);
 
-  // ── Raw filings: deferred load — only triggered on first open ─────────────
+  // ── Filing Records: deferred load — only triggered on first open ──────────
   const [lcaFilings, setLcaFilings] = useState<LcaFiling[]>([]);
   const [h1bPetitions, setH1bPetitions] = useState<H1bPetitionYear[]>([]);
   const [lcaTotal, setLcaTotal] = useState<number>(0);
@@ -162,7 +162,7 @@ export function EmployerProfile({
     return row?.employer_id ? String(row.employer_id) : null;
   }, [trend, employerName]);
 
-  // Triggered only when user first opens the Raw Filings panel
+  // Triggered only when user first opens the Filing Records panel
   const triggerLoadFilings = useCallback(() => {
     if (filingsLoaded || filingsLoading || !employerId) return;
     setFilingsLoading(true);
@@ -371,7 +371,7 @@ export function EmployerProfile({
         </GlassCard>
 
 {/* ── Expandable sections: side-by-side toggle headers ────────── */}
-        {/* Both collapsed by default; Raw Filings only fetches on first open */}
+        {/* Both collapsed by default; Filing Records only fetches on first open */}
         <div className="space-y-3">
 
           {/* Toggle header bar — two buttons side by side */}
@@ -394,7 +394,7 @@ export function EmployerProfile({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--foreground)]">Top Roles</p>
                     <p className="text-[10px] text-[var(--muted-foreground)] truncate">
-                      {roles.length} roles · FY{roles[0]?.fiscal_year} · {visaType}
+                      {roles.length} roles · last 36 months · {visaType}
                     </p>
                   </div>
                 </div>
@@ -405,7 +405,7 @@ export function EmployerProfile({
               </button>
             )}
 
-            {/* Raw Filings toggle */}
+            {/* Filing Records toggle */}
             {employerId && (
               <button
                 onClick={() => {
@@ -424,7 +424,7 @@ export function EmployerProfile({
                 <div className="flex items-center gap-2.5 min-w-0">
                   <BarChart3 className="h-4 w-4 text-purple-400 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[var(--foreground)]">Raw Filings</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Filing Records</p>
                     <p className="text-[10px] text-[var(--muted-foreground)] truncate">
                       {filingsLoaded
                         ? `${lcaFilings.length.toLocaleString()} LCA · ${h1bPetitions.length} H-1B yr${lcaTotal > lcaFilings.length ? ` · capped` : ""}`
@@ -576,7 +576,7 @@ export function EmployerProfile({
             )}
           </AnimatePresence>
 
-          {/* ── Expanded: Raw Filings ──────────────────────────────────── */}
+          {/* ── Expanded: Filing Records ──────────────────────────────────── */}
           <AnimatePresence>
             {filingsOpen && (
               <motion.div
