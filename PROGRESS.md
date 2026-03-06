@@ -1,5 +1,54 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.35: Filing Records Rename + Top Roles 36-Month Fix
+
+### Objective
+Two UX/data quality fixes on the Wage Intelligence dashboard:
+1. Rename "Raw Filings" label to more user-friendly "Filing Records"
+2. Fix Top Roles showing too few roles for large employers (e.g. Optum Services showed only 3) by expanding the aggregation window from 1 to 3 fiscal years
+
+### What Was Done
+
+**Label Rename (`src/components/wage/EmployerProfile.tsx`):**
+- Button label: "Raw Filings" → "Filing Records"
+- Section header comment updated
+- State variable comment updated
+- Subtitle updated: `FY{year}` → `last 36 months`
+
+**Top Roles 36-Month Fix (`scripts/sync_p2_data.py`):**
+- Root cause: `employer_role_profiles` section was filtering to `fiscal_year == latest_year` only, causing large IT services firms (Optum, Cognizant, Infosys) to show very few roles despite having many across 3+ years
+- Fix: aggregate last 3 fiscal years (`latest_year - 2` to `latest_year`) per employer
+- Filings summed across the 36-month window; salary taken from most recent year per role
+- Threshold changed from `n_filings >= 2` (single year) → `>= 3` (36-month total)
+- Result: `employer_role_profiles.json` grew from **24MB → 45MB** (nearly 2×)
+- Optum Services: **3 roles → 12 roles** (830 Software Developer filings across window)
+
+**Performance/lazy loading (committed this session, [58141ad]):**
+- Wage page initial load: ~160MB → ~30MB (130MB deferred to employer selection)
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **557 passing** (24 files) |
+| TypeScript errors | 0 |
+| employer_role_profiles.json | 45MB (was 24MB) |
+| Optum Services roles | 12 (was 3) |
+| Build | ✅ Clean static export |
+| Deployed | ✅ AWS CloudFront (invalidation `IBNPZBXD1UHEWMIKCZSV9RYRCO`) |
+| Commits | [82b1373] Filing Records rename + 36-month fix; [58141ad] Lazy loading |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/components/wage/EmployerProfile.tsx` | Renamed "Raw Filings" → "Filing Records"; subtitle to "last 36 months" |
+| `scripts/sync_p2_data.py` | employer_role_profiles: 36-month aggregation window (was single year) |
+
+### Next Steps
+- Monitor Wage dashboard for further employer role quality issues
+- Consider applying same 36-month window to `employer_role_trends.json` if needed
+
+---
+
 ## 2026-03-06 — Milestone 10.34: Comprehensive SEO & Search Engine Discoverability
 
 ### Objective
