@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -43,11 +43,15 @@ import {
   getEmployerRoles,
   getEmployerRoleTrendSeries,
   annotateWithYoy,
+  loadEmployerFilings,
   WAGE_SANITY,
   type EmployerSalaryTrend,
   type EmployerWageRanking,
   type EmployerRoleTrend as EmployerRoleTrendType,
+  type LcaFiling,
+  type H1bPetitionYear,
 } from "@/lib/data/wage";
+import { RawFilingsTable } from "@/components/wage/RawFilingsTable";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,6 +143,33 @@ export function EmployerProfile({
   // ── Role search + selection state ─────────────────────────────────────────
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<{ soc_code: string; soc_title: string } | null>(null);
+
+  // ── Raw filings: lazy-load on first render for this employer ──────────────
+  const [lcaFilings, setLcaFilings] = useState<LcaFiling[]>([]);
+  const [h1bPetitions, setH1bPetitions] = useState<H1bPetitionYear[]>([]);
+  const [filingsLoading, setFilingsLoading] = useState(false);
+  const [filingsLoaded, setFilingsLoaded] = useState(false);
+
+  // Derive employer_id from the trend data (included by sync script)
+  const employerId = useMemo(() => {
+    const row = trend.find((r) => r.employer_name === employerName && r.employer_id);
+    return row?.employer_id ? String(row.employer_id) : null;
+  }, [trend, employerName]);
+
+  useEffect(() => {
+    if (!employerId || filingsLoaded) return;
+    setFilingsLoading(true);
+    loadEmployerFilings(employerId)
+      .then((data) => {
+        if (data) {
+          setLcaFilings(data.lca || []);
+          setH1bPetitions(data.h1b_petitions || []);
+        }
+        setFilingsLoaded(true);
+      })
+      .catch(() => setFilingsLoaded(true))
+      .finally(() => setFilingsLoading(false));
+  }, [employerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const series = useMemo(() => {
     // Filter out years with implausible salary values before rendering the chart
@@ -482,6 +513,24 @@ export function EmployerProfile({
                 : "Switch to Job Role search above to compare roles across multiple employers"}
             </p>
           </GlassCard>
+        )}
+
+        {/* ── Raw Filings Table ─────────────────────────────────────── */}
+        {employerId && (
+          <div className="mt-2">
+            {filingsLoading ? (
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-8 text-center">
+                <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-500/40 border-t-blue-500" />
+                <p className="mt-3 text-xs text-white/40">Loading filing records…</p>
+              </div>
+            ) : filingsLoaded ? (
+              <RawFilingsTable
+                lcaFilings={lcaFilings}
+                h1bPetitions={h1bPetitions}
+                employerName={employerName}
+              />
+            ) : null}
+          </div>
         )}
       </div>
     </FadeIn>

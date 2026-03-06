@@ -445,6 +445,9 @@ def sync_wage_dashboard():
             ].copy()
             for col in ["mean_salary", "median_salary"]:
                 esy_top[col] = esy_top[col].fillna(0).round(0).astype(int)
+            # Include employer_id so P3 can resolve raw filing shards
+            if "employer_id" not in esy_top.columns:
+                esy_top["employer_id"] = ""
             n = df_to_json(esy_top, out_dir / "employer_salary_trend.json")
             size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
             print(f"    ✓ employer_salary_trend: {n:,} rows (top 1000) → {size_kb:.0f} KB")
@@ -560,6 +563,259 @@ def sync_wage_dashboard():
         print(f"    ✓ employer_role_trends: {n_ert:,} rows ({n_ert_employers} employers × roles × 5yr) → {size_kb_ert:.0f} KB")
 
 
+def sync_employer_raw_filings():
+    """
+    Generate per-employer raw filing shards for the Wage dashboard's
+    "Raw Filings" table.  Two data sources are merged into one file per employer:
+
+      • LCA filings (DOL): per-case H-1B job offer records FY2022-2025.
+        Columns: case_number, job_title, soc_title, city, state, annual salary
+                 (annualized from wage_unit), status, received_date, decision_date,
+                 full_time, fiscal_year.
+        Capped at 2,000 most-recent rows per employer.
+
+      • Petition history (USCIS): annual aggregate petition outcomes FY2010-2023.
+        Columns: fiscal_year, initial_approvals, initial_denials,
+                 continuing_approvals, continuing_denials, total_petitions,
+                 approval_rate.
+        Sourced from fact_h1b_employer_hub; matched by fuzzy employer name.
+
+    Output: public/data/employers/{employer_id}.json  (one per employer)
+            public/data/employers/_index.json          (name → id mapping)
+    """
+    print("\n📋 Syncing employer raw filing shards...")
+    out_dir = OUT_DIR / "employers"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Load supporting tables ─────────────────────────────────────────────
+    esy = read_parquet_safe(P2_TABLES / "employer_salary_yearly.parquet")
+    if esy.empty:
+        print("  ⚠  employer_salary_yearly missing — skipping raw filings sync")
+        return
+
+    # Top 1000 employers by total H-1B filings
+    top_employers_series = (
+        esy[esy["visa_type"] == "H-1B"]
+        .groupby(["employer_name", "employer_id"])["total_filings"]
+        .sum()
+        .reset_index()
+        .sort_values("total_filings", ascending=False)
+        .head(1000)
+    )
+    # employer_name → employer_id mapping (canonical)
+    emp_id_map: dict = top_employers_series.set_index("employer_name")["employer_id"].to_dict()
+
+    # ── Load LCA filings (FY2022-2025) ────────────────────────────────────
+    LCA_FY_MIN = 2022
+    print(f"  Loading fact_lca FY{LCA_FY_MIN}+  (may take a moment)...")
+    lca = read_parquet_safe(P2_TABLES / "fact_lca")
+    if not lca.empty and "fiscal_year" in lca.columns:
+        lca["fiscal_year"] = lca["fiscal_year"].astype(int)
+        lca = lca[lca["fiscal_year"] >= LCA_FY_MIN].copy()
+
+    # Annualise wages (wage_rate_from → annual equivalent)
+    def _to_annual(row):
+        amt = row.get("wage_rate_from")
+        if amt is None or (isinstance(amt, float) and (amt != amt)):  # NaN check
+            return 0
+        amt = float(amt)
+        unit = str(row.get("wage_unit") or "Year").strip().lower()
+        if "hour" in unit:
+            return round(amt * 2080)
+        elif "week" in unit:
+            return round(amt * 52)
+        elif "bi-week" in unit or "biweek" in unit:
+            return round(amt * 26)
+        elif "month" in unit:
+            return round(amt * 12)
+        else:  # Year / Annual
+            return round(amt)
+
+    def _to_annual_high(row):
+        hi = row.get("wage_rate_to")
+        if hi is None or (isinstance(hi, float) and (hi != hi)) or hi <= 0:
+            return None
+        hi = float(hi)
+        unit = str(row.get("wage_unit") or "Year").strip().lower()
+        if "hour" in unit:
+            return round(hi * 2080)
+        elif "week" in unit:
+            return round(hi * 52)
+        elif "bi-week" in unit or "biweek" in unit:
+            return round(hi * 26)
+        elif "month" in unit:
+            return round(hi * 12)
+        else:
+            return round(hi)
+
+    if not lca.empty:
+        # Vectorized annualization — much faster than row-wise apply
+        w = lca["wage_rate_from"].fillna(0)
+        unit = lca["wage_unit"].fillna("Year").str.lower().str.strip()
+        multiplier = pd.Series(1, index=lca.index, dtype="float64")
+        multiplier = multiplier.where(~unit.str.contains("hour"), 2080)
+        multiplier = multiplier.where(~(unit.str.contains("week") & ~unit.str.contains("bi")), 52)
+        multiplier = multiplier.where(~unit.str.contains("bi-?week"), 26)
+        multiplier = multiplier.where(~unit.str.contains("month"), 12)
+        lca["wage_annual"] = (w * multiplier).round(0).astype(int)
+
+        w_hi = lca["wage_rate_to"].fillna(0)
+        lca["wage_annual_high"] = (w_hi * multiplier).round(0).astype("Int64")
+        # Set null where high == 0 or <= wage_annual
+        lca.loc[lca["wage_annual_high"] <= 0, "wage_annual_high"] = pd.NA
+
+    # ── Load H-1B Employer Hub (petition history) ─────────────────────────
+    hub = read_parquet_safe(P2_TABLES / "fact_h1b_employer_hub.parquet")
+    hub_by_employer: dict = {}  # canonical_name → list[dict]
+    if not hub.empty:
+        # NOTE: fact_h1b_employer_hub is full historical data (FY2010–FY2023).
+        # USCIS discontinued publishing this dataset after FY2023, so ALL rows are
+        # flagged is_stale=True by P2's ingestion pipeline. We keep all rows here
+        # because the historical data is still valid and useful for trend display.
+        hub = hub.copy()
+        # Build lookup: lower-cased raw hub name → list of rows
+        hub_lower = hub.copy()
+        hub_lower["_name_lower"] = hub_lower["employer_name"].str.lower().str.strip()
+
+        def _match_hub_rows(canonical_name: str) -> list:
+            """Find h1b_employer_hub rows matching a canonical employer name."""
+            # Try several progressively looser strategies
+            cn_lower = canonical_name.lower().strip()
+            # Strategy 1: exact lower match
+            rows = hub_lower[hub_lower["_name_lower"] == cn_lower]
+            if len(rows) == 0:
+                # Strategy 2: canonical name is a substring of hub name
+                rows = hub_lower[hub_lower["_name_lower"].str.contains(
+                    cn_lower[:30], regex=False, na=False
+                )]
+            if len(rows) == 0:
+                # Strategy 3: first 3 significant words of canonical name
+                words = [w for w in cn_lower.split() if len(w) > 2][:3]
+                if words:
+                    pattern = " ".join(words)
+                    rows = hub_lower[hub_lower["_name_lower"].str.contains(
+                        pattern, regex=False, na=False
+                    )]
+            if len(rows) == 0:
+                return []
+
+            # Group by fiscal_year
+            agg_cols = [
+                "fiscal_year", "initial_approvals", "initial_denials",
+                "continuing_approvals", "continuing_denials", "total_petitions",
+            ]
+            agg_cols = [c for c in agg_cols if c in rows.columns]
+            grouped = rows[agg_cols].groupby("fiscal_year").sum().reset_index()
+            grouped["total_petitions"] = (
+                grouped.get("initial_approvals", 0)
+                + grouped.get("initial_denials", 0)
+                + grouped.get("continuing_approvals", 0)
+                + grouped.get("continuing_denials", 0)
+            )
+            grouped["approval_rate"] = (
+                (grouped.get("initial_approvals", 0) + grouped.get("continuing_approvals", 0))
+                / grouped["total_petitions"].replace(0, 1)
+            ).round(4)
+            grouped = grouped.sort_values("fiscal_year", ascending=False)
+            return grouped.to_dict(orient="records")
+
+        for emp_name in emp_id_map.keys():
+            hub_by_employer[emp_name] = _match_hub_rows(emp_name)
+
+    # ── Build per-employer shard files ────────────────────────────────────
+    LCA_KEEP_COLS = [
+        "case_number", "job_title", "soc_title", "worksite_city", "worksite_state",
+        "wage_annual", "wage_annual_high", "case_status", "visa_class",
+        "received_date", "decision_date", "is_fulltime", "fiscal_year",
+    ]
+    index_map: dict = {}
+    shards_written = 0
+    skipped = 0
+
+    for emp_name, emp_id in emp_id_map.items():
+        if not emp_id:
+            skipped += 1
+            continue
+
+        # --- LCA rows for this employer
+        lca_rows: list = []
+        if not lca.empty and "employer_id" in lca.columns:
+            emp_lca = lca[lca["employer_id"] == emp_id].copy()
+            if not emp_lca.empty:
+                emp_lca = emp_lca.sort_values("received_date", ascending=False).head(2000)
+                # Keep only useful columns
+                keep = [c for c in LCA_KEEP_COLS if c in emp_lca.columns]
+                emp_lca = emp_lca[keep].copy()
+                # Sanitise NaN/inf/pd.NA → 0 for numerics, None for wage_annual_high
+                for col in emp_lca.select_dtypes(include=["float64", "float32"]).columns:
+                    emp_lca[col] = emp_lca[col].fillna(0).astype(int)
+                # wage_annual_high: convert nullable Int64 pd.NA → None for JSON
+                # (pd.NA in Int64 becomes float NaN after .where(); use list comp instead)
+                if "wage_annual_high" in emp_lca.columns:
+                    emp_lca["wage_annual_high"] = [
+                        int(v) if pd.notna(v) and v and int(v) > 0 else None
+                        for v in emp_lca["wage_annual_high"]
+                    ]
+                emp_lca["is_fulltime"] = emp_lca["is_fulltime"].fillna(False).astype(bool)
+                lca_rows = emp_lca.to_dict(orient="records")
+
+        # --- H-1B petition history rows
+        petition_rows = hub_by_employer.get(emp_name, [])
+
+        if not lca_rows and not petition_rows:
+            skipped += 1
+            continue
+
+        shard = {
+            "employer_name": emp_name,
+            "employer_id": emp_id,
+            "lca": lca_rows,
+            "h1b_petitions": petition_rows,
+        }
+        shard_path = out_dir / f"{emp_id}.json"
+        # Use json.dumps with a NaN→null encoder to produce spec-compliant JSON
+        import json as _json
+        import math as _math
+        class _NaNSafeEncoder(_json.JSONEncoder):
+            def default(self, obj):
+                return str(obj)
+            def iterencode(self, o, _one_shot=False):
+                # Replace NaN/Infinity with null at float serialisation level
+                for chunk in super().iterencode(o, _one_shot):
+                    yield chunk
+        def _nan_to_null(v):
+            """Recursively convert NaN/pd.NA/Inf values to None."""
+            import pandas as _pd
+            if v is _pd.NA:
+                return None
+            if isinstance(v, float) and (v != v or _math.isinf(v)):
+                return None
+            if isinstance(v, dict):
+                return {kk: _nan_to_null(vv) for kk, vv in v.items()}
+            if isinstance(v, list):
+                return [_nan_to_null(x) for x in v]
+            return v
+        shard_path.write_text(_json.dumps(_nan_to_null(shard)))
+        index_map[emp_name] = emp_id
+        shards_written += 1
+
+    # Write index file
+    index_path = out_dir / "_index.json"
+    import json as _json
+    index_path.write_text(_json.dumps(index_map))
+    index_kb = index_path.stat().st_size / 1024
+
+    total_kb = sum(
+        (out_dir / f"{eid}.json").stat().st_size
+        for eid in index_map.values()
+        if (out_dir / f"{eid}.json").exists()
+    ) / 1024
+    print(f"  ✓ {shards_written:,} employer shards written  ({total_kb:,.0f} KB total)")
+    print(f"  ✓ _index.json: {len(index_map):,} employers → {index_kb:.0f} KB")
+    if skipped:
+        print(f"  ↷ {skipped} employers skipped (no LCA data in window)")
+
+
 def write_manifest():
     """Write a build manifest with timestamps and sizes."""
     manifest = {
@@ -614,6 +870,7 @@ def main():
     else:
         sync_dashboards(dashboard_filter)
         sync_wage_dashboard()
+        sync_employer_raw_filings()
         sync_dimensions()
         sync_models()
         sync_rag()

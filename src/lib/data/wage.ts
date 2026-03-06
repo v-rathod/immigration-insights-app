@@ -90,6 +90,36 @@ export interface EmployerRoleTrend {
   visa_type: string;
 }
 
+/** A single DOL LCA (Labor Condition Application) filing row. */
+export interface LcaFiling {
+  case_number: string;
+  job_title: string;
+  soc_title: string;
+  worksite_city: string;
+  worksite_state: string;
+  /** Base salary annualised (hourly × 2080, weekly × 52, etc.). */
+  wage_annual: number;
+  /** High end of salary range annualised (null if not specified). */
+  wage_annual_high?: number | null;
+  case_status: string;
+  visa_class: string;
+  received_date: string;   // "YYYY-MM-DD"
+  decision_date: string;   // "YYYY-MM-DD"
+  is_fulltime: boolean;
+  fiscal_year: number;
+}
+
+/** USCIS H-1B petition aggregate outcomes for one fiscal year (from fact_h1b_employer_hub). */
+export interface H1bPetitionYear {
+  fiscal_year: number;
+  initial_approvals: number;
+  initial_denials: number;
+  continuing_approvals: number;
+  continuing_denials: number;
+  total_petitions: number;
+  approval_rate: number;  // 0-1
+}
+
 // ---------------------------------------------------------------------------
 // Data quality thresholds
 // ---------------------------------------------------------------------------
@@ -161,6 +191,28 @@ export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]>
 export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
   const raw = await loadDashboardData('wage', 'employer_role_trends') as EmployerRoleTrend[];
   return Array.isArray(raw) ? raw : [];
+}
+
+/**
+ * Load per-employer raw filing shard.
+ * Returns a combined object with LCA per-case filings and H-1B petition history.
+ * Fetched lazily on-demand; cached by the browser.
+ *
+ * @param employerId - SHA-1 hash from employer_salary_yearly.employer_id
+ */
+export async function loadEmployerFilings(employerId: string): Promise<{
+  employer_name: string;
+  lca: LcaFiling[];
+  h1b_petitions: H1bPetitionYear[];
+} | null> {
+  if (!employerId) return null;
+  try {
+    const res = await fetch(`/data/employers/${employerId}.json`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 /**
