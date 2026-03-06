@@ -68,6 +68,9 @@ interface EmployerProfileProps {
   /** Multi-year percentile data for role drill-down charts. */
   roleTrends?: EmployerRoleTrendType[];
   visaType?: "H-1B" | "PERM";
+  /** True while the heavy salary data is still being fetched lazily.
+   * When true, a skeleton is shown instead of the "No trend data" error fallback. */
+  isLoading?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +142,7 @@ export function EmployerProfile({
   roleProfiles,
   roleTrends,
   visaType = "H-1B",
+  isLoading = false,
 }: EmployerProfileProps) {
   // ── Role search + selection state ─────────────────────────────────────────
   const [roleQuery, setRoleQuery] = useState("");
@@ -197,12 +201,15 @@ export function EmployerProfile({
   // employer_wage_rankings (SOC-centric, ranked by salary) — the latter only includes
   // an employer where it ranks in the top-25 by salary for a SOC, which causes large
   // IT consulting firms to show just 1-2 roles despite having thousands of filings.
+  // When using roleProfiles (pre-aggregated 36-month data), pass minFilings=1 so that
+  // small employers with 1-3 filings per role still appear — those filings are real.
   const roles = useMemo(
     () => getEmployerRoles(
       roleProfiles && roleProfiles.length > 0 ? roleProfiles : rankings,
       employerName,
-      visaType
-    ).slice(0, 8),
+      visaType,
+      roleProfiles && roleProfiles.length > 0 ? 1 : undefined
+    ).slice(0, 25),
     [roleProfiles, rankings, employerName, visaType]
   );
 
@@ -223,7 +230,31 @@ export function EmployerProfile({
     return getEmployerRoleTrendSeries(roleTrends, employerName, selectedRole.soc_code, visaType);
   }, [roleTrends, employerName, selectedRole, visaType]);
 
-  if (!stats || series.length === 0) {
+  if (isLoading || !stats || series.length === 0) {
+    if (isLoading) {
+      // Salary data is still being lazily fetched — show an animated skeleton so
+      // users know something is loading, not that data is missing.
+      return (
+        <GlassCard variant="elevated" padding="md">
+          <div className="space-y-4 animate-pulse">
+            {/* Growth badges skeleton */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+              ))}
+            </div>
+            {/* Chart skeleton */}
+            <div className="h-48 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+            {/* Section toggle skeletons */}
+            <div className="h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+            <div className="h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+          </div>
+          <p className="text-xs text-[var(--muted-foreground)] text-center mt-4">
+            Loading salary data for {employerName}…
+          </p>
+        </GlassCard>
+      );
+    }
     return (
       <GlassCard variant="elevated" padding="md">
         <p className="text-sm text-[var(--muted-foreground)] text-center py-6">
@@ -380,7 +411,7 @@ export function EmployerProfile({
             {/* Top Roles toggle */}
             {roles.length > 0 && (
               <button
-                onClick={() => setTopRolesOpen((v) => !v)}
+                onClick={() => { setTopRolesOpen((v) => !v); setFilingsOpen(false); }}
                 className={cn(
                   "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all text-left",
                   topRolesOpen
@@ -411,6 +442,7 @@ export function EmployerProfile({
                 onClick={() => {
                   const willOpen = !filingsOpen;
                   setFilingsOpen(willOpen);
+                  setTopRolesOpen(false);
                   if (willOpen) triggerLoadFilings();
                 }}
                 className={cn(

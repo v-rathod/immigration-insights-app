@@ -574,44 +574,51 @@ export function getTopWageGrowers(
 export function getEmployerRoles(
   rankings: EmployerWageRanking[],
   employerName: string,
-  visaType?: string
+  visaType?: string,
+  /** Minimum number of filings to include a role. Defaults to WAGE_SANITY.MIN_FILINGS_RANKING.
+   * Pass 1 when consuming pre-aggregated employer_role_profiles data, where even
+   * a small employer with 1-3 filings per role represents real hiring activity. */
+  minFilings: number = WAGE_SANITY.MIN_FILINGS_RANKING
 ): (EmployerWageRanking & { prior_year_median_salary?: number })[] {
   const employerRows = rankings.filter(
     (r) =>
       r.employer_name === employerName &&
       (visaType == null || r.visa_type === visaType) &&
-      r.n_filings >= WAGE_SANITY.MIN_FILINGS_RANKING &&
+      r.n_filings >= minFilings &&
       r.median_salary >= WAGE_SANITY.SALARY_FLOOR
   );
   if (employerRows.length === 0) return [];
 
-  // Restrict to the latest fiscal year so stale/lower-count years don't
-  // surface irrelevant roles (e.g. a role with 8 filings 3 years ago ranking
-  // above current top roles with hundreds of filings).
-  const latestYear = Math.max(...employerRows.map((r) => r.fiscal_year));
-  const latestRows = employerRows.filter((r) => r.fiscal_year === latestYear);
-
-  // Deduplicate by soc_code — keep the row with the highest n_filings in
-  // case the same SOC code appears more than once in the latest year.
+  // Deduplicate by soc_code across all available years — keep the row with the
+  // most recent fiscal_year; break ties by highest n_filings.
+  // We intentionally do NOT restrict to a single "latest year" because in the
+  // employer_role_profiles artifact each role carries its own most-recent year
+  // (the last year it was active), meaning roles absent from the globally-latest
+  // year would otherwise be silently dropped (e.g. a company with 3 roles only
+  // 1 of which was active this year would show 1 role instead of 3).
   const seen = new Map<string, EmployerWageRanking>();
-  for (const row of latestRows) {
+  for (const row of employerRows) {
     const existing = seen.get(row.soc_code);
-    if (!existing || row.n_filings > existing.n_filings) seen.set(row.soc_code, row);
+    if (
+      !existing ||
+      row.fiscal_year > existing.fiscal_year ||
+      (row.fiscal_year === existing.fiscal_year && row.n_filings > existing.n_filings)
+    ) {
+      seen.set(row.soc_code, row);
+    }
   }
 
-  // Enhance with prior-year median salary for comparison
-  const priorYear = latestYear - 1;
-  const priorYearMap = new Map<string, number>();
-  employerRows
-    .filter((r) => r.fiscal_year === priorYear)
-    .forEach((r) => {
-      priorYearMap.set(r.soc_code, r.median_salary);
-    });
+  // Build a lookup of median salary per soc_code×year so each selected role can
+  // reference its own prior-year salary (roles have independent fiscal_years).
+  const yearlyMap = new Map<string, number>();
+  for (const row of employerRows) {
+    yearlyMap.set(`${row.soc_code}:${row.fiscal_year}`, row.median_salary);
+  }
 
   return Array.from(seen.values())
     .map((role) => ({
       ...role,
-      prior_year_median_salary: priorYearMap.get(role.soc_code),
+      prior_year_median_salary: yearlyMap.get(`${role.soc_code}:${role.fiscal_year - 1}`),
     }))
     .sort((a, b) => b.n_filings - a.n_filings);
 }

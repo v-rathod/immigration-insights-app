@@ -982,6 +982,7 @@ export function WageIntelligenceHub() {
             roleProfiles={roleProfiles}
             roleTrends={roleTrends}
             visaType="H-1B"
+            isLoading={employerDataLoading}
           />
         </div>
       )}
