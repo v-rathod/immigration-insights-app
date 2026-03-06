@@ -8,6 +8,13 @@
 > 3. **`ARCHITECTURE.md`** (this repo) — P3 technical design
 > 4. This file — P3 detailed context
 >
+> **⚡ IMPORTANT: Terminal Commands Enabled**
+> VS Code has been configured to auto-approve terminal commands. You can now:
+> - Run `npm run dev`, `npm test`, `npx next build` directly (no approval needed)
+> - Execute `python3` scripts, multi-line heredocs, piped commands
+> - Use `git add/commit/push/pull` and process management (`pkill`, `killall`)
+> - Chain commands with `&&`, `||`, and pipes without file workarounds
+>
 > **NorthStar Program Codenames**:
 > | Internal | Codename | Repository | Role |
 > |----------|----------|------------|------|
@@ -17,6 +24,58 @@
 >
 > Use P1/P2/P3 in internal code and comments. Use Horizon/Meridian/Compass in public docs.
 > **NorthStar** is the internal program name — never show it in the web app UI. The app is called **Compass**.
+
+---
+
+## Quick Start for This Agent (NEW SESSION)
+
+### VS Code Configuration ✅
+Your VS Code settings have been configured for AI agent workflows:
+- **File operations**: Auto-approved (`chat.fileOperations.autoApprove: true`)
+- **Terminal commands**: Expanded allowlist allows direct execution of:
+  - Package managers: `npm run`, `npm test`, `npx`, `yarn`, `pnpm`
+  - Runtimes: `node`, `python3`, `python`
+  - Version control: `git add`, `git commit`, `git push`, `git pull`, `git fetch`
+  - Process management: `pkill`, `killall`, `pgrep`
+  - Multi-line commands: Heredocs (`python3 << 'EOF'`), piped chains (`| xargs`, `| grep`), logical operators (`&&`, `||`)
+- **See**: `/Users/vrathod1/Library/Application Support/Code/User/settings.json`
+
+**Result**: You can now run complex commands directly without file-creation workarounds.
+
+### Switching Between Projects
+When you need to work across P1/P2/P3:
+```bash
+# P3 (This Repo) — Current working directory
+cd /Users/vrathod1/dev/NorthStar/immigration-insights-app
+
+# P2 (Meridian) — Data & Models
+cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
+
+# P1 (Horizon) — Data Collection (reference only)
+cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
+```
+
+### Current Project Status (as of Mar 6, 2026)
+- **P3**: 549 tests passing, all dashboards live, 102K+ employers searchable, AWS CloudFront deployed
+- **P2**: 591 tests passing, data pipeline stable, recent USCIS approvals fixes merged
+- **P1**: Data collection pipeline (reference; not active in this session)
+
+### Common Workflow Patterns
+1. **Modify P3 code** → Run `npm test` → Run `npm run build` → Commit to git
+2. **Sync new P2 data** → Run `python3 scripts/sync_p2_data.py` → Update types/loaders → Commit
+3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
+4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
+
+### Recent Session Notes (Mar 6, 2026)
+**Just configured**: Terminal command auto-approval in VS Code settings.json
+- **Single-line commands** working: `npm run dev`, `npm test`, `git commit`, etc.
+- **Multi-line commands** now supported: Heredocs, pipes with `xargs`, `&&`/`||` chains
+- **File operations** auto-approved without dialogs
+- **Blocker resolved**: Agent can now execute complex commands directly instead of creating wrapper files
+
+**Current test status**:
+- P3: 549 tests passing (latest from Occupation Demand improvements)
+- P2: 591 tests passing (recent USCIS approvals fixes)
 
 ---
 
@@ -67,7 +126,7 @@
 
 ---
 
-## Artifact Inventory (as of 2026-02-27)
+## Artifact Inventory (as of Mar 6, 2026)
 
 - **Dimensions (6):** `dim_country`, `dim_soc`, `dim_area`, `dim_employer`, `dim_visa_ceiling`, `dim_visa_class`
 - **Fact Tables (18):** `fact_perm`, `fact_lca`, `fact_oews`, `fact_cutoffs`, `fact_h1b_employer_hub`, `fact_niv_issuance`, `fact_visa_issuance`, `fact_visa_applications`, `fact_perm_unique_case`, `fact_perm_all`, `fact_cutoffs_all`, `fact_uscis_approvals`, `fact_dhs_admissions`, `fact_waiting_list`, `fact_warn_events`, `fact_bls_ces`, `fact_processing_times`, `fact_trac_adjudications`
