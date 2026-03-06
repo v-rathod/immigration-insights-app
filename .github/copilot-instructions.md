@@ -430,7 +430,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 556 tests across 24 files (all passing)
+- **Current count**: 557 tests across 24 files (all passing)
 
 ---
 
@@ -568,7 +568,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (24 files, 547 tests)**
+**Tests (24 files, 557 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -591,7 +591,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
 | `src/__tests__/wage-dashboard.test.tsx` | 33 | WageIntelligenceHub: employer/role modes, EmployerProfile, WageGrowthLeaderboard, data loaders, getEmployerRoles |
-| `src/__tests__/employer-normalization.test.ts` | 22 | Data integrity tests for canonical employer names in public JSON files; JSON spec compliance (no bare NaN) |
+| `src/__tests__/employer-normalization.test.ts` | 23 | Data integrity tests for canonical employer names in public JSON files; JSON spec compliance (no bare NaN); 200-shard sample test |
 | `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
 | `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
 | `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |

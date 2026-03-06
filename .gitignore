@@ -44,5 +44,9 @@ yarn-error.log*
 /public/data/dims/
 /public/data/models/
 /public/data/rag/
+/public/data/employers/
 /public/data/_manifest.json
 next-env.d.ts
+
+# Temporary scripts
+tmp_script_*.py

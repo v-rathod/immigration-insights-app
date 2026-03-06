@@ -267,15 +267,22 @@ describe("public/data/dashboards/employer/employer_monthly_metrics.json", () => 
 // ─── JSON spec compliance: no bare NaN tokens ────────────────────────────────
 
 describe("JSON spec compliance", () => {
+  // Skip `employers/` dir (95K+ shards) — they use a separate _nan_to_null()
+  // encoder and are sampled separately below for speed.
+  const SKIP_DIRS = new Set(["employers"]);
+
   const readdirSync = (dir: string): string[] => {
-    const { readdirSync: rd, statSync } = require("fs");
-    const { join } = require("path");
+    const { readdirSync: rd } = require("fs");
+    const { join, basename } = require("path");
     const entries = rd(dir, { withFileTypes: true });
     const files: string[] = [];
     for (const e of entries) {
       const full = join(dir, e.name);
-      if (e.isDirectory()) files.push(...readdirSync(full));
-      else if (e.name.endsWith(".json")) files.push(full);
+      if (e.isDirectory()) {
+        if (!SKIP_DIRS.has(e.name)) files.push(...readdirSync(full));
+      } else if (e.name.endsWith(".json")) {
+        files.push(full);
+      }
     }
     return files;
   };
@@ -296,6 +303,27 @@ describe("JSON spec compliance", () => {
       if (BAD_NAN.test(raw)) {
         const rel = file.replace(process.cwd() + "/", "");
         violators.push(rel);
+      }
+    }
+    expect(violators).toStrictEqual([]);
+  });
+
+  it("employer shard sample has no bare NaN tokens", () => {
+    const { readFileSync, readdirSync: rd, existsSync } = require("fs");
+    const { join } = require("path");
+    const empDir = join(DATA_DIR, "employers");
+    if (!existsSync(empDir)) return; // skip if no shards
+    const shards = rd(empDir)
+      .filter((f: string) => f.endsWith(".json") && f !== "_index.json");
+    // Sample up to 200 shards for speed
+    const SAMPLE = 200;
+    const step = Math.max(1, Math.floor(shards.length / SAMPLE));
+    const BAD_NAN = /(?<=[:\[,])\s*NaN\b/;
+    const violators: string[] = [];
+    for (let i = 0; i < shards.length && violators.length === 0; i += step) {
+      const fp = join(empDir, shards[i]);
+      if (BAD_NAN.test(readFileSync(fp, "utf-8"))) {
+        violators.push(shards[i]);
       }
     }
     expect(violators).toStrictEqual([]);

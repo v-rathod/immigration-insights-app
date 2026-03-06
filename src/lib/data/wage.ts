@@ -174,9 +174,9 @@ export async function loadEmployerWageRankings(): Promise<EmployerWageRanking[]>
 }
 
 /**
- * Employer-centric role breakdown: top 500 H-1B employers × their top 25 roles
- * by filing count. Use this for EmployerProfile's "Top Roles" section instead of
- * loadEmployerWageRankings() which is SOC-centric (top employers per SOC by salary).
+ * Employer-centric role breakdown: all H-1B employers with ≥5 filings × their
+ * top 25 roles by filing count. Use this for EmployerProfile's "Top Roles"
+ * section instead of loadEmployerWageRankings() which is SOC-centric.
  */
 export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]> {
   const raw = await loadDashboardData('wage', 'employer_role_profiles') as EmployerWageRanking[];
@@ -185,7 +185,7 @@ export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]>
 
 /**
  * Load multi-year percentile trend data for employer × role drill-down.
- * Source: employer_role_trends.json — top 500 employers × roles × last 5 fiscal years.
+ * Source: employer_role_trends.json — top 5,000 employers × roles × last 5 fiscal years.
  * Fields: p10, p25, median, p75, p90 salary at employer×role×year grain.
  */
 export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
@@ -245,7 +245,7 @@ export async function loadEmployerSalaryTrend(): Promise<EmployerSalaryTrend[]> 
   return Array.isArray(raw) ? raw : [];
 }
 
-/** Load ALL employers (402K+) for full-text search — no cutoff. */
+/** Load ALL employers with ≥5 total H-1B filings for full-text search. */
 export async function loadEmployerSearchIndex(): Promise<EmployerSearchIndex[]> {
   const raw = await loadDashboardData('wage', 'employer_search_index') as EmployerSearchIndex[];
   return Array.isArray(raw) ? raw : [];

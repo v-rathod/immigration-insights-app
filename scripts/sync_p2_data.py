@@ -387,10 +387,10 @@ def sync_wage_dashboard():
         size_kb = (out_dir / "employer_wage_rankings.json").stat().st_size / 1024
         print(f"    ✓ employer_wage_rankings: {n:,} rows → {size_kb:.0f} KB")
 
-        # ── 4a. employer_search_index — employers with ≥10 filings for search ──
+        # ── 4a. employer_search_index — employers with ≥5 filings for search ──
         esy = read_parquet_safe(P2_TABLES / "employer_salary_yearly.parquet")
         if not esy.empty:
-            # Export H-1B employers (≥10 filings) with minimal metadata for full-text search
+            # Export H-1B employers (≥5 filings) with minimal metadata for full-text search
             esy_all = esy[esy["visa_type"] == "H-1B"].copy()
             
             # Get total filings per employer
@@ -415,45 +415,58 @@ def sync_wage_dashboard():
             employer_stats["latest_median_salary"] = employer_stats["latest_median_salary"].fillna(0).round(0).astype(int)
             employer_stats["latest_year"] = employer_stats["latest_year"].fillna(0).astype(int)
             
-            # Prune to employers with ≥10 H-1B filings — eliminates ~86% of single-
-            # filing shell entries while keeping all meaningful search results.
-            # Reduces file from 402K rows / 47 MB → ~56K rows / 7 MB.
-            employer_stats = employer_stats[employer_stats["total_filings"] >= 10].copy()
+            # Prune to employers with ≥5 H-1B filings — captures every employer
+            # important enough to have meaningful activity, even those with just a
+            # handful of filings over a decade.  Eliminates ~74% of single/double
+            # filing shell entries while keeping all substantive employers.
+            employer_stats = employer_stats[employer_stats["total_filings"] >= 5].copy()
 
             # Sort by filing count (most relevant first)
             employer_stats = employer_stats.sort_values("total_filings", ascending=False).reset_index(drop=True)
 
             n = df_to_json(employer_stats, out_dir / "employer_search_index.json")
             size_kb = (out_dir / "employer_search_index.json").stat().st_size / 1024
-            print(f"    ✓ employer_search_index: {n:,} rows (≥10 filings) → {size_kb:.0f} KB")
+            print(f"    ✓ employer_search_index: {n:,} rows (≥5 filings) → {size_kb:.0f} KB")
 
-        # ── 4b. employer_salary_trend — top 1000 employers' wage trend ───────
+        # ── 4b. employer_salary_trend — ALL employers with ≥5 filings ────────
         if not esy.empty:
-            # Get top employers by total filings (for trend visualization).
-            # 1000 covers rank ~879 where mid-tier employers like Health Care
-            # Service Corporation appear (~1,058 total filings).
-            top_employers = (
+            # Include ALL employers with ≥5 total H-1B filings.
+            # Only H-1B rows are kept (the wage hub UI defaults to H-1B; PERM data
+            # is never shown for employer trends). This halves the output file.
+            # ~102K employers × ~4 avg year-rows = ~394K rows.
+            # Gzipped by CloudFront to ~5 MB over the wire.
+            _h1b_totals_for_trend = (
                 esy[esy["visa_type"] == "H-1B"]
                 .groupby("employer_name")["total_filings"]
                 .sum()
-                .nlargest(1000)
-                .index.tolist()
             )
+            qualified_employer_names = _h1b_totals_for_trend[
+                _h1b_totals_for_trend >= 5
+            ].index.tolist()
             esy_top = esy[
-                (esy["employer_name"].isin(top_employers))
+                (esy["employer_name"].isin(qualified_employer_names))
                 & (esy["fiscal_year"] >= 2016)
+                & (esy["visa_type"] == "H-1B")
             ].copy()
             for col in ["mean_salary", "median_salary"]:
                 esy_top[col] = esy_top[col].fillna(0).round(0).astype(int)
             # Include employer_id so P3 can resolve raw filing shards
             if "employer_id" not in esy_top.columns:
                 esy_top["employer_id"] = ""
+            # Keep only the columns the UI actually needs to minimise payload
+            trend_cols = [
+                "employer_name", "employer_id", "fiscal_year", "visa_type",
+                "median_salary", "mean_salary", "total_filings", "n_soc_codes",
+            ]
+            trend_cols = [c for c in trend_cols if c in esy_top.columns]
+            esy_top = esy_top[trend_cols].copy()
+            n_trend_employers = esy_top["employer_name"].nunique()
             n = df_to_json(esy_top, out_dir / "employer_salary_trend.json")
             size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
-            print(f"    ✓ employer_salary_trend: {n:,} rows (top 1000) → {size_kb:.0f} KB")
+            print(f"    ✓ employer_salary_trend: {n:,} rows ({n_trend_employers:,} employers, ≥5 filings, H-1B) → {size_kb:.0f} KB")
 
         # ── 4c. employer_role_profiles — employer-centric role breakdown ─────
-        # Top 1000 employers × their top 25 H-1B roles by filing count.
+        # ALL employers with ≥5 H-1B filings × their top 25 roles by filing count.
         # This is the CORRECT data source for EmployerProfile's "Top Roles" section.
         # employer_wage_rankings.json is SOC-centric (top employers per SOC) which
         # causes large firms like Cognizant to appear for only 2 of their 33 roles.
@@ -463,25 +476,24 @@ def sync_wage_dashboard():
         ].copy()
 
         # Build two coverage tiers from yearly table:
-        #   top_1000_by_filings — for role_profiles (table only, ~2MB)
-        #   top_500_by_filings  — for role_trends (5-year charts, keep at ~8MB)
-        # Using 1000 for profiles captures mid-tier employers (rank ~879, ~1,000
-        # total filings, e.g. Health Care Service Corporation) that have verified
-        # salary data but were excluded by the old 500 cutoff.
+        #   all_qualified (≥5 filings) — for role_profiles (all searchable employers)
+        #   top_5000_by_filings — for role_trends (5-year percentile charts, ~12MB)
         if not esy.empty:
             _h1b_employer_totals = (
                 esy[esy["visa_type"] == "H-1B"]
                 .groupby("employer_name")["total_filings"]
                 .sum()
             )
-            top_1000_by_filings = _h1b_employer_totals.nlargest(1000).index.tolist()
-            top_500_by_filings  = _h1b_employer_totals.nlargest(500).index.tolist()
+            all_qualified_by_filings = _h1b_employer_totals[
+                _h1b_employer_totals >= 5
+            ].index.tolist()
+            top_5000_by_filings = _h1b_employer_totals.nlargest(5000).index.tolist()
         else:
             # Fallback: use all employers present in profiles
-            top_1000_by_filings = erp["employer_name"].unique().tolist()
-            top_500_by_filings  = top_1000_by_filings
+            all_qualified_by_filings = erp["employer_name"].unique().tolist()
+            top_5000_by_filings = all_qualified_by_filings
 
-        erp = erp[erp["employer_name"].isin(top_1000_by_filings)].copy()
+        erp = erp[erp["employer_name"].isin(all_qualified_by_filings)].copy()
 
         # For each employer use their own latest available year (not a global benchmark)
         latest_year_per_emp = (
@@ -531,8 +543,8 @@ def sync_wage_dashboard():
             & esp["median_salary"].notna()
         ].copy()
 
-        # Same top 500 employers as role_profiles
-        ert = ert[ert["employer_name"].isin(top_500_by_filings)].copy()
+        # Top 5000 employers for percentile trend charts (larger set for deeper coverage)
+        ert = ert[ert["employer_name"].isin(top_5000_by_filings)].copy()
 
         # Keep last 5 fiscal years of data per employer
         max_year = ert["fiscal_year"].max()
@@ -593,15 +605,15 @@ def sync_employer_raw_filings():
         print("  ⚠  employer_salary_yearly missing — skipping raw filings sync")
         return
 
-    # Top 1000 employers by total H-1B filings
-    top_employers_series = (
+    # ALL employers with ≥5 total H-1B filings (matching search index threshold)
+    _all_emp = (
         esy[esy["visa_type"] == "H-1B"]
         .groupby(["employer_name", "employer_id"])["total_filings"]
         .sum()
         .reset_index()
         .sort_values("total_filings", ascending=False)
-        .head(1000)
     )
+    top_employers_series = _all_emp[_all_emp["total_filings"] >= 5].copy()
     # employer_name → employer_id mapping (canonical)
     emp_id_map: dict = top_employers_series.set_index("employer_name")["employer_id"].to_dict()
 
