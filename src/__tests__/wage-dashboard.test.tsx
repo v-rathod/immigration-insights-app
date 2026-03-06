@@ -163,6 +163,7 @@ vi.mock("../lib/data/wage", async () => {
     loadEmployerRoleProfiles: vi.fn().mockResolvedValue([
       { soc_code: "15-1252", soc_title: "Software Developers", employer_name: "Google LLC", fiscal_year: 2025, n_filings: 1200, mean_salary: 190000, median_salary: 185000, p25_salary: 165000, p75_salary: 210000, prevailing_wage_median: 140000, wage_premium_pct: 32.1, wage_vs_pw_pct: 28.5, oews_national_median: 126000, visa_type: "H-1B", job_title_top: "Software Engineer", worksite_state_top: "CA" },
     ]),
+    loadEmployerRoleTrends: vi.fn().mockResolvedValue([]),
   };
 });
 

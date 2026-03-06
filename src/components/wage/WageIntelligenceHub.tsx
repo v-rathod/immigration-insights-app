@@ -261,8 +261,10 @@ export function WageIntelligenceHub() {
   const [roleProfiles, setRoleProfiles] = useState<EmployerWageRanking[]>([]);
   const [roleTrends, setRoleTrends] = useState<EmployerRoleTrend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [employerDataLoading, setEmployerDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const heavyDataLoaded = useRef(false);
 
   // ── Search / selection state ──────────────────────────────────────────────
   const [searchMode, setSearchMode] = useState<SearchMode>("employer");
@@ -279,30 +281,27 @@ export function WageIntelligenceHub() {
   const socFuseRef = useRef<Fuse<SocOption> | null>(null);
   const employerFuseRef = useRef<Fuse<string> | null>(null);
 
-  // ── Load data on mount ────────────────────────────────────────────────────
+  // ── Load lightweight data on mount (~30 MB total) ──────────────────────
+  // Heavy files (employer_salary_trend 81MB, role_profiles 24MB, role_trends 25MB)
+  // are deferred until the user selects an employer or opens the Top Employers tab.
   useEffect(() => {
     async function load() {
       try {
-        const [nat, sts, mkt, rnk, trd, searchIdx, rolePro, roleTrd] = await Promise.all([
+        const [nat, sts, mkt, rnk, searchIdx] = await Promise.all([
           loadSalaryBenchmarksNational(),
           loadSalaryBenchmarksStates(),
           loadSocSalaryMarket(),
           loadEmployerWageRankings(),
-          loadEmployerSalaryTrend(),
           loadEmployerSearchIndex(),
-          loadEmployerRoleProfiles(),
-          loadEmployerRoleTrends(),
         ]);
         setNational(nat);
         setStates(sts);
         setMarket(mkt);
         setRankings(rnk);
-        setTrends(trd);
         setSearchIndex(searchIdx);
-        setRoleProfiles(rolePro);
-        setRoleTrends(roleTrd);
 
         // Build job category Fuse index — enriched with role aliases for better discoverability.
+        // (employer_salary_trend, employer_role_profiles, employer_role_trends loaded lazily below)
         // Searching "backend engineer" or "web developer" surfaces "Software Developers (15-1252)".
         const socList = getSocList(mkt).map((soc) => ({
           ...soc,
@@ -340,6 +339,28 @@ export function WageIntelligenceHub() {
     const profile = secureGet<UserProfile>("profile");
     if (profile?.wageOffered && profile.wageOffered > 0) setUserProfile(profile);
   }, []);
+
+  // ── Lazy-load heavy data (130 MB) only when actually needed ───────────────
+  // Triggers when: employer is selected, OR user opens the "Top Employers" tab in role mode.
+  // Loads at most once per session (guarded by heavyDataLoaded ref).
+  useEffect(() => {
+    if (heavyDataLoaded.current) return;
+    if (!selectedEmployer && !(selectedSoc && activeTab === "employers")) return;
+    heavyDataLoaded.current = true;
+    setEmployerDataLoading(true);
+    Promise.all([
+      loadEmployerSalaryTrend(),
+      loadEmployerRoleProfiles(),
+      loadEmployerRoleTrends(),
+    ])
+      .then(([trd, rolePro, roleTrd]) => {
+        setTrends(trd);
+        setRoleProfiles(rolePro);
+        setRoleTrends(roleTrd);
+      })
+      .catch((e) => console.error("[WageHub] lazy load error", e))
+      .finally(() => setEmployerDataLoading(false));
+  }, [selectedEmployer, selectedSoc, activeTab]);
 
   // ── Employer list for empty-state quick picks (top employers by filing count) ──
   const allEmployers = useMemo(() => {
@@ -864,7 +885,14 @@ export function WageIntelligenceHub() {
                       Ranked by median {visaType} salary · FY2025 · Click row to expand trend
                     </p>
                   </div>
-                  <EmployerWageTable rankings={rankings} trends={trends} socCode={socCode} visaType={visaType} />
+                  {employerDataLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-12 text-sm text-[var(--muted-foreground)]">
+                      <div className="h-4 w-4 rounded-full border-2 border-blue-400/40 border-t-blue-400 animate-spin" />
+                      Loading employer salary data…
+                    </div>
+                  ) : (
+                    <EmployerWageTable rankings={rankings} trends={trends} socCode={socCode} visaType={visaType} />
+                  )}
                 </GlassCard>
               )}
               {activeTab === "regional" && (
@@ -933,12 +961,18 @@ export function WageIntelligenceHub() {
               <div className="h-10 w-10 rounded-xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center shrink-0">
                 <Building2 className="h-5 w-5 text-blue-400" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-base font-bold text-[var(--foreground)]">{selectedEmployer}</h3>
                 <p className="text-xs text-[var(--muted-foreground)]">
                   H-1B salary history · Top roles ranked by latest fiscal year
                 </p>
               </div>
+              {employerDataLoading && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                  <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-400/40 border-t-blue-400 animate-spin" />
+                  Loading salary data…
+                </div>
+              )}
             </div>
           </FadeIn>
           <EmployerProfile
