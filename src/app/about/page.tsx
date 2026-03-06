@@ -45,17 +45,17 @@ const TECH_STACK = [
 const DATA_SOURCES = [
   {
     name: "Dept. of Labor (DOL)",
-    description: "1.7M employer sponsorship records + 9.6M work visa applications — job classifications, wages, and approval rates",
+    description: "1.7M employer sponsorship records + 9.6M work visa applications including job classifications, wages, and approval rates",
     icon: Database,
   },
   {
     name: "State Dept. Visa Bulletin",
-    description: "14K+ historical priority date cutoffs — tracks how the employment-based visa queue moves each month since 2011",
+    description: "14K+ historical priority date cutoffs tracking how the employment-based visa queue moves each month since 2011",
     icon: BarChart3,
   },
   {
     name: "Bureau of Labor Statistics (BLS)",
-    description: "446K national wage records — salary benchmarks by job type, geographic area, and income percentile",
+    description: "446K national wage records for salary benchmarks by job type, geographic area, and income percentile",
     icon: Globe2,
   },
   {
@@ -81,7 +81,7 @@ const PRINCIPLES = [
     icon: Code2,
     title: "Open Source",
     description:
-      "Every line of code is open. Three repositories — Horizon (data collection), Meridian (analytics), and Compass (this app) — available for review and contribution.",
+      "Every line of code is open in three repositories: Horizon (data collection), Meridian (analytics), and Compass (this app). All available for review and contribution.",
   },
   {
     icon: Sparkles,
@@ -283,17 +283,17 @@ export default function AboutPage() {
           {[
             {
               name: "Horizon",
-              role: "Data collection — scans official sources and ingests raw records",
+              role: "Data collection: scans official sources and ingests raw records",
               gradient: "from-cyan-500 to-blue-500",
             },
             {
               name: "Meridian",
-              role: "Analytics backbone — curates, measures, models. Produces 46 artifact tables",
+              role: "Analytics backbone: curates, measures, models. Produces 46 artifact tables",
               gradient: "from-blue-500 to-purple-500",
             },
             {
               name: "Compass",
-              role: "User experience — renders pre-computed JSON into interactive dashboards",
+              role: "User experience: renders pre-computed JSON into interactive dashboards",
               gradient: "from-purple-500 to-rose-500",
             },
           ].map((repo) => (
@@ -346,7 +346,7 @@ export default function AboutPage() {
             <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted-foreground)]">
               NorthStar Compass is an open-source community project. Whether you
               want to report a bug, suggest a feature, contribute code, or just
-              say hello — you&apos;re welcome here.
+              say hello, you&apos;re welcome here.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
