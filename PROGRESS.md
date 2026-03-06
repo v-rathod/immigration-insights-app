@@ -1,5 +1,56 @@
 # Compass Progress Tracker
 
+## 2026-03-09 — Milestone 10.28: Bug Fixes — Wage Search Dead-Ends + SRS Unrated Subscores
+
+### Objective
+Fix two UX bugs reported on the live CloudFront site for "Intelligent Medical Objects":
+1. Wage Competitiveness — employer was searchable but showed "no trend data available" on selection
+2. Sponsor Score — employer was searchable but showed "Unrated" with no useful information
+
+### Root Causes Identified
+
+**Wage: Search index vs profile data mismatch (55,941 dead-end searches)**
+- `employer_search_index.json`: 56,426 employers (powers Fuse autocomplete)
+- `employer_role_profiles.json`: only 485 employers (powers the data shown after selection)
+- 55,941 employers were searchable but returned empty on selection
+- IMO has `total_filings=80` in the search index but zero rows in profiles
+- **P3 fix**: Scope Fuse index to only employers with profile data
+
+**SRS: Composite score gated on PERM filing volume (55,926 employers affected)**
+- P2 SRS model requires `n_12m >= ~5` PERM filings for a composite score
+- IMO has `n_12m=1` PERM filing but `lca_filings_24m=14` LCA filings
+- All 5 subscores ARE computed (outcome=89, wage=100, sustainability=28, h1b_signal=69, retention=69)
+- P3 gauge was hiding all subscores behind `{isRated && ...}` condition
+- **P3 fix**: Show subscores + amber explanation when unrated but subscores exist
+
+### What Was Done
+
+**`src/components/wage/WageIntelligenceHub.tsx`**
+- Scoped employer Fuse index from 56K → ~485 profiled employers (prevents dead-end searches)
+- Scoped `allEmployers` memo to profiled employers only (EmptyState quick-picks also consistent)
+
+**`src/components/srs/score-gauge.tsx`**
+- Added `hasSubscores` variable (truthy when any subscore > 0)
+- Added amber info box: "Too few recent filings for an overall score. Component scores below are based on available LCA data." — shown when `!isRated && hasSubscores`
+- Changed subscores section condition from `{isRated && ...}` to `{(isRated || (!isRated && hasSubscores)) && ...}` so all 5 bars are visible for small employers
+
+### P2 Structural Notes (Not Addressed — Requires Data Regeneration)
+- **SRS**: Should gate composite on `lca_filings_24m` (LCA volume) rather than `n_12m` (PERM only)
+- **Wage profiles**: Expand from top-485 to top-5K+ employers in P2 `build_employer_wage_profiles.py`
+
+### Results
+- 556 tests passing (all 24 files)
+- Deployed to: https://d10immmzyp7xgr.cloudfront.net
+- Commit: `f6ce707`
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/components/wage/WageIntelligenceHub.tsx` | Scoped Fuse + allEmployers to profiled employers only |
+| `src/components/srs/score-gauge.tsx` | Show subscores + amber note for unrated employers with partial data |
+
+---
+
 ## 2026-03-05 — Milestone 10.27: AWS Deployment (S3 + CloudFront + Logging)
 
 ### Objective
@@ -1620,7 +1671,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.25 — 2026-03-08)
+## Quick Reference (Current State as of Milestone 10.28 — 2026-03-09)
 
 | Metric | Value |
 |--------|-------|
@@ -1792,6 +1843,8 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.24 | 2026-03-08 | Pre-Deploy Optimization (221 MB Reduction) | Delete 3 dead files (119 MB); filter geo/monthly/search (-102 MB); fix NaN→null in 14 JSON files; new JSON spec compliance test; 547 tests |
 | 10.25 | 2026-03-08 | Contact Us Modal + Footer Polish | ContactModal (Formspree + mailto fallback), ContactButton client island, footer link, analytics.contactSubmitted(); 556 tests |
 | 10.26 | 2026-03-09 | Documentation Overhaul + Agent Guidebook | BEST_PRACTICES.md (10 sections); all 3 READMEs updated; BEST_PRACTICES.md wired into all 3 copilot-instructions.md START HERE blocks; 3 commits pushed |
+| 10.27 | 2026-03-09 | AWS Deployment (S3 + CloudFront) | 22 AWS resources via Terraform; all 16 pages verified; ~$1–3/month; URL: d10immmzyp7xgr.cloudfront.net |
+| 10.28 | 2026-03-09 | Bug Fixes — Wage Dead-Ends + SRS Subscores | Wage Fuse scoped 56K→485 profiled employers; SRS gauge shows subscores+amber note for unrated; 556 tests; deployed |
 
 ---
 
