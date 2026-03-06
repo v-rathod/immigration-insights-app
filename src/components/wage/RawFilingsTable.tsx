@@ -359,7 +359,7 @@ function LcaFilingsTab({
                   {/* Job Title */}
                   <td className="px-3 py-2.5 max-w-[200px]">
                     <span className="font-medium text-white/85 line-clamp-1 block">
-                      {row.job_title || "—"}
+                      {row.job_title || "-"}
                     </span>
                     {row.case_number && (
                       <span className="text-[10px] text-white/25 font-mono">
@@ -371,7 +371,7 @@ function LcaFilingsTab({
                   {/* Occupation */}
                   <td className="px-3 py-2.5 hidden lg:table-cell">
                     <span className="text-white/70 text-xs line-clamp-1">
-                      {row.soc_title || "—"}
+                      {row.soc_title || "-"}
                     </span>
                   </td>
 
@@ -380,7 +380,7 @@ function LcaFilingsTab({
                     <span className="text-white/75 text-xs">
                       {[row.worksite_city, row.worksite_state]
                         .filter(Boolean)
-                        .join(", ") || "—"}
+                        .join(", ") || "-"}
                     </span>
                   </td>
 
@@ -389,7 +389,7 @@ function LcaFilingsTab({
                     <span className="font-medium text-white/90 tabular-nums">
                       {row.wage_annual > 0
                         ? formatCurrency(row.wage_annual)
-                        : "—"}
+                        : "-"}
                     </span>
                     {row.wage_annual_high && row.wage_annual_high > row.wage_annual && (
                       <span className="text-[10px] text-white/35 block">
@@ -411,7 +411,7 @@ function LcaFilingsTab({
                             "en-US",
                             { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" }
                           )
-                        : "—"}
+                        : "-"}
                     </span>
                   </td>
 
@@ -423,7 +423,7 @@ function LcaFilingsTab({
                             "en-US",
                             { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" }
                           )
-                        : "—"}
+                        : "-"}
                     </span>
                   </td>
 

@@ -87,7 +87,7 @@ const PRINCIPLES = [
     icon: Sparkles,
     title: "Free Forever",
     description:
-      "Hosted on AWS using S3 and CloudFront — globally distributed, fast, and reliable. No premium tiers, no paywalls, no ads. Immigration tools shouldn't have a price tag.",
+      "Hosted on AWS using S3 and CloudFront - globally distributed, fast, and reliable. No premium tiers, no paywalls, no ads. Immigration tools shouldn't have a price tag.",
   },
   {
     icon: Users,
