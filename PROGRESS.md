@@ -1,5 +1,70 @@
 # Compass Progress Tracker
 
+## 2026-03-10 — Milestone 10.31: Raw Filings Table in Wage Dashboard
+
+### Objective
+Add a "Raw Filings" section to the Employer Profile in the Wage dashboard showing two tabs of per-employer data: (1) individual LCA filings per case and (2) annual H-1B petition history from USCIS.
+
+### What Was Done
+
+**P3 `scripts/sync_p2_data.py`:**
+- Added `sync_employer_raw_filings()` function generating per-employer shard files
+- Output: `public/data/employers/{employer_id}.json` — 987 employers synced
+- Output: `public/data/employers/_index.json` — name → employer_id mapping (905 unique canonical names)
+- LCA data: FY2022–2025, max 2000 rows per employer, sorted by received_date descending
+- H-1B data: FY2010–2023 USCIS annual aggregate (historical — USCIS discontinued publishing after FY2023)
+- Key fixes:
+  - Removed `is_stale` filter from `fact_h1b_employer_hub` — all rows flagged stale since USCIS discontinued the dataset; data is still valid historical record
+  - Vectorized wage annualization (hourly×2080, weekly×52, bi-weekly×26, monthly×12) instead of row-wise `.apply()` to avoid NaN→int ValueError
+  - List comprehension `int(v) if pd.notna(v) and v and int(v) > 0 else None` for nullable `Int64` → JSON-safe int/null (replaces `.where(…).apply(…)` chain that converted `pd.NA` to float `NaN`)
+  - `_nan_to_null()` recursive sanitizer + `_NaNSafeEncoder` ensuring all NaN/Inf/pd.NA → JSON `null`
+
+**P3 `src/lib/data/wage.ts`:**
+- Added `LcaFiling` interface (13 fields)
+- Added `H1bPetitionYear` interface (7 fields)
+- Added `loadEmployerFilings(employerId)` async loader — fetches `/data/employers/{id}.json`
+
+**P3 `src/components/wage/RawFilingsTable.tsx` (NEW ~430 lines):**
+- Two tabs: "LCA Filings" and "Petition History"
+- LCA tab: sortable 7 columns (job title, location, base salary, status, filed, decision, FT)
+- LCA tab: search box (job title/city), year dropdown, status dropdown
+- LCA tab: 25-row pagination, case number sub-row, wage range display (low–high)
+- LCA tab: color-coded status badges (CERTIFIED=emerald, WITHDRAWN=amber, DENIED=rose)
+- Petition tab: annual USCIS aggregate FY2010–2023 with color-coded approval rate
+- Petition tab: totals footer row, note about FY2023+ discontinuation
+- Glassmorphic styling consistent with Aurora design system
+
+**P3 `src/components/wage/EmployerProfile.tsx`:**
+- Lazy-loads employer filings on component mount via `useEffect`
+- Derives `employerId` from trend data via `useMemo`
+- Shows loading spinner while fetching, then renders `<RawFilingsTable>` at bottom of profile
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **556 passing** (24 files, unchanged) |
+| Employer shards | 987 employer JSON files + `_index.json` |
+| H1B coverage | 905 of 987 employers matched to USCIS petition data |
+| Infosys shard | 2000 LCA rows (FY2022–2025) + 14 H1B petition years (FY2010–2023) |
+| NaN scanner | Passes — all 988 shard files contain valid JSON |
+| Commit | `6f5040a` pushed to origin/main |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/sync_p2_data.py` | Added `sync_employer_raw_filings()` + 3 bug fixes |
+| `src/lib/data/wage.ts` | Added `LcaFiling`, `H1bPetitionYear`, `loadEmployerFilings()` |
+| `src/components/wage/RawFilingsTable.tsx` | NEW — two-tab raw filings table |
+| `src/components/wage/EmployerProfile.tsx` | Added lazy-load + RawFilingsTable render |
+| `public/data/employers/` | NEW — 987 shard files + `_index.json` |
+
+### Next Steps
+1. Continue Phase 4: Personalized Panels (Green Card Forecast, Employer Insights, Job Market)
+2. Verify RawFilingsTable renders correctly in dev server (`npm run dev`)
+3. Update PRODUCT_GUIDE.md with new Raw Filings section
+
+---
+
 ## 2026-03-09 — Milestone 10.30: SOC Salary Market Bias Fix + Artifact Audit
 
 ### Objective
@@ -1829,7 +1894,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.30 — 2026-03-09)
+## Quick Reference (Current State as of Milestone 10.31 — 2026-03-10)
 
 | Metric | Value |
 |--------|-------|
@@ -1840,12 +1905,12 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
 | Tests | **556 passing** across 24 test files |
-| P2 data synced | ✅ 35 JSON files via `sync_p2_data.py` |
-| **public/data/ payload** | **~85 MB** (was ~362 MB — 225 MB eliminated pre-deploy) |
+| P2 data synced | ✅ 35 JSON files + 987 employer shard files via `sync_p2_data.py` |
+| **public/data/ payload** | **~100 MB** (~85 MB + 15.6 MB employer shards) |
 | Pages scaffolded | 16 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/dashboard/approvals/`, `/_not-found`) |
-| Components | 35 custom (layout, UI, SRS, PDI, wage, approvals, providers) |
+| Components | 36 custom (layout, UI, SRS, PDI, wage incl. RawFilingsTable, approvals, providers) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** + **Ask** (RAG Q&A) + **My Insights** (personalized) + **Contact Us** (Formspree email) |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** (incl. Raw Filings) + **Ask** (RAG Q&A) + **My Insights** (personalized) + **Contact Us** (Formspree email) |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
 | Dashboards built | **9 / 9** ✅ (SRS, Visa Bulletin/PDC, Wage, EB Category, Geographic, SOC Demand, Processing, Backlog, Approvals) |
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
@@ -2005,6 +2070,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.28 | 2026-03-09 | Bug Fixes — Wage Dead-Ends + SRS Subscores | Wage Fuse scoped 56K→485 profiled employers; SRS gauge shows subscores+amber note for unrated; 556 tests; deployed |
 | 10.29 | 2026-03-06 | SRS 36m Window + Data Verification | LCA window 24m→36m; 5 employer data points verified exact; 556 tests |
 | 10.30 | 2026-03-09 | SOC Salary Market Bias Fix | `_build_soc_market_summary` now uses true flat median from raw records; 6% bias eliminated; 10 new P2 regression tests; QA pairs 684→719; P2 commit b89cbcf |
+| 10.31 | 2026-03-10 | Raw Filings Table in Wage Dashboard | `RawFilingsTable.tsx` (2-tab: LCA per-case + H1B petitions); 987 employer shards generated; NaN→null serialization fixed; `is_stale` filter removed for historical H1B data; 556 tests; commit 6f5040a |
 
 ---
 
