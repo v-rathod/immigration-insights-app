@@ -267,7 +267,8 @@ function LcaFilingsTab({
             setSelectedYear(e.target.value === "all" ? "all" : Number(e.target.value));
             resetPage();
           }}
-          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/80 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+          style={{ colorScheme: "dark" }}
+          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/90 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
         >
           <option value="all">All years</option>
           {years.map((y) => (
@@ -284,7 +285,8 @@ function LcaFilingsTab({
             setSelectedStatus(e.target.value);
             resetPage();
           }}
-          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/80 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+          style={{ colorScheme: "dark" }}
+          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/90 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
         >
           <option value="all">All statuses</option>
           {statuses.map((s) => (
@@ -368,7 +370,7 @@ function LcaFilingsTab({
 
                   {/* Occupation */}
                   <td className="px-3 py-2.5 hidden lg:table-cell">
-                    <span className="text-white/55 text-xs line-clamp-1">
+                    <span className="text-white/70 text-xs line-clamp-1">
                       {row.soc_title || "—"}
                     </span>
                   </td>
@@ -403,7 +405,7 @@ function LcaFilingsTab({
 
                   {/* Filed */}
                   <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="text-white/55 text-xs tabular-nums">
+                    <span className="text-white/70 text-xs tabular-nums">
                       {row.received_date
                         ? new Date(row.received_date + "T00:00:00Z").toLocaleDateString(
                             "en-US",
@@ -415,7 +417,7 @@ function LcaFilingsTab({
 
                   {/* Decision */}
                   <td className="px-3 py-2.5 whitespace-nowrap hidden xl:table-cell">
-                    <span className="text-white/40 text-xs tabular-nums">
+                    <span className="text-white/60 text-xs tabular-nums">
                       {row.decision_date && row.decision_date !== row.received_date
                         ? new Date(row.decision_date + "T00:00:00Z").toLocaleDateString(
                             "en-US",
@@ -430,7 +432,7 @@ function LcaFilingsTab({
                     <span
                       className={cn(
                         "text-[10px] font-semibold",
-                        row.is_fulltime ? "text-emerald-400/70" : "text-white/30"
+                        row.is_fulltime ? "text-emerald-400" : "text-white/60"
                       )}
                     >
                       {row.is_fulltime ? "FT" : "PT"}
