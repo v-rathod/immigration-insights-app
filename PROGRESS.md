@@ -1,5 +1,64 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.36: Wage Page — 4 Bug Fixes + 18 New Tests
+
+### Objective
+Fix 4 user-reported bugs on the Wage Intelligence dashboard:
+1. Loading UX — "no trend data available" shown during lazy load (wrong impression)
+2. Auto-collapse — Top Roles and Filing Records could both be expanded simultaneously
+3. Top Roles defect — Intelligent Medical Objects showed only 1 role (should show 3)
+4. Filing Records broken — no LCA/petition data for any employer in production
+
+### What Was Done
+
+**`src/lib/data/wage.ts` — `getEmployerRoles` rewrite:**
+- Root cause: `latestYear` filter kept only one year's rows per employer → only roles active in the most recent fiscal year appeared
+- Fix: multi-year deduplication by `soc_code` — iterate all rows, keep most recent `fiscal_year` per SOC, break ties by `n_filings`
+- Added `minFilings` parameter (default=`WAGE_SANITY.MIN_FILINGS_RANKING=5`; pass `1` for pre-curated `roleProfiles` data to show small employers like IMO)
+- Per-role `prior_year_median_salary` now looks up each role's own prior year (not a global prior year)
+
+**`src/components/wage/EmployerProfile.tsx`:**
+- Added `isLoading?: boolean` prop — shows `animate-pulse` skeleton with "Loading salary data for…" message during lazy load instead of false "No trend data" error
+- Auto-collapse: Top Roles `onClick` sets `setFilingsOpen(false)`; Filing Records `onClick` sets `setTopRolesOpen(false)`
+- Passes `minFilings=1` when `roleProfiles` is pre-curated (vs. raw `rankings`)
+- Raised Top Roles slice limit 8 → 25
+
+**`src/components/wage/WageIntelligenceHub.tsx`:**
+- Passes `isLoading={employerDataLoading}` to `EmployerProfile`
+
+**`src/__tests__/wage-dashboard.test.tsx` — 18 new tests:**
+- Rewrote `getEmployerRoles` describe block (10 tests): multi-year dedup, older-year-only roles included, minFilings param, IMO 3-role pattern, **Optum Services ≥10 role baseline**
+- New `describe("EmployerProfile")` (12 tests): loading skeleton, false-error guard, growth badges, Top Roles count, auto-collapse mutual exclusion, Filing Records button visibility
+
+**S3 employer shards:**
+- Root cause of Filing Records being broken: all prior S3 syncs excluded `data/employers/*` (95K shard files)
+- Fix: separate `aws s3 sync out/data/employers/ s3://... ` — uploaded all 95K files
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **575 passing** (was 557, 24 files) |
+| TypeScript errors | 0 |
+| IMO Top Roles | 3 (was 1) |
+| Optum Services Top Roles | 12 |
+| Build | ✅ Clean static export |
+| Deployed | ✅ AWS S3 + CloudFront invalidation `I75BVRR4TQDMC62TWWCY6T2G0P` |
+| Commit | `72b215b` |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/lib/data/wage.ts` | `getEmployerRoles`: multi-year dedup, `minFilings` param, per-role prior-year salary |
+| `src/components/wage/EmployerProfile.tsx` | `isLoading` prop + skeleton, auto-collapse, minFilings=1 for profiles, slice→25 |
+| `src/components/wage/WageIntelligenceHub.tsx` | Pass `isLoading={employerDataLoading}` to EmployerProfile |
+| `src/__tests__/wage-dashboard.test.tsx` | 18 new tests (51 total, was 33) |
+
+### Next Steps
+- Verify production: Optum Services (12 roles), IMO (3 roles), Filing Records data, loading skeleton, auto-collapse
+- Consider applying same multi-year dedup to `employer_role_trends.json` if needed
+
+---
+
 ## 2026-03-06 — Milestone 10.35: Filing Records Rename + Top Roles 36-Month Fix
 
 ### Objective
@@ -2135,7 +2194,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.34 — 2026-03-06)
+## Quick Reference (Current State as of Milestone 10.36 — 2026-03-06)
 
 | Metric | Value |
 |--------|-------|
@@ -2145,7 +2204,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **557 passing** across 24 test files |
+| Tests | **575 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files + 95,152 employer shard files via `sync_p2_data.py` |
 | **public/data/ payload** | **~160 MB** (~85 MB dashboards + ~75 MB employer shards) |
 | Pages scaffolded | 16 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/dashboard/approvals/`, `/_not-found`) |
@@ -2160,7 +2219,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | FAB | Single-click feedback dialog (MessageSquarePlus icon) |
 | Contact Us | Footer modal → Formspree → `v.s.rathod@gmail.com` (configure `NEXT_PUBLIC_FORMSPREE_ID`) |
 | PostHog | Super properties: `environment` tag on all events |
-| AWS deploy | Ready — static export clean, 557 tests passing, JSON files valid |
+| AWS deploy | Ready — static export clean, 575 tests passing, JSON files valid |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
 
 ### Quick Commands
@@ -2314,6 +2373,9 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.31 | 2026-03-10 | Raw Filings Table in Wage Dashboard | `RawFilingsTable.tsx` (2-tab: LCA per-case + H1B petitions); 987 employer shards generated; NaN→null serialization fixed; `is_stale` filter removed for historical H1B data; 556 tests; commit 6f5040a |
 | 10.32 | 2026-03-10 | 5-Year LCA Window, Collapsed Accordions & Author Credits | LCA window = last 5 FYs (was FY2022+ with 2000 cap); collapsed accordions for Top Roles + Raw Filings; PAGE_SIZE 25→100; author credits in About + Footer; 556 tests |
 | 10.33 | 2026-03-06 | Universal Employer Search (≥5 Filings) | Search scoped to ~485 employers → 102K+; thresholds top-1000→all ≥5; H-1B only salary trend; 95K shards; NaN test fix; 557 tests |
+| 10.34 | 2026-03-06 | Comprehensive SEO | Schema.org structured data, per-page metadata, robots.txt, sitemap.xml; 557 tests |
+| 10.35 | 2026-03-06 | Filing Records Rename + Top Roles 36m | Label rename Raw Filings→Filing Records; 36-month aggregation window in sync script; Optum 3→12 roles; lazy loading 160→30MB; 557 tests |
+| 10.36 | 2026-03-06 | Wage Page 4 Bug Fixes + 18 Tests | Loading skeleton (animate-pulse), auto-collapse mutual exclusion, getEmployerRoles multi-year dedup (IMO 1→3 roles), 95K employer shards uploaded to S3 (fixes Filing Records prod 404); 575 tests |
 
 ---
 
