@@ -171,7 +171,7 @@ export default function LandingPage() {
           <FadeIn delay={0.3}>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
               <Link
-                href="/setup/"
+                href="/insights"
                 className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-7 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
               >
                 Get Started

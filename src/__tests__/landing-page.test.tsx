@@ -155,10 +155,10 @@ describe("Landing Page", () => {
     expect(screen.getByLabelText("Why Compass")).toBeInTheDocument();
   });
 
-  it("links Get Started to /setup/", async () => {
+  it("links Get Started to /insights", async () => {
     renderLanding();
     const link = await screen.findByText("Get Started");
-    expect(link.closest("a")).toHaveAttribute("href", "/setup/");
+    expect(link.closest("a")).toHaveAttribute("href", "/insights");
   });
 
   it("links dashboard cards to correct routes", async () => {
