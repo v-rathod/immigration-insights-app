@@ -732,17 +732,38 @@ def sync_employer_raw_filings():
     shards_written = 0
     skipped = 0
 
+    # Maximum rows to include per shard (after 5-year window filter).
+    # This guards against multi-GB shards for mega-filing employers like Infosys
+    # while still covering the full 5-year window for typical employers.
+    LCA_MAX_ROWS = 5000
+
     for emp_name, emp_id in emp_id_map.items():
         if not emp_id:
             skipped += 1
             continue
 
-        # --- LCA rows for this employer
+        # --- LCA rows for this employer (last 5 fiscal years)
         lca_rows: list = []
+        lca_total: int = 0          # total cases in window (before cap)
+        lca_fy_range: list = []     # [min_fy, max_fy] actually present
         if not lca.empty and "employer_id" in lca.columns:
             emp_lca = lca[lca["employer_id"] == emp_id].copy()
+            if not emp_lca.empty and "fiscal_year" in emp_lca.columns:
+                # Restrict to the 5 most-recent fiscal years in the data
+                top_fys = sorted(emp_lca["fiscal_year"].dropna().unique(), reverse=True)[:5]
+                emp_lca = emp_lca[emp_lca["fiscal_year"].isin(top_fys)]
+
             if not emp_lca.empty:
-                emp_lca = emp_lca.sort_values("received_date", ascending=False).head(2000)
+                lca_total = len(emp_lca)
+                fy_present = emp_lca["fiscal_year"].dropna().astype(int)
+                lca_fy_range = [int(fy_present.min()), int(fy_present.max())]
+
+                # Sort by FY descending then received_date descending; cap at LCA_MAX_ROWS
+                sort_cols = [c for c in ["fiscal_year", "received_date"] if c in emp_lca.columns]
+                emp_lca = emp_lca.sort_values(sort_cols, ascending=[False] * len(sort_cols))
+                if len(emp_lca) > LCA_MAX_ROWS:
+                    emp_lca = emp_lca.head(LCA_MAX_ROWS)
+
                 # Keep only useful columns
                 keep = [c for c in LCA_KEEP_COLS if c in emp_lca.columns]
                 emp_lca = emp_lca[keep].copy()
@@ -770,6 +791,9 @@ def sync_employer_raw_filings():
             "employer_name": emp_name,
             "employer_id": emp_id,
             "lca": lca_rows,
+            # Metadata so the UI can show "5,000 of 18,234 records · FY2021–FY2025"
+            "lca_total": lca_total,
+            "lca_fy_range": lca_fy_range,
             "h1b_petitions": petition_rows,
         }
         shard_path = out_dir / f"{emp_id}.json"

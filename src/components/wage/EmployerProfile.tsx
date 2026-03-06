@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -144,9 +144,15 @@ export function EmployerProfile({
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<{ soc_code: string; soc_title: string } | null>(null);
 
-  // ── Raw filings: lazy-load on first render for this employer ──────────────
+  // ── Collapsed section state (both off by default) ─────────────────────────
+  const [topRolesOpen, setTopRolesOpen] = useState(false);
+  const [filingsOpen, setFilingsOpen] = useState(false);
+
+  // ── Raw filings: deferred load — only triggered on first open ─────────────
   const [lcaFilings, setLcaFilings] = useState<LcaFiling[]>([]);
   const [h1bPetitions, setH1bPetitions] = useState<H1bPetitionYear[]>([]);
+  const [lcaTotal, setLcaTotal] = useState<number>(0);
+  const [lcaFyRange, setLcaFyRange] = useState<[number, number] | null>(null);
   const [filingsLoading, setFilingsLoading] = useState(false);
   const [filingsLoaded, setFilingsLoaded] = useState(false);
 
@@ -156,20 +162,23 @@ export function EmployerProfile({
     return row?.employer_id ? String(row.employer_id) : null;
   }, [trend, employerName]);
 
-  useEffect(() => {
-    if (!employerId || filingsLoaded) return;
+  // Triggered only when user first opens the Raw Filings panel
+  const triggerLoadFilings = useCallback(() => {
+    if (filingsLoaded || filingsLoading || !employerId) return;
     setFilingsLoading(true);
     loadEmployerFilings(employerId)
       .then((data) => {
         if (data) {
           setLcaFilings(data.lca || []);
           setH1bPetitions(data.h1b_petitions || []);
+          setLcaTotal(data.lca_total ?? (data.lca?.length ?? 0));
+          setLcaFyRange(data.lca_fy_range ?? null);
         }
         setFilingsLoaded(true);
       })
       .catch(() => setFilingsLoaded(true))
       .finally(() => setFilingsLoading(false));
-  }, [employerId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [employerId, filingsLoaded, filingsLoading]);
 
   const series = useMemo(() => {
     // Filter out years with implausible salary values before rendering the chart
@@ -361,177 +370,242 @@ export function EmployerProfile({
           </div>
         </GlassCard>
 
-        {/* ── Top roles section ────────────────────────────────────────── */}
-        {roles.length > 0 && (
-          <GlassCard variant="elevated" padding="lg">
-            {/* Header + search */}
-            <div className="flex items-start sm:items-center justify-between gap-3 mb-4 flex-col sm:flex-row">
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                Top Roles at {employerName}
-                <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
-                  FY{roles[0]?.fiscal_year} · {visaType}
-                </span>
-              </p>
-              {/* Search within roles */}
-              <div className="relative w-full sm:w-56">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                <input
-                  type="text"
-                  value={roleQuery}
-                  onChange={(e) => setRoleQuery(e.target.value)}
-                  placeholder="Search roles..."
-                  aria-label="Search roles in top roles"
-                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-white/[0.03] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-400/40 transition-colors"
-                />
-                {roleQuery && (
-                  <button
-                    onClick={() => setRoleQuery("")}
-                    aria-label="Clear role search"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+{/* ── Expandable sections: side-by-side toggle headers ────────── */}
+        {/* Both collapsed by default; Raw Filings only fetches on first open */}
+        <div className="space-y-3">
+
+          {/* Toggle header bar — two buttons side by side */}
+          <div className={cn("grid gap-3", roles.length > 0 && employerId ? "grid-cols-2" : "grid-cols-1")}>
+
+            {/* Top Roles toggle */}
+            {roles.length > 0 && (
+              <button
+                onClick={() => setTopRolesOpen((v) => !v)}
+                className={cn(
+                  "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all text-left",
+                  topRolesOpen
+                    ? "border-blue-400/30 bg-blue-400/[0.06]"
+                    : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
                 )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {filteredRoles.length === 0 && roleQuery && (
-                <p className="text-xs text-[var(--muted-foreground)] text-center py-4">
-                  No roles matching &ldquo;{roleQuery}&rdquo;
-                </p>
-              )}
-              {filteredRoles.map((role, i) => {
-                const premium = role.wage_premium_pct ?? 0;
-                const premiumColor =
-                  premium >= 20 ? "text-emerald-400" : premium >= 5 ? "text-blue-400" : "text-amber-400";
-                const isSelected = selectedRole?.soc_code === role.soc_code;
-                const hasTrendData = roleTrends && roleTrends.length > 0;
-
-                return (
-                  <div key={`${role.soc_code}-${i}`}>
-                    <motion.button
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.04 }}
-                      onClick={() => {
-                        setSelectedRole(
-                          isSelected ? null : { soc_code: role.soc_code, soc_title: role.soc_title }
-                        );
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
-                        isSelected
-                          ? "border-blue-400/30 bg-blue-400/[0.06]"
-                          : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
-                      )}
-                      aria-label={`View salary trends for ${role.soc_title}`}
-                      aria-expanded={isSelected}
-                    >
-                      {/* Rank */}
-                      <span className="w-5 text-right text-[10px] font-mono text-[rgba(255,255,255,0.25)] shrink-0">
-                        {i + 1}
-                      </span>
-
-                      {/* Role info */}
-                      <Briefcase className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{role.soc_title}</p>
-                        <p className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
-                          {role.soc_code}
-                          {role.job_title_top ? ` · ${role.job_title_top}` : ""}
-                          {role.worksite_state_top ? ` · ${role.worksite_state_top}` : ""}
-                        </p>
-                      </div>
-
-                      {/* Filings */}
-                      <span className="hidden sm:block text-xs text-[var(--muted-foreground)] font-mono shrink-0 w-16 text-right">
-                        {formatCompact(role.n_filings)} filings
-                      </span>
-
-                      {/* Prior Year Median (hidden on mobile) */}
-                      <div className="hidden md:flex flex-col items-end">
-                        <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
-                        <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
-                          {(role as unknown as Record<string, unknown>).prior_year_median_salary
-                            ? formatCurrency((role as unknown as Record<string, unknown>).prior_year_median_salary as number)
-                            : "—"}
-                        </span>
-                      </div>
-
-                      {/* Median */}
-                      <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
-                        {formatCurrency(role.median_salary)}
-                      </span>
-
-                      {/* Premium */}
-                      <span className={cn("text-xs font-semibold shrink-0 w-16 text-right hidden sm:block", premiumColor)}>
-                        {premium >= 0 ? "+" : ""}
-                        {Math.round(premium)}% mkt
-                      </span>
-
-                      {/* Expand indicator */}
-                      {hasTrendData && (
-                        <ChevronDown
-                          className={cn(
-                            "h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-200",
-                            isSelected && "rotate-180 text-blue-400"
-                          )}
-                        />
-                      )}
-                    </motion.button>
-
-                    {/* ── Role drill-down: percentile trend chart ─────── */}
-                    <AnimatePresence>
-                      {isSelected && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pt-3 pb-1">
-                            <RolePercentileTrend
-                              series={roleTrendSeries}
-                              employerName={employerName}
-                              socTitle={role.soc_title}
-                              socCode={role.soc_code}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                aria-expanded={topRolesOpen}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Briefcase className="h-4 w-4 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Top Roles</p>
+                    <p className="text-[10px] text-[var(--muted-foreground)] truncate">
+                      {roles.length} roles · FY{roles[0]?.fiscal_year} · {visaType}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <ChevronDown className={cn(
+                  "h-4 w-4 text-[var(--muted-foreground)] shrink-0 transition-transform duration-200",
+                  topRolesOpen && "rotate-180 text-blue-400"
+                )} />
+              </button>
+            )}
 
-            <p className="mt-3 text-[10px] text-[var(--muted-foreground)] text-center">
-              {roleTrends && roleTrends.length > 0
-                ? "Click any role to expand and see 5-year salary distribution · Switch to Job Role search above to compare across employers"
-                : "Switch to Job Role search above to compare roles across multiple employers"}
-            </p>
-          </GlassCard>
-        )}
-
-        {/* ── Raw Filings Table ─────────────────────────────────────── */}
-        {employerId && (
-          <div className="mt-2">
-            {filingsLoading ? (
-              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-8 text-center">
-                <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-500/40 border-t-blue-500" />
-                <p className="mt-3 text-xs text-white/40">Loading filing records…</p>
-              </div>
-            ) : filingsLoaded ? (
-              <RawFilingsTable
-                lcaFilings={lcaFilings}
-                h1bPetitions={h1bPetitions}
-                employerName={employerName}
-              />
-            ) : null}
+            {/* Raw Filings toggle */}
+            {employerId && (
+              <button
+                onClick={() => {
+                  const willOpen = !filingsOpen;
+                  setFilingsOpen(willOpen);
+                  if (willOpen) triggerLoadFilings();
+                }}
+                className={cn(
+                  "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all text-left",
+                  filingsOpen
+                    ? "border-purple-400/30 bg-purple-400/[0.06]"
+                    : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                )}
+                aria-expanded={filingsOpen}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <BarChart3 className="h-4 w-4 text-purple-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">Raw Filings</p>
+                    <p className="text-[10px] text-[var(--muted-foreground)] truncate">
+                      {filingsLoaded
+                        ? `${lcaFilings.length.toLocaleString()} LCA · ${h1bPetitions.length} H-1B yr${lcaTotal > lcaFilings.length ? ` · capped` : ""}`
+                        : "LCA per-case + H-1B petitions"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className={cn(
+                  "h-4 w-4 text-[var(--muted-foreground)] shrink-0 transition-transform duration-200",
+                  filingsOpen && "rotate-180 text-purple-400"
+                )} />
+              </button>
+            )}
           </div>
-        )}
+
+          {/* ── Expanded: Top Roles ────────────────────────────────────── */}
+          <AnimatePresence>
+            {topRolesOpen && roles.length > 0 && (
+              <motion.div
+                key="top-roles-panel"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                className="overflow-hidden"
+              >
+                <GlassCard variant="elevated" padding="lg">
+                  {/* Search */}
+                  <div className="flex items-start sm:items-center justify-between gap-3 mb-4 flex-col sm:flex-row">
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      Click any role to see 5-year salary distribution
+                    </p>
+                    <div className="relative w-full sm:w-56">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                      <input
+                        type="text"
+                        value={roleQuery}
+                        onChange={(e) => setRoleQuery(e.target.value)}
+                        placeholder="Search roles..."
+                        aria-label="Search roles"
+                        className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-white/[0.03] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-400/40 transition-colors"
+                      />
+                      {roleQuery && (
+                        <button
+                          onClick={() => setRoleQuery("")}
+                          aria-label="Clear role search"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {filteredRoles.length === 0 && roleQuery && (
+                      <p className="text-xs text-[var(--muted-foreground)] text-center py-4">
+                        No roles matching &ldquo;{roleQuery}&rdquo;
+                      </p>
+                    )}
+                    {filteredRoles.map((role, i) => {
+                      const premium = role.wage_premium_pct ?? 0;
+                      const premiumColor =
+                        premium >= 20 ? "text-emerald-400" : premium >= 5 ? "text-blue-400" : "text-amber-400";
+                      const isSelected = selectedRole?.soc_code === role.soc_code;
+                      const hasTrendData = roleTrends && roleTrends.length > 0;
+
+                      return (
+                        <div key={`${role.soc_code}-${i}`}>
+                          <motion.button
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: i * 0.04 }}
+                            onClick={() =>
+                              setSelectedRole(isSelected ? null : { soc_code: role.soc_code, soc_title: role.soc_title })
+                            }
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
+                              isSelected
+                                ? "border-blue-400/30 bg-blue-400/[0.06]"
+                                : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                            )}
+                            aria-label={`View salary trends for ${role.soc_title}`}
+                            aria-expanded={isSelected}
+                          >
+                            <span className="w-5 text-right text-[10px] font-mono text-[rgba(255,255,255,0.25)] shrink-0">
+                              {i + 1}
+                            </span>
+                            <Briefcase className="h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{role.soc_title}</p>
+                              <p className="text-[10px] text-[var(--muted-foreground)] font-mono truncate">
+                                {role.soc_code}
+                                {role.job_title_top ? ` · ${role.job_title_top}` : ""}
+                                {role.worksite_state_top ? ` · ${role.worksite_state_top}` : ""}
+                              </p>
+                            </div>
+                            <span className="hidden sm:block text-xs text-[var(--muted-foreground)] font-mono shrink-0 w-16 text-right">
+                              {formatCompact(role.n_filings)} filings
+                            </span>
+                            <div className="hidden md:flex flex-col items-end">
+                              <span className="text-[10px] text-[var(--muted-foreground)] font-mono mb-0.5">Last year</span>
+                              <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
+                                {(role as unknown as Record<string, unknown>).prior_year_median_salary
+                                  ? formatCurrency((role as unknown as Record<string, unknown>).prior_year_median_salary as number)
+                                  : "—"}
+                              </span>
+                            </div>
+                            <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
+                              {formatCurrency(role.median_salary)}
+                            </span>
+                            <span className={cn("text-xs font-semibold shrink-0 w-16 text-right hidden sm:block", premiumColor)}>
+                              {premium >= 0 ? "+" : ""}{Math.round(premium)}% mkt
+                            </span>
+                            {hasTrendData && (
+                              <ChevronDown className={cn(
+                                "h-3.5 w-3.5 text-[var(--muted-foreground)] shrink-0 transition-transform duration-200",
+                                isSelected && "rotate-180 text-blue-400"
+                              )} />
+                            )}
+                          </motion.button>
+
+                          <AnimatePresence>
+                            {isSelected && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-3 pb-1">
+                                  <RolePercentileTrend
+                                    series={roleTrendSeries}
+                                    employerName={employerName}
+                                    socTitle={role.soc_title}
+                                    socCode={role.soc_code}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </GlassCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Expanded: Raw Filings ──────────────────────────────────── */}
+          <AnimatePresence>
+            {filingsOpen && (
+              <motion.div
+                key="raw-filings-panel"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                className="overflow-hidden"
+              >
+                {filingsLoading ? (
+                  <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-10 text-center">
+                    <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-purple-500/40 border-t-purple-500" />
+                    <p className="mt-3 text-xs text-white/40">Loading filing records…</p>
+                  </div>
+                ) : filingsLoaded ? (
+                  <RawFilingsTable
+                    lcaFilings={lcaFilings}
+                    h1bPetitions={h1bPetitions}
+                    employerName={employerName}
+                    lcaTotal={lcaTotal}
+                    lcaFyRange={lcaFyRange ?? undefined}
+                  />
+                ) : null}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </div>
       </div>
     </FadeIn>
   );

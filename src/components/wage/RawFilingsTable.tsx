@@ -49,13 +49,17 @@ interface RawFilingsTableProps {
   lcaFilings: LcaFiling[];
   h1bPetitions: H1bPetitionYear[];
   employerName: string;
+  /** Total LCA rows in the 5-year window before the 5,000-row display cap */
+  lcaTotal?: number;
+  /** [minFY, maxFY] fiscal year range in the shard */
+  lcaFyRange?: [number, number];
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 100;
 
 const STATUS_COLORS: Record<string, string> = {
   CERTIFIED:
@@ -122,7 +126,15 @@ function SortIcon({ col, sort }: { col: string; sort: SortState }) {
 // LCA Filings Tab
 // ---------------------------------------------------------------------------
 
-function LcaFilingsTab({ filings }: { filings: LcaFiling[] }) {
+function LcaFilingsTab({
+  filings,
+  lcaTotal,
+  lcaFyRange,
+}: {
+  filings: LcaFiling[];
+  lcaTotal?: number;
+  lcaFyRange?: [number, number];
+}) {
   const [search, setSearch] = useState("");
   const [selectedYear, setSelectedYear] = useState<number | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -293,10 +305,20 @@ function LcaFilingsTab({ filings }: { filings: LcaFiling[] }) {
           </button>
         )}
 
-        {/* Count */}
-        <span className="ml-auto text-xs text-white/40 whitespace-nowrap">
-          {filtered.length.toLocaleString()} of {filings.length.toLocaleString()} filings
-        </span>
+        {/* Count / metadata */}
+        <div className="ml-auto flex flex-col items-end gap-0.5">
+          <span className="text-xs text-white/40 whitespace-nowrap">
+            {filtered.length.toLocaleString()} of {filings.length.toLocaleString()} shown
+          </span>
+          {(lcaTotal !== undefined || lcaFyRange) && (
+            <span className="text-[10px] text-white/25 whitespace-nowrap">
+              {lcaFyRange ? `FY${lcaFyRange[0]}–FY${lcaFyRange[1]} · ` : ""}
+              {lcaTotal !== undefined && lcaTotal > filings.length
+                ? `${lcaTotal.toLocaleString()} total`
+                : "last 5 fiscal years"}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -595,6 +617,8 @@ export function RawFilingsTable({
   lcaFilings,
   h1bPetitions,
   employerName,
+  lcaTotal,
+  lcaFyRange,
 }: RawFilingsTableProps) {
   const [activeTab, setActiveTab] = useState<Tab>("lca");
 
@@ -643,8 +667,8 @@ export function RawFilingsTable({
                       : "bg-white/[0.07] text-white/35"
                   )}
                 >
-                  {tab.count > 2000
-                    ? "2000+"
+                  {tab.count > 5000
+                    ? "5000+"
                     : tab.id === "petitions"
                     ? `${tab.count}yr`
                     : tab.count.toLocaleString()}
@@ -666,7 +690,7 @@ export function RawFilingsTable({
             transition={{ duration: 0.15 }}
           >
             {activeTab === "lca" ? (
-              <LcaFilingsTab filings={lcaFilings} />
+              <LcaFilingsTab filings={lcaFilings} lcaTotal={lcaTotal} lcaFyRange={lcaFyRange} />
             ) : (
               <PetitionHistoryTab petitions={h1bPetitions} />
             )}

@@ -203,6 +203,10 @@ export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
 export async function loadEmployerFilings(employerId: string): Promise<{
   employer_name: string;
   lca: LcaFiling[];
+  /** Total LCA rows in the 5-year window before the 5,000-row display cap. */
+  lca_total?: number;
+  /** [minFY, maxFY] range of fiscal years actually present in the shard. */
+  lca_fy_range?: [number, number];
   h1b_petitions: H1bPetitionYear[];
 } | null> {
   if (!employerId) return null;

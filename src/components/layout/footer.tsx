@@ -74,7 +74,7 @@ export function Footer() {
             ))}
             <ContactButton />
             <a
-              href="https://github.com"
+              href="https://github.com/v-rathod/immigration-insights-app"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub repository"
@@ -107,7 +107,16 @@ export function Footer() {
           <p>
             &copy; {year} Compass. Built with{" "}
             <Heart className="inline-block h-3 w-3 text-rose-400" strokeWidth={2} />{" "}
-            by an immigrant, for immigrants.
+            by{" "}
+            <a
+              href="https://github.com/v-rathod"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              Vivek Rathod
+            </a>
+            , for immigrants.
           </p>
         </div>
       </div>

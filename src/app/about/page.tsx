@@ -120,6 +120,17 @@ export default function AboutPage() {
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 About This Project
               </h1>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Built by{" "}
+                <a
+                  href="https://github.com/v-rathod"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  Vivek Rathod
+                </a>
+              </p>
             </div>
           </div>
         </FadeIn>
@@ -339,7 +350,7 @@ export default function AboutPage() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
-                href="https://github.com"
+                href="https://github.com/v-rathod/immigration-insights-app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--foreground)] px-5 py-2.5 text-sm font-medium text-[var(--background)] transition-opacity hover:opacity-90"
