@@ -55,17 +55,17 @@ export function EmployerDetailCard({
 
   const stats = [
     {
-      label: "Approval Rate (24m)",
-      value: formatPercent(employer.approval_rate_24m),
+      label: "Approval Rate (36m)",
+      value: formatPercent(employer.approval_rate_36m),
       icon: CheckCircle,
       color: "text-emerald-400",
     },
     {
-      label: "Denial Rate (24m)",
-      value: formatPercent(employer.denial_rate_24m),
+      label: "Denial Rate (36m)",
+      value: formatPercent(employer.denial_rate_36m),
       icon: XCircle,
       color:
-        employer.denial_rate_24m > 0.1 ? "text-rose-400" : "text-zinc-400",
+        employer.denial_rate_36m > 0.1 ? "text-rose-400" : "text-zinc-400",
     },
     {
       label: "Cases (36m)",
@@ -122,9 +122,9 @@ export function EmployerDetailCard({
             <Calendar className="h-3 w-3" />
             Updated {formatMonthYear(employer.last_refreshed_at)}
           </span>
-          {employer.months_active_24m > 0 && (
+          {employer.months_active_36m > 0 && (
             <span>
-              {employer.months_active_24m} months active
+              {employer.months_active_36m} months active
             </span>
           )}
           {trendIcon && trend != null && !isNaN(trend) && (

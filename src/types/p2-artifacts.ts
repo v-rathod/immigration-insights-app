@@ -125,6 +125,8 @@ export interface SponsorReliabilityScore {
   n_36m: number;
   approval_rate_24m: number;
   denial_rate_24m: number;
+  approval_rate_36m: number;
+  denial_rate_36m: number;
   wage_ratio_med: number;
   wage_ratio_p75: number;
   outcome_subscore: number;
@@ -133,10 +135,16 @@ export interface SponsorReliabilityScore {
   srs: number | null;      // renamed from efs
   srs_tier: string;        // renamed from efs_tier
   months_active_24m: number;
+  months_active_36m: number;
   soc_breadth_24m: number;
   site_breadth_24m: number;
   approval_rate_trend_12v12: number | null;
   outcome_volatility: number | null;
+  lca_filings_36m: number | null;
+  lca_approval_rate_36m: number | null;
+  lca_median_wage: number | null;
+  lca_wage_ratio: number | null;
+  lca_to_perm_ratio: number | null;
   last_refreshed_at: string;
 }
 
@@ -185,6 +193,7 @@ export interface EmployerFeatures {
   n_24m: number;
   n_36m: number;
   months_active_24m: number;
+  months_active_36m: number;
   soc_breadth_24m: number;
   site_breadth_24m: number;
   approval_rate_12m: number | null;

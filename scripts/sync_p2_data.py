@@ -427,14 +427,16 @@ def sync_wage_dashboard():
             size_kb = (out_dir / "employer_search_index.json").stat().st_size / 1024
             print(f"    ✓ employer_search_index: {n:,} rows (≥10 filings) → {size_kb:.0f} KB")
 
-        # ── 4b. employer_salary_trend — top 300 employers' wage trend ───────
+        # ── 4b. employer_salary_trend — top 1000 employers' wage trend ───────
         if not esy.empty:
-            # Get top employers by total filings (for trend visualization)
+            # Get top employers by total filings (for trend visualization).
+            # 1000 covers rank ~879 where mid-tier employers like Health Care
+            # Service Corporation appear (~1,058 total filings).
             top_employers = (
                 esy[esy["visa_type"] == "H-1B"]
                 .groupby("employer_name")["total_filings"]
                 .sum()
-                .nlargest(300)
+                .nlargest(1000)
                 .index.tolist()
             )
             esy_top = esy[
@@ -445,10 +447,10 @@ def sync_wage_dashboard():
                 esy_top[col] = esy_top[col].fillna(0).round(0).astype(int)
             n = df_to_json(esy_top, out_dir / "employer_salary_trend.json")
             size_kb = (out_dir / "employer_salary_trend.json").stat().st_size / 1024
-            print(f"    ✓ employer_salary_trend: {n:,} rows (top 300) → {size_kb:.0f} KB")
+            print(f"    ✓ employer_salary_trend: {n:,} rows (top 1000) → {size_kb:.0f} KB")
 
         # ── 4c. employer_role_profiles — employer-centric role breakdown ─────
-        # Top 500 employers × their top 25 H-1B roles by filing count.
+        # Top 1000 employers × their top 25 H-1B roles by filing count.
         # This is the CORRECT data source for EmployerProfile's "Top Roles" section.
         # employer_wage_rankings.json is SOC-centric (top employers per SOC) which
         # causes large firms like Cognizant to appear for only 2 of their 33 roles.
@@ -457,20 +459,26 @@ def sync_wage_dashboard():
             & esp["employer_name"].notna()
         ].copy()
 
-        # Identify top 500 employers by cumulative H-1B filings from yearly table
+        # Build two coverage tiers from yearly table:
+        #   top_1000_by_filings — for role_profiles (table only, ~2MB)
+        #   top_500_by_filings  — for role_trends (5-year charts, keep at ~8MB)
+        # Using 1000 for profiles captures mid-tier employers (rank ~879, ~1,000
+        # total filings, e.g. Health Care Service Corporation) that have verified
+        # salary data but were excluded by the old 500 cutoff.
         if not esy.empty:
-            top_500_by_filings = (
+            _h1b_employer_totals = (
                 esy[esy["visa_type"] == "H-1B"]
                 .groupby("employer_name")["total_filings"]
                 .sum()
-                .nlargest(500)
-                .index.tolist()
             )
+            top_1000_by_filings = _h1b_employer_totals.nlargest(1000).index.tolist()
+            top_500_by_filings  = _h1b_employer_totals.nlargest(500).index.tolist()
         else:
             # Fallback: use all employers present in profiles
-            top_500_by_filings = erp["employer_name"].unique().tolist()
+            top_1000_by_filings = erp["employer_name"].unique().tolist()
+            top_500_by_filings  = top_1000_by_filings
 
-        erp = erp[erp["employer_name"].isin(top_500_by_filings)].copy()
+        erp = erp[erp["employer_name"].isin(top_1000_by_filings)].copy()
 
         # For each employer use their own latest available year (not a global benchmark)
         latest_year_per_emp = (
