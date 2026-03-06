@@ -31,7 +31,7 @@ export default function WageDashboardPage() {
             Wage Competitiveness
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] max-w-2xl">
-            See what employers actually pay — by role, by company, and by
+            See what employers actually pay by role, by company, and by
             location. Compare your offer against market salary ranges, track
             10-year pay trends, and find which companies offer the most
             competitive compensation for sponsored workers.

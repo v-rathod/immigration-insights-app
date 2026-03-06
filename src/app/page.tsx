@@ -50,7 +50,7 @@ const DASHBOARDS = [
   {
     title: "Sponsor Reliability Score",
     description:
-      "Search any employer and see their SRS — approval rates, wage competitiveness, and risk signals",
+      "Search any employer and see their SRS: approval rates, wage competitiveness, and risk signals",
     href: "/dashboard/employer/",
     gradient: "from-emerald-500 to-teal-400",
   },

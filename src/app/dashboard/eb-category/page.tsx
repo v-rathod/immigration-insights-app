@@ -252,7 +252,7 @@ export default function EbCategoryDashboardPage() {
             </div>
             <p className="text-xs text-[var(--muted-foreground)] mb-5">
               Blended velocity (50% full-history net + 25% capped rolling-24m + 25% capped rolling-12m)
-              per EB category — {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
+              per EB category: {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
               {selectedChart === "DFF" ? "Dates for Filing" : "Final Action Dates"}
             </p>
 
@@ -369,7 +369,7 @@ export default function EbCategoryDashboardPage() {
                 </p>
                 <p>
                   <strong>Prediction:</strong> Based on recent velocity trend
-                  direction — Forward, Flat, or Backward.
+                  direction: Forward, Flat, or Backward.
                 </p>
                 <p className="pt-2 border-t border-white/[0.06]">
                   Source: Department of State Visa Bulletin, processed by P2

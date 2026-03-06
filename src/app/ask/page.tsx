@@ -477,7 +477,7 @@ export default function AskPage() {
                     strokeWidth={1}
                   />
                   <p className="text-sm text-[var(--muted-foreground)]">
-                    No exact matches — try browsing a topic above
+                    No exact matches. Try browsing a topic above
                   </p>
                 </>
               )}
@@ -539,7 +539,7 @@ export default function AskPage() {
                     <span className="text-emerald-400"> Ollama connected.</span>
                   )}
                   {llmBackend === "mock" && (
-                    <span> Mock mode — add API key for real AI.</span>
+                    <span> Mock mode: add API key for real AI.</span>
                   )}
                   {!llmBackend && (
                     <span> Detecting…</span>

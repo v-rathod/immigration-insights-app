@@ -349,7 +349,7 @@ function GreenCardPanel({
           <PanelCTA
             icon={Calendar}
             title="Enter your priority date above"
-            body="Add your priority date in the profile card to see when the cutoff date may reach your PD — with DFF and FAD timeline projections."
+            body="Add your priority date in the profile card to see when the cutoff date may reach your PD (with DFF and FAD timeline projections)."
           />
         </div>
       </FadeIn>
@@ -816,7 +816,7 @@ function SalaryPanel({
                   <span className="font-semibold text-[var(--foreground)]">
                     {profile.yearsOfExperience} years
                   </span>{" "}
-                  of experience noted — senior-level candidates typically land p75+
+                  of experience noted, senior-level candidates typically land p75+
                 </p>
               </div>
             )}
@@ -1232,12 +1232,12 @@ export default function InsightsPage() {
           </div>
         </StaggerItem>
 
-        {/* Panel A — Green Card Forecast */}
+        {/* Panel A: Green Card Forecast */}
         <StaggerItem>
           <GreenCardPanel profile={profile} forecasts={forecasts} trends={trends} />
         </StaggerItem>
 
-        {/* Panel B — Sponsor Intelligence */}
+        {/* Panel B: Sponsor Intelligence */}
         <StaggerItem>
           <SponsorPanel
             profile={profile}
@@ -1252,7 +1252,7 @@ export default function InsightsPage() {
           />
         </StaggerItem>
 
-        {/* Panel C — Salary Compass */}
+        {/* Panel C: Salary Compass */}
         <StaggerItem>
           <SalaryPanel profile={profile} benchmarks={benchmarks} />
         </StaggerItem>
@@ -1263,7 +1263,7 @@ export default function InsightsPage() {
         <GlassCard padding="md">
           <p className="text-[11px] text-[var(--muted-foreground)] text-center flex items-center justify-center gap-1.5">
             <Shield className="h-3 w-3 shrink-0" />
-            All profile data is stored locally in your browser only — nothing is ever sent to a server.
+            All profile data is stored locally in your browser only. Nothing is ever sent to a server.
             See our{" "}
             <a href="/privacy" className="underline underline-offset-2 hover:text-[var(--foreground)] transition-colors">
               Privacy Policy

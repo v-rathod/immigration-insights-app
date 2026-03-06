@@ -278,15 +278,15 @@ export default function SrsDashboardPage() {
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Approval Outcomes (50%)</strong> — Bayesian-adjusted approval rate
+                <strong>Approval Outcomes (50%):</strong> Bayesian-adjusted approval rate
                 accounting for case volume and national baseline
               </li>
               <li>
-                <strong>Wage Competitiveness (30%)</strong> — Offered wage vs. national median
+                <strong>Wage Competitiveness (30%):</strong> Offered wage vs. national median
                 wage for matched job categories
               </li>
               <li>
-                <strong>Sustainability (20%)</strong> — Consistency over time: months
+                <strong>Sustainability (20%):</strong> Consistency over time: months
                 active, job category breadth, site diversity, trend stability
               </li>
             </ul>

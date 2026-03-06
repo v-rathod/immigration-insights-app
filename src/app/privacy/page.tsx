@@ -17,7 +17,7 @@ const SECTIONS = [
     icon: Eye,
     title: "What We Collect",
     content:
-      "Nothing. NorthStar Compass is a purely static website. We do not collect, store, or transmit any personal data. There are no user accounts, no analytics trackers, no cookies (beyond browser defaults), and no server-side processing. Your browser downloads HTML, CSS, JavaScript, and JSON files — that's it.",
+      "Nothing. NorthStar Compass is a purely static website. We do not collect, store, or transmit any personal data. There are no user accounts, no analytics trackers, no cookies (beyond browser defaults), and no server-side processing. Your browser downloads HTML, CSS, JavaScript, and JSON files. That's it.",
   },
   {
     icon: Lock,
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
             The short version: we don&apos;t collect your data. The long version
-            is below — written in plain language because legalese helps no one.
+            is below, written in plain language because legalese helps no one.
           </p>
           <p className="mt-2 text-xs text-[var(--muted-foreground)]">
             Last updated: February 2026

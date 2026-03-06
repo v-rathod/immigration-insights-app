@@ -29,7 +29,7 @@ const SECTIONS = [
     icon: Scale,
     title: "Data Accuracy",
     content:
-      "We strive for accuracy, but immigration data is complex and changes frequently. The data displayed comes from official government sources (DOL, DOS, BLS, USCIS, DHS) and is refreshed periodically. There may be delays, errors, or discrepancies. Use the information as one input among many — not as your sole source of truth.",
+      "We strive for accuracy, but immigration data is complex and changes frequently. The data displayed comes from official government sources (DOL, DOS, BLS, USCIS, DHS) and is refreshed periodically. There may be delays, errors, or discrepancies. Use the information as one input among many, not as your sole source of truth.",
   },
   {
     icon: RefreshCw,
@@ -47,7 +47,7 @@ const SECTIONS = [
     icon: Mail,
     title: "Contact",
     content:
-      "Questions or concerns about these terms? Use the feedback widget (bottom-right corner) or reach out via the project's GitHub repository. We're immigrants building for immigrants — we'll get back to you.",
+      "Questions or concerns about these terms? Use the feedback widget (bottom-right corner) or reach out via the project's GitHub repository. We're immigrants building for immigrants, we'll get back to you.",
   },
 ];
 
@@ -75,7 +75,7 @@ export default function TermsPage() {
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
             Plain-language terms for using NorthStar Compass. We keep it
-            simple — use the tool, don&apos;t rely on it as legal advice, and
+            simple. Use the tool, don&apos;t rely on it as legal advice, and
             help us make it better if you can.
           </p>
           <p className="mt-2 text-xs text-[var(--muted-foreground)]">

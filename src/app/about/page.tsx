@@ -178,7 +178,7 @@ export default function AboutPage() {
                   </span>
                   . One app that ingests 18.5 million records, runs forecasting
                   models, computes employer reliability scores, and presents it all
-                  through interactive dashboards — personalized to your specific
+                  through interactive dashboards, personalized to your specific
                   situation.
                 </p>
                 <p>

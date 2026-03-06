@@ -283,7 +283,7 @@ export default function ProcessingDashboardPage() {
               </h2>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] mb-5">
-              EB cases approved + denied per quarter — higher throughput reduces
+              EB cases approved + denied per quarter: higher throughput reduces
               the pending backlog.
             </p>
 
@@ -396,7 +396,7 @@ export default function ProcessingDashboardPage() {
                 </p>
                 <p>
                   <strong>Backlog Months:</strong> Current EB pending cases
-                  divided by average quarterly throughput — an estimate of how
+                  divided by average quarterly throughput: an estimate of how
                   long it would take to clear the backlog at current processing
                   rates.
                 </p>

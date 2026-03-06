@@ -251,7 +251,7 @@ export default function BacklogDashboardPage() {
               </h2>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] mb-5">
-              Estimated years to clear the priority date backlog over time —
+              Estimated years to clear the priority date backlog over time:
               {" "}{COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
               {selectedChart === "DFF" ? "Dates for Filing" : "Final Action Dates"}.
               Spikes indicate major retrogression or slowdown events.

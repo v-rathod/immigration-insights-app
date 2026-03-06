@@ -410,7 +410,7 @@ export default function GeographicDashboardPage() {
                 </p>
                 <p>
                   <strong>Approval Rate:</strong> Cases approved divided by
-                  total filings for the state — always between 0% and 100%.
+                  total filings for the state: always between 0% and 100%.
                 </p>
                 <p>
                   <strong>Wage vs Market:</strong> Median offered salary compared
