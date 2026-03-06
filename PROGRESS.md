@@ -1,5 +1,90 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.34: Comprehensive SEO & Search Engine Discoverability
+
+### Objective
+Make Compass fully discoverable by Google, Bing, and AI crawlers. Add Schema.org structured data, per-page metadata, robots.txt, and sitemap.xml.
+
+### What Was Done
+
+**Root Layout (`src/app/layout.tsx`):**
+- Added canonical `SITE_URL` constant (`https://d10immmzyp7xgr.cloudfront.net`)
+- Added `metadataBase` for correct absolute URL resolution
+- Title upgraded to template: `{ default: "Compass | Free Immigration Insights & Green Card Tracker", template: "%s | Compass" }`
+- Keywords expanded from 9 → 21 high-intent terms (green card tracker, priority date forecast, H-1B employer sponsorship, EB2/EB3 wait time, I-485, adjustment of status, etc.)
+- Full `openGraph` block (type, locale, url, siteName)
+- `twitter` card block (summary_large_image)
+- `robots` block with comprehensive `googleBot` directives (index, follow, max-image-preview large, max-snippet -1)
+- Schema.org `@graph` JSON-LD injected in `<head>`: WebSite (with SearchAction), WebApplication (featureList, isAccessibleForFree), Organization schemas
+
+**Per-Page Metadata (12 new `layout.tsx` files created):**
+| Route | Title |
+|-------|-------|
+| `/dashboard/visa-bulletin/` | Visa Bulletin Priority Date Forecast |
+| `/dashboard/employer/` | Employer Sponsor Reliability Score |
+| `/dashboard/eb-category/` | EB Category Comparison: EB1 vs EB2 vs EB3 |
+| `/dashboard/geographic/` | H-1B & PERM Activity by US State |
+| `/dashboard/job-demand/` | Occupation Demand for Immigration Sponsorship |
+| `/dashboard/processing/` | USCIS Processing Speed & Green Card Backlog |
+| `/dashboard/backlog/` | Green Card Backlog Visualization |
+| `/about/` | About |
+| `/ask/` | Ask Immigration Questions |
+| `/insights/` | My Insights: Personalized Green Card Dashboard |
+| `/privacy/` | Privacy Policy |
+| `/terms/` | Terms of Use |
+
+Each page layout includes targeted keywords, OpenGraph URL, and description. All `page.tsx` files use `"use client"` so metadata lives in sibling server-component `layout.tsx` files.
+
+**Updated existing pages with expanded metadata:**
+- `src/app/dashboard/wage/page.tsx` — added keywords + OpenGraph
+- `src/app/dashboard/approvals/page.tsx` — added keywords + OpenGraph
+
+**`public/robots.txt` (new):**
+- Allow all crawlers, Disallow `/ops/`, Sitemap URL declared
+
+**`public/sitemap.xml` (new):**
+- 15 URLs, `lastmod: 2026-03-06`, priority/changefreq tuned per page type
+- Priority 1.0: homepage; 0.9: /insights/, /dashboard/visa-bulletin/, /dashboard/employer/; 0.8: /ask/, /dashboard/wage/; 0.7: remaining dashboards; 0.3: legal pages
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Pages with metadata | **15 / 15** (was 2 / 15) |
+| Schema.org types | WebSite + WebApplication + Organization |
+| Sitemap URLs | 15 |
+| TypeScript errors | 0 |
+| Tests | 557 passing (unchanged) |
+| Build | ✅ Clean static export |
+| Deployed | ✅ AWS CloudFront (invalidation `I8263NGBOM40GTPPLZLAV2R4SM`) |
+
+### Files Modified/Created
+| File | Change |
+|------|--------|
+| `src/app/layout.tsx` | Full SEO overhaul: metadataBase, title template, 21 keywords, OG, Twitter, robots, JSON-LD |
+| `src/app/dashboard/visa-bulletin/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/employer/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/eb-category/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/geographic/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/job-demand/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/processing/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/backlog/layout.tsx` | NEW — per-page metadata |
+| `src/app/about/layout.tsx` | NEW — per-page metadata |
+| `src/app/ask/layout.tsx` | NEW — per-page metadata |
+| `src/app/insights/layout.tsx` | NEW — per-page metadata |
+| `src/app/privacy/layout.tsx` | NEW — per-page metadata |
+| `src/app/terms/layout.tsx` | NEW — per-page metadata |
+| `src/app/dashboard/wage/page.tsx` | Expanded metadata + OG |
+| `src/app/dashboard/approvals/page.tsx` | Expanded metadata + OG |
+| `public/robots.txt` | NEW |
+| `public/sitemap.xml` | NEW |
+
+### Next Steps
+- Submit sitemap to Google Search Console (`https://search.google.com/search-console`)
+- Submit sitemap to Bing Webmaster Tools (`https://www.bing.com/webmasters`)
+- Update `SITE_URL` in `layout.tsx` once custom domain is set up
+
+---
+
 ## 2026-03-06 — Milestone 10.33: Universal Employer Search (≥5 Filings)
 
 ### Objective
@@ -2001,7 +2086,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.33 — 2026-03-06)
+## Quick Reference (Current State as of Milestone 10.34 — 2026-03-06)
 
 | Metric | Value |
 |--------|-------|
