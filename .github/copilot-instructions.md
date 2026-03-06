@@ -79,7 +79,7 @@
 
 ### RAG/QA Scale
 - **Chunks:** 341 (across 10 topics)
-- **QA pairs:** 684 (pre-computed, topic-tagged)
+- **QA pairs:** 719 (pre-computed, topic-tagged)
 - **Catalog:** 49 artifacts
 
 ### How to Sync New Artifacts

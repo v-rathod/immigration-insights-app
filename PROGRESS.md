@@ -1,5 +1,81 @@
 # Compass Progress Tracker
 
+## 2026-03-09 — Milestone 10.30: SOC Salary Market Bias Fix + Artifact Audit
+
+### Objective
+Fix the median-of-medians bias in `soc_salary_market.parquet` (same pattern as the employer_yearly fix).  Audit ALL P2 salary artifacts for the same bias.  Rebuild all downstream artifacts: RAG chunks, QA cache, P3 JSON.
+
+### Data Verification Results
+
+| Artifact | Status | Notes |
+|----------|--------|-------|
+| `employer_salary_yearly.parquet` | ✅ Already fixed | HCSC $127,878, Netflix $226,158 confirmed 0.0% error |
+| `salary_benchmarks.parquet` | ✅ Not affected | OEWS official BLS data — not derived from LCA aggregation |
+| `employer_features.py` `lca_median_wage` | ✅ Not affected | Computed from raw `lca_annual_wage` records |
+| `soc_salary_market.parquet` | 🔴→✅ **FIXED** | High-volume SOCs (≥1000 filings): 6.03% mean error before fix. 15-1252 FY2025: $141,648→$136,000 |
+
+### Root Cause
+`_build_soc_market_summary(profiles)` computed `market_median`/`market_p25`/`market_p75`/`market_p90` as **weighted means of per-employer quantiles** (same median-of-medians pattern):
+- All 5 percentile columns biased
+- High-volume SOCs (62 with ≥1000 FY2025 H-1B filings): median error 4.85–6.03%
+- Worst: 15-1252 Software Developers (171K filings): $141,648 vs $136,000 true (~4.8% off)
+
+### What Was Done
+
+**P2 `scripts/make_employer_salary_profiles.py`:**
+- `_build_soc_market_summary(profiles)` → `_build_soc_market_summary(combined, profiles)`
+- Rewrote to group raw `combined` records by `soc_code×visa_type×fiscal_year`
+- True flat `.median()` and `.quantile([0.10, 0.25, 0.75, 0.90])` over raw records
+- `n_employers` still derived from `profiles` (unique employer_id per group)
+- Update callsite: `soc_market = _build_soc_market_summary(combined, profiles)`
+
+**P2 `src/export/rag_builder.py`:**
+- Fixed 3 median-of-medians aggregation sites in `_build_salary_chunks()`:
+  - Top-paying employer list per FY: `median(median_salary)` → weighted mean `Σ(median×n)/Σ(n)`
+  - Top SOC positions per FY: `median(median_salary)` → weighted mean
+  - Employer position breakdown per SOC: `median(median_salary)` → weighted mean
+- `market_lookup` now uses latest FY only instead of cross-year `.median()`
+
+**P2 `tests/p3_metrics/test_soc_salary_market.py` (NEW — 10 tests):**
+- Structural: required columns, non-empty, no negatives, total_filings positive
+- Monotonicity regression: `market_p10 ≤ market_p25 ≤ market_median ≤ market_p75 ≤ market_p90` (0 violations)
+- Known-value guard: 15-1252 H-1B FY2025 `market_median` in [$125K, $145K]
+- Anti-bias guard: 15-1252 H-1B FY2025 `market_median` ≤ $141,500 (biased value was $141,648)
+- Integration test: load actual parquet and assert 0 monotonicity violations
+
+**Artifacts rebuilt:**
+- `soc_salary_market.parquet` — 18,038 rows (corrected)
+- `employer_salary_profiles.parquet` — 2,524,521 rows (rebuilt)
+- `employer_salary_yearly.parquet` — 1,432,611 rows (unchanged values; confirmed still correct)
+- `all_chunks.json` — 341 chunks rebuilt with correct salary data
+- `qa_cache.json` — 719 QA pairs (up from 684)
+
+**P3 data re-synced:**
+- `public/data/dashboards/wage/soc_salary_market.json` — corrected values
+- `public/data/rag/all_chunks.json`, `qa_cache.json`, `build_summary.json` — updated
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **556 passing** (24 files, unchanged) |
+| P2 Tests | 22 passing + 10 NEW regression tests in `test_soc_salary_market.py` |
+| soc_salary_market bias | Eliminated — 6% median error → 0% |
+| QA pairs | 719 (up from 684) |
+| P2 commit | `b89cbcf` (pushed to origin) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `immigration-model-builder/scripts/make_employer_salary_profiles.py` | Fix `_build_soc_market_summary` — true flat median from raw records |
+| `immigration-model-builder/src/export/rag_builder.py` | Fix 3 median-of-medians sites + update market_lookup to latest FY |
+| `immigration-model-builder/tests/p3_metrics/test_soc_salary_market.py` | NEW — 10 regression tests |
+
+### Next Steps
+1. Continue Phase 4: Personalized Panels (Green Card Forecast, Employer Insights, Job Market)
+2. Remaining audit: verify `employer_salary_profiles` per-SOC percentiles are used correctly in P3 wage components
+
+---
+
 ## 2026-03-06 — Milestone 10.29: SRS 36m Window + Data Verification
 
 ### Objective
@@ -1753,7 +1829,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.28 — 2026-03-09)
+## Quick Reference (Current State as of Milestone 10.30 — 2026-03-09)
 
 | Metric | Value |
 |--------|-------|
@@ -1927,6 +2003,8 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.26 | 2026-03-09 | Documentation Overhaul + Agent Guidebook | BEST_PRACTICES.md (10 sections); all 3 READMEs updated; BEST_PRACTICES.md wired into all 3 copilot-instructions.md START HERE blocks; 3 commits pushed |
 | 10.27 | 2026-03-09 | AWS Deployment (S3 + CloudFront) | 22 AWS resources via Terraform; all 16 pages verified; ~$1–3/month; URL: d10immmzyp7xgr.cloudfront.net |
 | 10.28 | 2026-03-09 | Bug Fixes — Wage Dead-Ends + SRS Subscores | Wage Fuse scoped 56K→485 profiled employers; SRS gauge shows subscores+amber note for unrated; 556 tests; deployed |
+| 10.29 | 2026-03-06 | SRS 36m Window + Data Verification | LCA window 24m→36m; 5 employer data points verified exact; 556 tests |
+| 10.30 | 2026-03-09 | SOC Salary Market Bias Fix | `_build_soc_market_summary` now uses true flat median from raw records; 6% bias eliminated; 10 new P2 regression tests; QA pairs 684→719; P2 commit b89cbcf |
 
 ---
 
