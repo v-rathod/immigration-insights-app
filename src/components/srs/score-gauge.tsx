@@ -59,6 +59,8 @@ export function SrsScoreGauge({
   const displayScore = useTransform(springValue, (v) => Math.round(v));
 
   const isRated = score != null && !isNaN(score) && tier !== "Unrated";
+  const hasSubscores =
+    subscores.outcome > 0 || subscores.wage > 0 || subscores.sustainability > 0;
 
   return (
     <div className={cn("flex flex-col items-center gap-6", className)}>
@@ -161,8 +163,17 @@ export function SrsScoreGauge({
         </div>
       )}
 
-      {/* Subscores */}
-      {isRated && (
+      {/* Unrated explanation — shown when subscores exist but composite is withheld */}
+      {!isRated && hasSubscores && (
+        <div className="w-full max-w-[240px] rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2">
+          <p className="text-[11px] text-amber-400/80 text-center leading-snug">
+            Too few recent filings for an overall score. Component scores below are based on available LCA data.
+          </p>
+        </div>
+      )}
+
+      {/* Subscores — shown for rated employers and for unrated ones with partial data */}
+      {(isRated || (!isRated && hasSubscores)) && (
         <div className="w-full max-w-[240px] space-y-3">
           <SubscoreBar
             label="Approval Outcomes"

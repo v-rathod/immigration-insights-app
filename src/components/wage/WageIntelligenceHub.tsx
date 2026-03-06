@@ -318,10 +318,14 @@ export function WageIntelligenceHub() {
           ignoreLocation: true,
         });
 
-        // Build Employer Fuse index from FULL search index (402K+ employers, no cutoff)
-        const empList = searchIdx.map((e) => e.employer_name);
+        // Build Employer Fuse index SCOPED to employers that have profile data.
+        // The full search index has 56K+ names but only ~485 have role profiles —
+        // filtering prevents "no data available" dead-ends after selection.
+        const profileEmployerNames = new Set(rolePro.map((r) => r.employer_name));
+        const profiledIdx = searchIdx.filter((e) => profileEmployerNames.has(e.employer_name));
+        const empList = profiledIdx.map((e) => e.employer_name);
         employerFuseRef.current = new Fuse(empList, {
-          threshold: 0.25,
+          threshold: 0.3,
           minMatchCharLength: 2,
           ignoreLocation: true,
         });
@@ -338,8 +342,11 @@ export function WageIntelligenceHub() {
     if (profile?.wageOffered && profile.wageOffered > 0) setUserProfile(profile);
   }, []);
 
-  // ── Employer list for empty-state quick picks (all 402K+ employers) ────────
-  const allEmployers = useMemo(() => searchIndex.map((e) => e.employer_name), [searchIndex]);
+  // ── Employer list for empty-state quick picks (scoped to employers with profiles) ──
+  const allEmployers = useMemo(() => {
+    const profiled = new Set(roleProfiles.map((r) => r.employer_name));
+    return searchIndex.filter((e) => profiled.has(e.employer_name)).map((e) => e.employer_name);
+  }, [searchIndex, roleProfiles]);
 
   // ── Search handler ────────────────────────────────────────────────────────
   const handleSearch = useCallback(
