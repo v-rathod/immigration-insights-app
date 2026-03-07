@@ -567,18 +567,18 @@ export function getTopWageGrowers(
 }
 
 /** All SOC roles for a given employer from the rankings table.
- * Filters to the latest fiscal year only, optionally by visa type,
- * deduplicates by soc_code (keeps highest-filing row), and requires
- * sufficient filings and a plausible salary value.
+ * Deduplicates by soc_code (keeps most-recent-year row per SOC),
+ * optionally by visa type, and requires a plausible salary value.
+ * No minimum filing threshold by default — show every role.
  */
 export function getEmployerRoles(
   rankings: EmployerWageRanking[],
   employerName: string,
   visaType?: string,
-  /** Minimum number of filings to include a role. Defaults to WAGE_SANITY.MIN_FILINGS_RANKING.
-   * Pass 1 when consuming pre-aggregated employer_role_profiles data, where even
-   * a small employer with 1-3 filings per role represents real hiring activity. */
-  minFilings: number = WAGE_SANITY.MIN_FILINGS_RANKING
+  /** Minimum number of filings to include a role. Defaults to 1 (no filter).
+   * The sync script already curates the data — every role in the 36-month
+   * window is valid hiring activity. */
+  minFilings: number = 1
 ): (EmployerWageRanking & { prior_year_median_salary?: number })[] {
   const employerRows = rankings.filter(
     (r) =>

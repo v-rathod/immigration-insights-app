@@ -77,7 +77,7 @@ const STATUS_COLORS: Record<string, string> = {
 function statusBadge(status: string) {
   const cls =
     STATUS_COLORS[status?.toUpperCase()] ??
-    "bg-white/10 text-white/60 border border-white/15";
+    "bg-[var(--foreground)]/10 text-[var(--muted-foreground)] border border-[var(--foreground)]/15";
   const label =
     status === "CERTIFIED-WITHDRAWN"
       ? "WITHDRAWN"
@@ -205,7 +205,7 @@ function LcaFilingsTab({
   }) => (
     <th
       className={cn(
-        "px-3 py-2.5 text-left text-xs font-medium text-white/50 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap hover:text-white/80 transition-colors",
+        "px-3 py-2.5 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide cursor-pointer select-none whitespace-nowrap hover:text-[var(--foreground)]/80 transition-colors",
         className
       )}
       onClick={() => {
@@ -236,7 +236,7 @@ function LcaFilingsTab({
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
           <input
             type="text"
             value={search}
@@ -245,7 +245,7 @@ function LcaFilingsTab({
               resetPage();
             }}
             placeholder="Search job title or city…"
-            className="w-full rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/90 placeholder:text-white/30 pl-9 pr-3 py-2 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all"
+            className="w-full rounded-lg bg-[var(--foreground)]/[0.05] border border-[var(--foreground)]/[0.08] text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]/70 pl-9 pr-3 py-2 focus:outline-none focus:border-blue-500/50 focus:bg-[var(--foreground)]/[0.07] transition-all"
           />
           {search && (
             <button
@@ -253,7 +253,7 @@ function LcaFilingsTab({
                 setSearch("");
                 resetPage();
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]/70 hover:text-[var(--foreground)]/70"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -267,8 +267,7 @@ function LcaFilingsTab({
             setSelectedYear(e.target.value === "all" ? "all" : Number(e.target.value));
             resetPage();
           }}
-          style={{ colorScheme: "dark" }}
-          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/90 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+          className="rounded-lg bg-[var(--foreground)]/[0.05] border border-[var(--foreground)]/[0.08] text-sm text-[var(--foreground)] px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
         >
           <option value="all">All years</option>
           {years.map((y) => (
@@ -285,8 +284,7 @@ function LcaFilingsTab({
             setSelectedStatus(e.target.value);
             resetPage();
           }}
-          style={{ colorScheme: "dark" }}
-          className="rounded-lg bg-white/[0.05] border border-white/[0.08] text-sm text-white/90 px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+          className="rounded-lg bg-[var(--foreground)]/[0.05] border border-[var(--foreground)]/[0.08] text-sm text-[var(--foreground)] px-3 py-2 focus:outline-none focus:border-blue-500/50 transition-all cursor-pointer"
         >
           <option value="all">All statuses</option>
           {statuses.map((s) => (
@@ -300,7 +298,7 @@ function LcaFilingsTab({
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] text-xs text-white/50 px-3 py-2 hover:text-white/80 hover:border-white/20 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--foreground)]/[0.08] text-xs text-[var(--muted-foreground)] px-3 py-2 hover:text-[var(--foreground)]/80 hover:border-[var(--foreground)]/20 transition-all"
           >
             <X className="h-3 w-3" />
             Clear
@@ -309,25 +307,25 @@ function LcaFilingsTab({
 
         {/* Count / metadata */}
         <div className="ml-auto flex flex-col items-end gap-0.5">
-          <span className="text-xs text-white/40 whitespace-nowrap">
+          <span className="text-xs text-[var(--muted-foreground)] whitespace-nowrap">
             {filtered.length.toLocaleString()} of {filings.length.toLocaleString()} shown
           </span>
           {(lcaTotal !== undefined || lcaFyRange) && (
-            <span className="text-[10px] text-white/25 whitespace-nowrap">
+            <span className="text-[10px] text-[var(--muted-foreground)]/60 whitespace-nowrap">
               {lcaFyRange ? `FY${lcaFyRange[0]}–FY${lcaFyRange[1]} · ` : ""}
               {lcaTotal !== undefined && lcaTotal > filings.length
                 ? `${lcaTotal.toLocaleString()} total`
-                : "last 5 fiscal years"}
+                : "last 36 months"}
             </span>
           )}
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
+      <div className="overflow-x-auto rounded-xl border border-[var(--foreground)]/[0.07]">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+            <tr className="border-b border-[var(--foreground)]/[0.06] bg-[var(--foreground)]/[0.02]">
               <TH col="job_title">Job Title</TH>
               <TH col="soc_title" className="hidden lg:table-cell">Occupation</TH>
               <TH col="worksite_city">Location</TH>
@@ -335,7 +333,7 @@ function LcaFilingsTab({
               <TH col="case_status">Status</TH>
               <TH col="received_date">Filed</TH>
               <TH col="decision_date" className="hidden xl:table-cell">Decision</TH>
-              <th className="px-3 py-2.5 text-left text-xs font-medium text-white/50 uppercase tracking-wide whitespace-nowrap hidden xl:table-cell">
+              <th className="px-3 py-2.5 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide whitespace-nowrap hidden xl:table-cell">
                 FT
               </th>
             </tr>
@@ -345,7 +343,7 @@ function LcaFilingsTab({
               <tr>
                 <td
                   colSpan={8}
-                  className="px-4 py-12 text-center text-sm text-white/30"
+                  className="px-4 py-12 text-center text-sm text-[var(--muted-foreground)]/70"
                 >
                   No filings match your filters
                 </td>
@@ -354,15 +352,15 @@ function LcaFilingsTab({
               pageRows.map((row, i) => (
                 <tr
                   key={row.case_number || i}
-                  className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors"
+                  className="border-b border-[var(--foreground)]/[0.04] hover:bg-[var(--foreground)]/[0.025] transition-colors"
                 >
                   {/* Job Title */}
                   <td className="px-3 py-2.5 max-w-[200px]">
-                    <span className="font-medium text-white/85 line-clamp-1 block">
+                    <span className="font-medium text-[var(--foreground)] line-clamp-1 block">
                       {row.job_title || "-"}
                     </span>
                     {row.case_number && (
-                      <span className="text-[10px] text-white/25 font-mono">
+                      <span className="text-[10px] text-[var(--muted-foreground)]/60 font-mono">
                         {row.case_number}
                       </span>
                     )}
@@ -370,14 +368,14 @@ function LcaFilingsTab({
 
                   {/* Occupation */}
                   <td className="px-3 py-2.5 hidden lg:table-cell">
-                    <span className="text-white/70 text-xs line-clamp-1">
+                    <span className="text-[var(--foreground)]/70 text-xs line-clamp-1">
                       {row.soc_title || "-"}
                     </span>
                   </td>
 
                   {/* Location */}
                   <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="text-white/75 text-xs">
+                    <span className="text-[var(--foreground)]/75 text-xs">
                       {[row.worksite_city, row.worksite_state]
                         .filter(Boolean)
                         .join(", ") || "-"}
@@ -386,13 +384,13 @@ function LcaFilingsTab({
 
                   {/* Salary */}
                   <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="font-medium text-white/90 tabular-nums">
+                    <span className="font-medium text-[var(--foreground)] tabular-nums">
                       {row.wage_annual > 0
                         ? formatCurrency(row.wage_annual)
                         : "-"}
                     </span>
                     {row.wage_annual_high && row.wage_annual_high > row.wage_annual && (
-                      <span className="text-[10px] text-white/35 block">
+                      <span className="text-[10px] text-[var(--muted-foreground)]/80 block">
                         — {formatCurrency(row.wage_annual_high)}
                       </span>
                     )}
@@ -405,7 +403,7 @@ function LcaFilingsTab({
 
                   {/* Filed */}
                   <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="text-white/70 text-xs tabular-nums">
+                    <span className="text-[var(--foreground)]/70 text-xs tabular-nums">
                       {row.received_date
                         ? new Date(row.received_date + "T00:00:00Z").toLocaleDateString(
                             "en-US",
@@ -417,7 +415,7 @@ function LcaFilingsTab({
 
                   {/* Decision */}
                   <td className="px-3 py-2.5 whitespace-nowrap hidden xl:table-cell">
-                    <span className="text-white/60 text-xs tabular-nums">
+                    <span className="text-[var(--muted-foreground)] text-xs tabular-nums">
                       {row.decision_date && row.decision_date !== row.received_date
                         ? new Date(row.decision_date + "T00:00:00Z").toLocaleDateString(
                             "en-US",
@@ -432,7 +430,7 @@ function LcaFilingsTab({
                     <span
                       className={cn(
                         "text-[10px] font-semibold",
-                        row.is_fulltime ? "text-emerald-400" : "text-white/60"
+                        row.is_fulltime ? "text-emerald-400" : "text-[var(--muted-foreground)]"
                       )}
                     >
                       {row.is_fulltime ? "FT" : "PT"}
@@ -448,14 +446,14 @@ function LcaFilingsTab({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-[var(--muted-foreground)]">
             Page {page + 1} of {totalPages} ({sorted.length.toLocaleString()} results)
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-1.5 rounded-lg border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 rounded-lg border border-[var(--foreground)]/[0.08] text-[var(--muted-foreground)] hover:text-[var(--foreground)]/80 hover:border-[var(--foreground)]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -471,7 +469,7 @@ function LcaFilingsTab({
                     "w-8 h-8 rounded-lg text-xs font-medium border transition-all",
                     p === page
                       ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
-                      : "border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20"
+                      : "border-[var(--foreground)]/[0.08] text-[var(--muted-foreground)] hover:text-[var(--foreground)]/70 hover:border-[var(--foreground)]/20"
                   )}
                 >
                   {p + 1}
@@ -481,7 +479,7 @@ function LcaFilingsTab({
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
-              className="p-1.5 rounded-lg border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 rounded-lg border border-[var(--foreground)]/[0.08] text-[var(--muted-foreground)] hover:text-[var(--foreground)]/80 hover:border-[var(--foreground)]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -504,10 +502,10 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
 
   if (!sorted.length) {
     return (
-      <div className="py-12 text-center text-sm text-white/30">
+      <div className="py-12 text-center text-sm text-[var(--muted-foreground)]/70">
         <Building2 className="h-8 w-8 mx-auto mb-3 opacity-20" />
         <p>No USCIS petition history available</p>
-        <p className="text-xs mt-1 text-white/20">
+        <p className="text-xs mt-1 text-[var(--muted-foreground)]/50">
           USCIS discontinued per-employer H-1B data releases after FY2023
         </p>
       </div>
@@ -516,20 +514,20 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-white/35">
+      <p className="text-xs text-[var(--muted-foreground)]/80">
         Annual USCIS H-1B petition outcomes · FY2010–FY2023 · Source: USCIS H-1B Employer Data Hub
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
+      <div className="overflow-x-auto rounded-xl border border-[var(--foreground)]/[0.07]">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.06] bg-white/[0.02]">
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wide">Year</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide">Initial App.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide">Initial Den.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide hidden md:table-cell">Cont. App.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide hidden md:table-cell">Cont. Den.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide">Total</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wide">Approval %</th>
+            <tr className="border-b border-[var(--foreground)]/[0.06] bg-[var(--foreground)]/[0.02]">
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Year</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Initial App.</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Initial Den.</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">Cont. App.</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">Cont. Den.</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Total</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Approval %</th>
             </tr>
           </thead>
           <tbody>
@@ -538,9 +536,9 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
               return (
                 <tr
                   key={row.fiscal_year}
-                  className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors"
+                  className="border-b border-[var(--foreground)]/[0.04] hover:bg-[var(--foreground)]/[0.025] transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-white/80">FY{row.fiscal_year}</td>
+                  <td className="px-4 py-3 font-medium text-[var(--foreground)]/80">FY{row.fiscal_year}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-emerald-400/80">
                     {row.initial_approvals.toLocaleString()}
                   </td>
@@ -553,7 +551,7 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
                   <td className="px-4 py-3 text-right tabular-nums text-rose-400/40 hidden md:table-cell">
                     {row.continuing_denials.toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-white/70 font-medium">
+                  <td className="px-4 py-3 text-right tabular-nums text-[var(--foreground)]/70 font-medium">
                     {row.total_petitions.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -582,18 +580,18 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
             const grandTotal = sorted.reduce((s, r) => s + r.total_petitions, 0);
             return (
               <tfoot>
-                <tr className="border-t border-white/[0.08] bg-white/[0.02]">
-                  <td className="px-4 py-2.5 text-xs font-medium text-white/40 uppercase tracking-wide">All years</td>
-                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-white/40">
+                <tr className="border-t border-[var(--foreground)]/[0.08] bg-[var(--foreground)]/[0.02]">
+                  <td className="px-4 py-2.5 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">All years</td>
+                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-[var(--muted-foreground)]">
                     {totalInit.toLocaleString()}
                   </td>
-                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-white/40 hidden md:table-cell">
+                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-[var(--muted-foreground)] hidden md:table-cell">
                     {totalCont.toLocaleString()}
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-sm font-semibold text-white/60">
+                  <td className="px-4 py-2.5 text-right tabular-nums text-sm font-semibold text-[var(--muted-foreground)]">
                     {grandTotal.toLocaleString()}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-xs font-semibold text-white/60">
+                  <td className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--muted-foreground)]">
                     {((totalApp / (grandTotal || 1)) * 100).toFixed(1)}%
                   </td>
                 </tr>
@@ -602,7 +600,7 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
           })()}
         </table>
       </div>
-      <p className="text-[11px] text-white/25">
+      <p className="text-[11px] text-[var(--muted-foreground)]/60">
         Note: USCIS H-1B employer data hub discontinued after FY2023. FY2024+ petition outcomes are not publicly available at employer level.
       </p>
     </div>
@@ -638,12 +636,12 @@ export function RawFilingsTable({
   ];
 
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+    <div className="rounded-2xl border border-[var(--foreground)]/[0.07] bg-[var(--foreground)]/[0.02] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-0 gap-4 border-b border-white/[0.05]">
+      <div className="flex items-center justify-between px-5 pt-4 pb-0 gap-4 border-b border-[var(--foreground)]/[0.05]">
         <div className="flex items-center gap-2.5">
           <FileText className="h-4 w-4 text-blue-400/70" />
-          <h3 className="text-sm font-semibold text-white/80">Raw Filing Records</h3>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]/80">Filing Records &mdash; Last 36 Months</h3>
         </div>
 
         {/* Tabs */}
@@ -655,8 +653,8 @@ export function RawFilingsTable({
               className={cn(
                 "relative px-3.5 py-2.5 text-xs font-medium rounded-none transition-all border-b-2 -mb-px",
                 activeTab === tab.id
-                  ? "border-blue-500 text-white/90"
-                  : "border-transparent text-white/40 hover:text-white/65"
+                  ? "border-blue-500 text-[var(--foreground)]"
+                  : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]/65"
               )}
             >
               {tab.label}
@@ -666,7 +664,7 @@ export function RawFilingsTable({
                     "ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
                     activeTab === tab.id
                       ? "bg-blue-500/20 text-blue-400"
-                      : "bg-white/[0.07] text-white/35"
+                      : "bg-[var(--foreground)]/[0.07] text-[var(--muted-foreground)]/80"
                   )}
                 >
                   {tab.count > 5000

@@ -90,9 +90,9 @@ function SalaryTooltip({
   const salary = payload[0]?.value;
   const yoy = payload[0]?.payload?.yoy_pct;
   return (
-    <div className="bg-[var(--card)] border border-white/[0.12] rounded-xl px-3 py-2 text-xs shadow-xl">
+    <div className="bg-[var(--card)] border border-[var(--foreground)]/[0.12] rounded-xl px-3 py-2 text-xs shadow-xl">
       <p className="text-[var(--muted-foreground)] mb-1">FY {label}</p>
-      <p className="font-mono font-bold text-white">{formatCurrency(salary)}</p>
+      <p className="font-mono font-bold text-[var(--foreground)]">{formatCurrency(salary)}</p>
       {yoy != null && (
         <p className={cn("mt-0.5 font-semibold", yoy >= 0 ? "text-emerald-400" : "text-rose-400")}>
           {yoy >= 0 ? "+" : ""}
@@ -119,7 +119,7 @@ function GrowthBadge({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl bg-[var(--foreground)]/[0.03] border border-[var(--foreground)]/[0.06]">
       <div className="flex items-center gap-1.5">
         <Icon className={cn("h-3.5 w-3.5", color)} />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
@@ -201,15 +201,15 @@ export function EmployerProfile({
   // employer_wage_rankings (SOC-centric, ranked by salary) — the latter only includes
   // an employer where it ranks in the top-25 by salary for a SOC, which causes large
   // IT consulting firms to show just 1-2 roles despite having thousands of filings.
-  // When using roleProfiles (pre-aggregated 36-month data), pass minFilings=1 so that
-  // small employers with 1-3 filings per role still appear — those filings are real.
+  // Always use minFilings=1: the sync script already curates the data — every role
+  // in the 36-month window is valid, even with a single filing.
   const roles = useMemo(
     () => getEmployerRoles(
       roleProfiles && roleProfiles.length > 0 ? roleProfiles : rankings,
       employerName,
       visaType,
-      roleProfiles && roleProfiles.length > 0 ? 1 : undefined
-    ).slice(0, 25),
+      1  // no min-filing filter — show every role
+    ).slice(0, 10),
     [roleProfiles, rankings, employerName, visaType]
   );
 
@@ -240,14 +240,14 @@ export function EmployerProfile({
             {/* Growth badges skeleton */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+                <div key={i} className="h-16 rounded-xl bg-[var(--foreground)]/[0.04] border border-[var(--foreground)]/[0.06]" />
               ))}
             </div>
             {/* Chart skeleton */}
-            <div className="h-48 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+            <div className="h-48 rounded-xl bg-[var(--foreground)]/[0.04] border border-[var(--foreground)]/[0.06]" />
             {/* Section toggle skeletons */}
-            <div className="h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
-            <div className="h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+            <div className="h-12 rounded-xl bg-[var(--foreground)]/[0.04] border border-[var(--foreground)]/[0.06]" />
+            <div className="h-12 rounded-xl bg-[var(--foreground)]/[0.04] border border-[var(--foreground)]/[0.06]" />
           </div>
           <p className="text-xs text-[var(--muted-foreground)] text-center mt-4">
             Loading salary data for {employerName}…
@@ -296,7 +296,7 @@ export function EmployerProfile({
               <GrowthBadge
                 label="Median Salary"
                 value={formatCurrency(stats.latest_median)}
-                color="text-white"
+                color="text-[var(--foreground)]"
                 icon={Building2}
               />
             </StaggerItem>
@@ -416,7 +416,7 @@ export function EmployerProfile({
                   "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all text-left",
                   topRolesOpen
                     ? "border-blue-400/30 bg-blue-400/[0.06]"
-                    : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                    : "border-[var(--foreground)]/[0.07] bg-[var(--foreground)]/[0.02] hover:border-[var(--foreground)]/[0.12] hover:bg-[var(--foreground)]/[0.04]"
                 )}
                 aria-expanded={topRolesOpen}
               >
@@ -425,7 +425,7 @@ export function EmployerProfile({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--foreground)]">Top Roles</p>
                     <p className="text-[10px] text-[var(--muted-foreground)] truncate">
-                      {roles.length} roles · last 36 months · {visaType}
+                      Top {roles.length} roles · last 36 months · {visaType}
                     </p>
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export function EmployerProfile({
                   "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border transition-all text-left",
                   filingsOpen
                     ? "border-purple-400/30 bg-purple-400/[0.06]"
-                    : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                    : "border-[var(--foreground)]/[0.07] bg-[var(--foreground)]/[0.02] hover:border-[var(--foreground)]/[0.12] hover:bg-[var(--foreground)]/[0.04]"
                 )}
                 aria-expanded={filingsOpen}
               >
@@ -459,8 +459,8 @@ export function EmployerProfile({
                     <p className="text-sm font-semibold text-[var(--foreground)]">Filing Records</p>
                     <p className="text-[10px] text-[var(--muted-foreground)] truncate">
                       {filingsLoaded
-                        ? `${lcaFilings.length.toLocaleString()} LCA · ${h1bPetitions.length} H-1B yr${lcaTotal > lcaFilings.length ? ` · capped` : ""}`
-                        : "LCA per-case + H-1B petitions"}
+                        ? `${lcaFilings.length.toLocaleString()} LCA filings · last 36 months${h1bPetitions.length ? ` · ${h1bPetitions.length} H-1B yr` : ""}`
+                        : "LCA per-case filings · last 36 months"}
                     </p>
                   </div>
                 </div>
@@ -497,7 +497,7 @@ export function EmployerProfile({
                         onChange={(e) => setRoleQuery(e.target.value)}
                         placeholder="Search roles..."
                         aria-label="Search roles"
-                        className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-white/[0.03] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-400/40 transition-colors"
+                        className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-[var(--foreground)]/[0.08] bg-[var(--foreground)]/[0.03] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-blue-400/40 transition-colors"
                       />
                       {roleQuery && (
                         <button
@@ -537,7 +537,7 @@ export function EmployerProfile({
                               "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
                               isSelected
                                 ? "border-blue-400/30 bg-blue-400/[0.06]"
-                                : "border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                                : "border-[var(--foreground)]/[0.04] bg-[var(--foreground)]/[0.02] hover:border-[var(--foreground)]/[0.12] hover:bg-[var(--foreground)]/[0.04]"
                             )}
                             aria-label={`View salary trends for ${role.soc_title}`}
                             aria-expanded={isSelected}
@@ -565,7 +565,7 @@ export function EmployerProfile({
                                   : "—"}
                               </span>
                             </div>
-                            <span className="text-sm font-mono font-bold text-white shrink-0 w-24 text-right">
+                            <span className="text-sm font-mono font-bold text-[var(--foreground)] shrink-0 w-24 text-right">
                               {formatCurrency(role.median_salary)}
                             </span>
                             <span className={cn("text-xs font-semibold shrink-0 w-16 text-right hidden sm:block", premiumColor)}>
@@ -620,9 +620,9 @@ export function EmployerProfile({
                 className="overflow-hidden"
               >
                 {filingsLoading ? (
-                  <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-10 text-center">
+                  <div className="rounded-2xl border border-[var(--foreground)]/[0.07] bg-[var(--foreground)]/[0.02] px-5 py-10 text-center">
                     <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-purple-500/40 border-t-purple-500" />
-                    <p className="mt-3 text-xs text-white/40">Loading filing records…</p>
+                    <p className="mt-3 text-xs text-[var(--foreground)]/40">Loading filing records…</p>
                   </div>
                 ) : filingsLoaded ? (
                   <RawFilingsTable

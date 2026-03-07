@@ -399,7 +399,7 @@ def sync_wage_dashboard():
                 .agg({
                     "total_filings": "sum",
                     "n_soc_codes": "max",  # latest unique job titles
-                    "median_salary": lambda x: x[x.notna()].median(),
+                    "median_salary": lambda x: float(x.median()) if len(x) > 0 else None,
                     "fiscal_year": "max"  # latest year
                 })
                 .reset_index()
@@ -529,10 +529,11 @@ def sync_wage_dashboard():
         erp_merged["n_filings"] = erp_merged["n_filings_36mo"]  # replace with 36mo total
         erp_merged = erp_merged.drop(columns=["latest_role_year", "n_filings_36mo", "latest_year"])
 
-        # Drop roles with implausibly few filings across the whole 36-month window
-        erp_merged = erp_merged[erp_merged["n_filings"] >= 3].copy()
+        # No min-filing filter — include every role that had >=1 filing in the 36-month window.
+        # User requirement: "Even if one of the role had just 1 filling then show it"
+        erp_merged = erp_merged[erp_merged["n_filings"] >= 1].copy()
 
-        # Rank by 36-month filing count per employer, keep top 25
+        # Rank by 36-month filing count per employer, keep top 25 (UI shows top 10)
         erp_merged = erp_merged.sort_values(["employer_name", "n_filings"], ascending=[True, False])
         erp_top = erp_merged.groupby("employer_name").head(25).reset_index(drop=True)
 
@@ -606,11 +607,11 @@ def sync_employer_raw_filings():
     Generate per-employer raw filing shards for the Wage dashboard's
     "Raw Filings" table.  Two data sources are merged into one file per employer:
 
-      • LCA filings (DOL): per-case H-1B job offer records FY2022-2025.
+      • LCA filings (DOL): per-case H-1B job offer records, last 36 months.
         Columns: case_number, job_title, soc_title, city, state, annual salary
                  (annualized from wage_unit), status, received_date, decision_date,
                  full_time, fiscal_year.
-        Capped at 2,000 most-recent rows per employer.
+        No cap — every filing in the window is included.
 
       • Petition history (USCIS): annual aggregate petition outcomes FY2010-2023.
         Columns: fiscal_year, initial_approvals, initial_denials,
@@ -643,13 +644,24 @@ def sync_employer_raw_filings():
     # employer_name → employer_id mapping (canonical)
     emp_id_map: dict = top_employers_series.set_index("employer_name")["employer_id"].to_dict()
 
-    # ── Load LCA filings (FY2022-2025) ────────────────────────────────────
-    LCA_FY_MIN = 2022
-    print(f"  Loading fact_lca FY{LCA_FY_MIN}+  (may take a moment)...")
+    # ── Load LCA filings (last 36 months) ─────────────────────────────────
+    # Use received_date to precisely compute the 36-month window.
+    # Fallback: use fiscal_year-based window (latest 3 years) if no dates.
+    from datetime import datetime, timedelta
+    LCA_36MO_CUTOFF = (datetime.now() - timedelta(days=36*30)).strftime("%Y-%m-%d")
+    print(f"  Loading fact_lca (36-month window, cutoff {LCA_36MO_CUTOFF})...")
     lca = read_parquet_safe(P2_TABLES / "fact_lca")
-    if not lca.empty and "fiscal_year" in lca.columns:
-        lca["fiscal_year"] = lca["fiscal_year"].astype(int)
-        lca = lca[lca["fiscal_year"] >= LCA_FY_MIN].copy()
+    if not lca.empty:
+        if "fiscal_year" in lca.columns:
+            lca["fiscal_year"] = lca["fiscal_year"].astype(int)
+        # Filter to last 36 months by received_date if available,
+        # else by fiscal_year (latest 3 years in the data)
+        if "received_date" in lca.columns:
+            lca["received_date"] = lca["received_date"].astype(str)
+            lca = lca[lca["received_date"] >= LCA_36MO_CUTOFF].copy()
+        elif "fiscal_year" in lca.columns:
+            max_fy = int(lca["fiscal_year"].max())
+            lca = lca[lca["fiscal_year"] >= max_fy - 2].copy()
 
     # Annualise wages (wage_rate_from → annual equivalent)
     def _to_annual(row):
@@ -770,10 +782,8 @@ def sync_employer_raw_filings():
     shards_written = 0
     skipped = 0
 
-    # Maximum rows to include per shard (after 5-year window filter).
-    # This guards against multi-GB shards for mega-filing employers like Infosys
-    # while still covering the full 5-year window for typical employers.
-    LCA_MAX_ROWS = 5000
+    # No row cap — include every LCA filing in the 36-month window.
+    # User requirement: "each and every LCA filing from last 36 months".
 
     for emp_name, emp_id in emp_id_map.items():
         if not emp_id:
@@ -786,21 +796,17 @@ def sync_employer_raw_filings():
         lca_fy_range: list = []     # [min_fy, max_fy] actually present
         if not lca.empty and "employer_id" in lca.columns:
             emp_lca = lca[lca["employer_id"] == emp_id].copy()
-            if not emp_lca.empty and "fiscal_year" in emp_lca.columns:
-                # Restrict to the 5 most-recent fiscal years in the data
-                top_fys = sorted(emp_lca["fiscal_year"].dropna().unique(), reverse=True)[:5]
-                emp_lca = emp_lca[emp_lca["fiscal_year"].isin(top_fys)]
+            # LCA data is already filtered to 36-month window globally above.
+            # No per-employer cap — include every filing.
 
             if not emp_lca.empty:
                 lca_total = len(emp_lca)
                 fy_present = emp_lca["fiscal_year"].dropna().astype(int)
-                lca_fy_range = [int(fy_present.min()), int(fy_present.max())]
+                lca_fy_range = [int(fy_present.min()), int(fy_present.max())] if len(fy_present) > 0 else []
 
-                # Sort by FY descending then received_date descending; cap at LCA_MAX_ROWS
+                # Sort by FY descending then received_date descending
                 sort_cols = [c for c in ["fiscal_year", "received_date"] if c in emp_lca.columns]
                 emp_lca = emp_lca.sort_values(sort_cols, ascending=[False] * len(sort_cols))
-                if len(emp_lca) > LCA_MAX_ROWS:
-                    emp_lca = emp_lca.head(LCA_MAX_ROWS)
 
                 # Keep only useful columns
                 keep = [c for c in LCA_KEEP_COLS if c in emp_lca.columns]

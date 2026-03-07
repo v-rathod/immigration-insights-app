@@ -256,7 +256,7 @@ describe("getEmployerRoles", () => {
       visa_type: "H-1B", job_title_top: "QA Analyst", worksite_state_top: "NJ",
     },
     // FY2024 only — this SOC had no filings in FY2025. Should still be returned
-    // because it's the only row for soc_code "17-2061" (n_filings=8 >= default min=5).
+    // because it's the only row for soc_code "17-2061" (n_filings=8 >= default min=1).
     {
       soc_code: "17-2061", soc_title: "Computer Systems Analysts",
       employer_name: "Cognizant", fiscal_year: 2024, n_filings: 8,
@@ -338,8 +338,8 @@ describe("getEmployerRoles", () => {
     expect(getEmployerRoles(ROLES_RANKINGS, "Unknown Corp", "H-1B")).toHaveLength(0);
   });
 
-  it("respects the default minFilings threshold (5) — low-count rows excluded", () => {
-    // Add a row with n_filings=2 — should be filtered with default minFilings=5
+  it("respects the default minFilings threshold (1) — includes roles with any filing count", () => {
+    // Add a row with n_filings=2 — should be INCLUDED with default minFilings=1
     const withLowCount = [
       ...ROLES_RANKINGS,
       {
@@ -352,6 +352,23 @@ describe("getEmployerRoles", () => {
       },
     ];
     const roles = getEmployerRoles(withLowCount, "Cognizant", "H-1B");
+    expect(roles.find((r) => r.soc_code === "11-1021")).toBeDefined();
+  });
+
+  it("excludes roles below a custom minFilings threshold", () => {
+    // With explicit minFilings=5, a row with n_filings=2 should be excluded
+    const withLowCount = [
+      ...ROLES_RANKINGS,
+      {
+        soc_code: "11-1021", soc_title: "General Managers",
+        employer_name: "Cognizant", fiscal_year: 2025, n_filings: 2,
+        median_salary: 130000, mean_salary: 131000, p25_salary: 115000,
+        p75_salary: 145000, prevailing_wage_median: 120000,
+        wage_premium_pct: 8, wage_vs_pw_pct: 7, oews_national_median: 125000,
+        visa_type: "H-1B", job_title_top: "GM", worksite_state_top: "NJ",
+      },
+    ];
+    const roles = getEmployerRoles(withLowCount, "Cognizant", "H-1B", 5);
     expect(roles.find((r) => r.soc_code === "11-1021")).toBeUndefined();
   });
 
@@ -402,11 +419,11 @@ describe("getEmployerRoles", () => {
         visa_type: "H-1B", job_title_top: "Database Architect", worksite_state_top: "IL",
       },
     ];
-    // Default minFilings=5 → only Software Developers (10 filings) passes
+    // Default minFilings=1 → all 3 roles pass (no minimum filtering by default)
     const defaultRoles = getEmployerRoles(imoData, "Intelligent Medical Objects", "H-1B");
-    expect(defaultRoles).toHaveLength(1);
+    expect(defaultRoles).toHaveLength(3);
 
-    // minFilings=1 (used by EmployerProfile when roleProfiles provided) → all 3 returned
+    // Explicit minFilings=1 produces same result
     const allRoles = getEmployerRoles(imoData, "Intelligent Medical Objects", "H-1B", 1);
     expect(allRoles).toHaveLength(3);
     expect(allRoles.find((r) => r.soc_title === "Data Scientists")).toBeDefined();
@@ -433,7 +450,7 @@ describe("getEmployerRoles", () => {
       { soc_code: "15-1254", soc_title: "Web Developers",                  employer_name: "Optum Services", fiscal_year: 2025, n_filings: 15,  median_salary: 105000, mean_salary: 107000, p25_salary: 93000, p75_salary: 118000, prevailing_wage_median: 93000, wage_premium_pct: 13, wage_vs_pw_pct: 11, oews_national_median: 100000, visa_type: "H-1B", job_title_top: "Web Developer", worksite_state_top: "MN" },
     ];
 
-    // With default minFilings=5: all 12 roles should pass (smallest is 15 filings)
+    // With default minFilings=1: all 12 roles pass
     const rolesDefault = getEmployerRoles(optumData, "Optum Services", "H-1B");
     expect(rolesDefault.length).toBeGreaterThanOrEqual(10); // ≥10 roles as user specified
 

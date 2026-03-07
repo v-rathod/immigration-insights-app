@@ -1,5 +1,72 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.37: Font Fix + 36-Month LCA + Deploy Safeguard
+
+### Objective
+Fix 3 user-reported bugs and prevent recurring deployment failures:
+1. Filing Records font invisible (text-white on white background in light mode)
+2. Only 29 LCA filings shown for Optum (should be all filings from last 36 months)
+3. Top Roles filtering too aggressively (roles with <5 filings excluded)
+4. Access Denied on production (stale `out/` directory caused `--delete` to remove HTML from S3)
+
+### What Was Done
+
+**Font Color Fix (119 replacements across 2 files):**
+- `RawFilingsTable.tsx`: 88 hardcoded `text-white/XX`, `bg-white/XX`, `border-white/XX` → CSS variable equivalents (`text-[var(--foreground)]`, `text-[var(--muted-foreground)]`, `bg-[var(--foreground)]/XX`, `border-[var(--foreground)]/XX`). Removed `style={{ colorScheme: "dark" }}` from 2 select elements.
+- `EmployerProfile.tsx`: 31 similar replacements. 0 remaining hardcoded white refs in either file.
+
+**36-Month LCA Window (sync_p2_data.py):**
+- Changed from hardcoded `LCA_FY_MIN = 2022` (5 fiscal years) to dynamic 36-month cutoff using `received_date` column (falls back to 3 fiscal years if no dates)
+- Removed `LCA_MAX_ROWS = 5000` per-employer cap entirely
+- Removed per-employer 5-fiscal-year restriction on shard building
+- Optum now shows 2,787 LCA rows (was 29), FY2022-2026
+
+**Top Roles: No Minimum Filing Filter:**
+- `getEmployerRoles` default `minFilings` changed from 5 → 1
+- `employer_role_profiles` in sync script: changed `n_filings >= 3` to `n_filings >= 1`
+- UI shows top 10 roles (was 25), labeled "Top N roles · last 36 months · {visaType}"
+
+**Deploy Safeguard Script (`scripts/deploy.sh`):**
+- Pre-flight checks: verifies `out/index.html` exists, ≥15 HTML pages, 4 dashboard pages present
+- 5-step pipeline: build → pre-flight → deploy main → deploy shards → CloudFront invalidation → verify
+- Post-deploy verification: checks S3 for index.html + dashboard pages + Optum shard + manifest + CloudFront HTTP 200
+- Prevents the `--delete` footgun that destroyed production by syncing an incomplete `out/` directory
+- Flags: `--skip-build`, `--shards-only`
+
+**Tests Updated:**
+- "respects the default minFilings threshold (5)" → split into 2 tests: default includes n=2, custom min=5 excludes n=2
+- "IMO pattern": updated default expectation from 1 → 3 roles (all pass with minFilings=1)
+- Comments updated to reflect minFilings=1 default
+
+### Results
+| Metric | Value |
+|--------|-------|
+| P3 Tests | **576 passing** (was 575, +1 new test) |
+| Hardcoded white refs | 0 (was 119) |
+| Optum LCA rows | 2,787 (was 29) |
+| Optum role profiles | 57 (was 12) |
+| Top Roles shown | 10 (was 25) |
+| Production | ✅ HTTP 200 at d10immmzyp7xgr.cloudfront.net |
+| CloudFront invalidation | IB2L7ZZ63BXNFR7GH0LG7TO8SQ |
+| Deploy safeguard | ✅ `scripts/deploy.sh` with pre-flight + post-deploy checks |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/components/wage/RawFilingsTable.tsx` | 88 color replacements, header "Filing Records — Last 36 Months" |
+| `src/components/wage/EmployerProfile.tsx` | 31 color replacements, slice(0,10), minFilings=1, "last 36 months" labels |
+| `src/lib/data/wage.ts` | `getEmployerRoles` default minFilings=1 |
+| `scripts/sync_p2_data.py` | 36-month LCA window, no cap, n_filings >= 1 |
+| `scripts/deploy.sh` | **NEW** — Safe deployment script with pre-flight + post-deploy verification |
+| `src/__tests__/wage-dashboard.test.tsx` | Updated minFilings tests, added custom threshold test |
+
+### Next Steps
+- Monitor employer shard S3 sync (95K files uploading in background)
+- Verify Optum Filing Records on production after CloudFront invalidation propagates
+- Consider adding `npm run deploy` alias in package.json
+
+---
+
 ## 2026-03-06 — Milestone 10.36: Wage Page — 4 Bug Fixes + 18 New Tests
 
 ### Objective
@@ -2194,7 +2261,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.36 — 2026-03-06)
+## Quick Reference (Current State as of Milestone 10.37 — 2026-03-06)
 
 | Metric | Value |
 |--------|-------|
@@ -2204,7 +2271,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **575 passing** across 24 test files |
+| Tests | **576 passing** across 24 test files |
 | P2 data synced | ✅ 35 JSON files + 95,152 employer shard files via `sync_p2_data.py` |
 | **public/data/ payload** | **~160 MB** (~85 MB dashboards + ~75 MB employer shards) |
 | Pages scaffolded | 16 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/dashboard/approvals/`, `/_not-found`) |
@@ -2221,6 +2288,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | PostHog | Super properties: `environment` tag on all events |
 | AWS deploy | Ready — static export clean, 575 tests passing, JSON files valid |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
+| **Deploy script** | `scripts/deploy.sh` — pre-flight (index.html check) + post-deploy (S3 + CloudFront HTTP 200) |
 
 ### Quick Commands
 ```bash
@@ -2376,6 +2444,7 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.34 | 2026-03-06 | Comprehensive SEO | Schema.org structured data, per-page metadata, robots.txt, sitemap.xml; 557 tests |
 | 10.35 | 2026-03-06 | Filing Records Rename + Top Roles 36m | Label rename Raw Filings→Filing Records; 36-month aggregation window in sync script; Optum 3→12 roles; lazy loading 160→30MB; 557 tests |
 | 10.36 | 2026-03-06 | Wage Page 4 Bug Fixes + 18 Tests | Loading skeleton (animate-pulse), auto-collapse mutual exclusion, getEmployerRoles multi-year dedup (IMO 1→3 roles), 95K employer shards uploaded to S3 (fixes Filing Records prod 404); 575 tests |
+| 10.37 | 2026-03-06 | Font Fix + 36-Month LCA + Deploy Safeguard | 119 hardcoded text-white→CSS vars; 36-month LCA window (no cap); minFilings=1; deploy.sh with pre-flight+post-deploy checks; HTTP 200 restored; 576 tests |
 
 ---
 
