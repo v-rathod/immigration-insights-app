@@ -44,6 +44,7 @@ import {
   getEmployerRoleTrendSeries,
   annotateWithYoy,
   loadEmployerFilings,
+  resolveEmployerHash,
   WAGE_SANITY,
   type EmployerSalaryTrend,
   type EmployerWageRanking,
@@ -160,17 +161,16 @@ export function EmployerProfile({
   const [filingsLoading, setFilingsLoading] = useState(false);
   const [filingsLoaded, setFilingsLoaded] = useState(false);
 
-  // Derive employer_id from the trend data (included by sync script)
-  const employerId = useMemo(() => {
-    const row = trend.find((r) => r.employer_name === employerName && r.employer_id);
-    return row?.employer_id ? String(row.employer_id) : null;
-  }, [trend, employerName]);
-
-  // Triggered only when user first opens the Filing Records panel
+  // Triggered only when user first opens the Filing Records panel.
+  // Resolves employer hash from _index.json by canonical name, then fetches shard.
   const triggerLoadFilings = useCallback(() => {
-    if (filingsLoaded || filingsLoading || !employerId) return;
+    if (filingsLoaded || filingsLoading || !employerName) return;
     setFilingsLoading(true);
-    loadEmployerFilings(employerId)
+    resolveEmployerHash(employerName)
+      .then((hash) => {
+        if (!hash) return null;
+        return loadEmployerFilings(hash);
+      })
       .then((data) => {
         if (data) {
           setLcaFilings(data.lca || []);
@@ -182,7 +182,7 @@ export function EmployerProfile({
       })
       .catch(() => setFilingsLoaded(true))
       .finally(() => setFilingsLoading(false));
-  }, [employerId, filingsLoaded, filingsLoading]);
+  }, [employerName, filingsLoaded, filingsLoading]);
 
   const series = useMemo(() => {
     // Filter out years with implausible salary values before rendering the chart
@@ -406,7 +406,7 @@ export function EmployerProfile({
         <div className="space-y-3">
 
           {/* Toggle header bar — two buttons side by side */}
-          <div className={cn("grid gap-3", roles.length > 0 && employerId ? "grid-cols-2" : "grid-cols-1")}>
+          <div className={cn("grid gap-3", roles.length > 0 ? "grid-cols-2" : "grid-cols-1")}>
 
             {/* Top Roles toggle */}
             {roles.length > 0 && (
@@ -437,7 +437,7 @@ export function EmployerProfile({
             )}
 
             {/* Filing Records toggle */}
-            {employerId && (
+            {employerName && (
               <button
                 onClick={() => {
                   const willOpen = !filingsOpen;

@@ -168,6 +168,7 @@ vi.mock("../lib/data/wage", async () => {
     ]),
     loadEmployerRoleTrends: vi.fn().mockResolvedValue([]),
     loadEmployerFilings: vi.fn().mockResolvedValue(null),
+    resolveEmployerHash: vi.fn().mockResolvedValue(null),
   };
 });
 
@@ -925,7 +926,8 @@ describe("EmployerProfile", () => {
     expect(screen.getByRole("button", { name: /Filing Records/i })).toBeInTheDocument();
   });
 
-  it("hides Filing Records button when employer_id is absent from trend data", () => {
+  it("always shows Filing Records button regardless of employer_id in trend data", () => {
+    // employer_id in trend data is no longer required — hash is resolved from _index.json at load time
     const trendNoId = OPTUM_TREND.map(({ ...r }) => { const copy = { ...r }; delete (copy as Record<string, unknown>).employer_id; return copy; });
     render(
       <EmployerProfile
@@ -936,6 +938,7 @@ describe("EmployerProfile", () => {
         roleTrends={[]}
       />
     );
-    expect(screen.queryByRole("button", { name: /Filing Records/i })).not.toBeInTheDocument();
+    // Button is always visible; shard fetch is triggered on open via _index.json lookup
+    expect(screen.getByRole("button", { name: /Filing Records/i })).toBeInTheDocument();
   });
 });

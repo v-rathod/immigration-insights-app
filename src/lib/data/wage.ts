@@ -198,7 +198,7 @@ export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
  * Returns a combined object with LCA per-case filings and H-1B petition history.
  * Fetched lazily on-demand; cached by the browser.
  *
- * @param employerId - SHA-1 hash from employer_salary_yearly.employer_id
+ * @param employerId - SHA-1 hash from _index.json (name → hash mapping)
  */
 export async function loadEmployerFilings(employerId: string): Promise<{
   employer_name: string;
@@ -214,6 +214,22 @@ export async function loadEmployerFilings(employerId: string): Promise<{
     const res = await fetch(`/data/employers/${employerId}.json`);
     if (!res.ok) return null;
     return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Look up the SHA-1 employer shard hash from the _index.json by canonical name.
+ * Returns null if the employer is not found.
+ */
+export async function resolveEmployerHash(employerName: string): Promise<string | null> {
+  if (!employerName) return null;
+  try {
+    const res = await fetch('/data/employers/_index.json');
+    if (!res.ok) return null;
+    const index: Record<string, string> = await res.json();
+    return index[employerName] ?? null;
   } catch {
     return null;
   }
