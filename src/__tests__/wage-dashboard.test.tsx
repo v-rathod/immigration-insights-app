@@ -942,3 +942,64 @@ describe("EmployerProfile", () => {
     expect(screen.getByRole("button", { name: /Filing Records/i })).toBeInTheDocument();
   });
 });
+
+// ── Data Pipeline Integration Tests ────────────────────────────────────────
+// Regression tests to verify the LCA filings data pipeline works end-to-end.
+// These tests use real data files from public/data/ to catch regressions.
+
+describe("LCA filings data pipeline (integration)", () => {
+  /**
+   * Reference employer: Optum Services
+   * Used to verify the data pipeline consistently delivers correct row counts.
+   * Last updated: 2026-03-06, 2,787 LCA rows (36-month window FY2022-2026)
+   */
+  const OPTUM_SERVICES_REFERENCE = {
+    name: "Optum Services",
+    hash: "78a46d3917846d886ef35fe989075cb353f21a1d",
+    minLcaRows: 2000, // regression threshold: always verify >= 2000 rows
+  };
+
+  it("resolves Optum Services hash from employer index", async () => {
+    const indexRes = await fetch("/data/employers/_index.json");
+    expect(indexRes.ok).toBe(true);
+    const index = await indexRes.json() as Record<string, string>;
+    expect(index[OPTUM_SERVICES_REFERENCE.name]).toBe(OPTUM_SERVICES_REFERENCE.hash);
+  });
+
+  it("loads Optum Services shard with >= 2000 LCA filings", async () => {
+    const shardUrl = `/data/employers/${OPTUM_SERVICES_REFERENCE.hash}.json`;
+    const res = await fetch(shardUrl);
+    expect(res.ok).toBe(true);
+    const shard = await res.json() as { lca?: unknown[] };
+    const lcaCount = (shard.lca ?? []).length;
+    expect(lcaCount).toBeGreaterThanOrEqual(OPTUM_SERVICES_REFERENCE.minLcaRows);
+  });
+
+  it("Optum Services shard contains properly structured LCA records", async () => {
+    const shardUrl = `/data/employers/${OPTUM_SERVICES_REFERENCE.hash}.json`;
+    const res = await fetch(shardUrl);
+    const shard = await res.json() as {
+      employer_name?: string;
+      lca?: Array<{
+        case_number?: string;
+        job_title?: string;
+        fiscal_year?: number;
+        case_status?: string;
+      }>;
+    };
+    
+    // Verify shard structure
+    expect(shard.employer_name).toBe(OPTUM_SERVICES_REFERENCE.name);
+    const lca = shard.lca ?? [];
+    expect(lca.length).toBeGreaterThanOrEqual(OPTUM_SERVICES_REFERENCE.minLcaRows);
+    
+    // Spot-check first record structure
+    if (lca.length > 0) {
+      const firstRecord = lca[0];
+      expect(firstRecord.case_number).toBeDefined();
+      expect(firstRecord.job_title).toBeDefined();
+      expect(firstRecord.fiscal_year).toBeDefined();
+      expect(firstRecord.case_status).toBeDefined();
+    }
+  });
+});
