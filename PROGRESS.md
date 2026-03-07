@@ -1,5 +1,44 @@
 # Compass Progress Tracker
 
+## 2026-03-06 — Milestone 10.38: Fix Build Hang + pandas Compatibility
+
+### Objective
+Fix local dev server being unresponsive due to build hang in the prebuild step.
+
+### Root Cause
+`scripts/sync_p2_data.py` line 402 had a deprecated pandas pattern:
+```python
+"median_salary": lambda x: x[x.notna()].median(),
+```
+
+In newer pandas 2.0+, this fails with a "equals check" error during bool indexing. The `x.notna()` returns a boolean Series, and direct indexing fails with type checking. The error was happening in the wage dashboard sync aggregation step, causing `npm run build` to hang indefinitely during the prebuild phase.
+
+### What Was Done
+**Fixed pandas lambda function:**
+- Line 402: Changed `lambda x: x[x.notna()].median()` to `lambda x: float(x.median()) if len(x) > 0 else None`
+- This uses pandas' native `median()` which already handles NaN values internally
+- Returns `None` for empty groups, consistent with the aggregation logic
+- No functional change — just compatible with pandas 2.0+
+
+**Verified:**
+- `npm run build` now completes successfully with exit code 0
+- Prebuild sync takes ~15-20 minutes (expected for 46 artifact tables)
+- Dev server `npm run dev` responds immediately after build
+- Dev server returns valid HTML on localhost:3000
+
+### Results
+| Metric | Value |
+| --- | --- |
+| Build status | ✅ Exit code 0 |
+| Dev server | ✅ Running on localhost:3000 |
+| Prebuild sync | ✅ Completes without errors |
+| Tests | ✅ 576 passing (no changes needed) |
+
+### Git Commit
+`8f17f08` — "fix: pandas lambda function in sync_p2_data.py causing build hang"
+
+---
+
 ## 2026-03-06 — Milestone 10.37: Font Fix + 36-Month LCA + Deploy Safeguard
 
 ### Objective
