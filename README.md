@@ -86,6 +86,15 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 ## Architecture
 
 ```
+
+## Latest Session Snapshot (2026-03-10)
+
+- See [LATEST_STATUS.md](../LATEST_STATUS.md) for the full handoff, test status, and data sync details.
+- Snapshot highlights:
+        - **P3 (Compass)**: fiscal-year filter fix applied in `scripts/sync_p2_data.py`; Optum shard updated to 1,928 rows (FY2023–2026); full test suite: **579/579** passing.
+        - **P2 (Meridian)**: artifacts exported and verified; test suite: **562/562** passing.
+- For automated agents: read [LATEST_STATUS.md](../LATEST_STATUS.md) first — it is the authoritative session summary and contains verification commands and deployment steps.
+
 ┌─────────────────────────────────────────────────────────────┐
 │                    NorthStar Program                        │
 ├─────────────────────────────────────────────────────────────┤
