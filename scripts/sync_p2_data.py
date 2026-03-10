@@ -645,23 +645,17 @@ def sync_employer_raw_filings():
     emp_id_map: dict = top_employers_series.set_index("employer_name")["employer_id"].to_dict()
 
     # ── Load LCA filings (last 36 months) ─────────────────────────────────
-    # Use received_date to precisely compute the 36-month window.
-    # Fallback: use fiscal_year-based window (latest 3 years) if no dates.
-    from datetime import datetime, timedelta
-    LCA_36MO_CUTOFF = (datetime.now() - timedelta(days=36*30)).strftime("%Y-%m-%d")
-    print(f"  Loading fact_lca (36-month window, cutoff {LCA_36MO_CUTOFF})...")
+    # Filter LCA to last 3 fiscal years (latest 36 months of data).
+    # Use fiscal_year-based filtering (not received_date) to ensure consistent,
+    # fiscal-year-aligned views that match user expectations and dashboard labels.
+    print(f"  Loading fact_lca (latest 3 fiscal years)...")
     lca = read_parquet_safe(P2_TABLES / "fact_lca")
     if not lca.empty:
         if "fiscal_year" in lca.columns:
             lca["fiscal_year"] = lca["fiscal_year"].astype(int)
-        # Filter to last 36 months by received_date if available,
-        # else by fiscal_year (latest 3 years in the data)
-        if "received_date" in lca.columns:
-            lca["received_date"] = lca["received_date"].astype(str)
-            lca = lca[lca["received_date"] >= LCA_36MO_CUTOFF].copy()
-        elif "fiscal_year" in lca.columns:
             max_fy = int(lca["fiscal_year"].max())
-            lca = lca[lca["fiscal_year"] >= max_fy - 2].copy()
+            lca = lca[lca["fiscal_year"] >= max_fy - 3].copy()
+            print(f"    Filtered to FY >= {max_fy - 3} (FY {max_fy - 3}-{max_fy}): {len(lca):,} rows")
 
     # Annualise wages (wage_rate_from → annual equivalent)
     def _to_annual(row):

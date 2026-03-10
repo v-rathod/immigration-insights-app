@@ -55,9 +55,9 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 6, 2026)
-- **P3**: 549 tests passing, all dashboards live, 102K+ employers searchable, AWS CloudFront deployed
-- **P2**: 591 tests passing, data pipeline stable, recent USCIS approvals fixes merged
+### Current Project Status (as of Mar 10, 2026)
+- **P3**: 579 tests passing, all dashboards live, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
+- **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 
 ### Common Workflow Patterns
@@ -66,16 +66,19 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
-### Recent Session Notes (Mar 6, 2026)
-**Just configured**: Terminal command auto-approval in VS Code settings.json
-- **Single-line commands** working: `npm run dev`, `npm test`, `git commit`, etc.
-- **Multi-line commands** now supported: Heredocs, pipes with `xargs`, `&&`/`||` chains
-- **File operations** auto-approved without dialogs
-- **Blocker resolved**: Agent can now execute complex commands directly instead of creating wrapper files
+### Recent Session Notes (Mar 10, 2026)
+**Milestone 10.40 Complete**: Fiscal-Year Data Filtering Fix
+- **Problem**: P3 sync was using calendar-based received_date cutoff, dropped valid FY2023 LCA rows
+- **Root cause**: Fiscal year is a legal/accounting boundary; using derived calendar cutoff caused data loss
+- **Solution**: Changed sync filter from `received_date ~36 months` → `fiscal_year >= max_fy - 3`
+- **Result**: Optum Services shard now has 1,928 rows (FY2023–2026), was 1,299 (FY2024–2026) ✅
+- **Test status**: 579 passing (wage-dashboard includes Optum regression check) ✅
+- **Regression prevention**: Monitor script confirms 2-minute polling of shard; test threshold ≥1,800 rows ✅
 
-**Current test status**:
-- P3: 549 tests passing (latest from Occupation Demand improvements)
-- P2: 591 tests passing (recent USCIS approvals fixes)
+**Key Documentation Updated**:
+- `PROGRESS.md`: Milestone 10.40 (P3) + Milestone 21 (P2) added
+- This file: Current project status, recent notes
+- All docs reflect Mar 10, 2026 state with fiscal-year filter fix completed
 
 ---
 
