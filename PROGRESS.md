@@ -1,5 +1,33 @@
 # Compass Progress Tracker
 
+## 2026-03-10 — Milestone 10.41: Full P2 Data Sync (Pipeline Refresh)
+
+### What Was Done
+
+**P2→P3 Full Data Sync** triggered by P1 data refresh (9 new files) and P2 full pipeline rebuild.
+
+1. **Dashboard JSONs synced**: 21 dashboard JSON files written to `public/data/dashboards/`
+2. **Employer shards refreshed**: ~95K employer shard files regenerated in `public/data/employers/`
+3. **Dimension tables synced**: All dimension JSONs updated
+4. **Model artifacts synced**: Employer friendliness scores, predictions
+5. **RAG data synced**: 341 chunks + 719 Q&A pairs for Compass chat
+
+### Upstream Changes
+- P2 Milestone 22: Fixed `_UNKNOWN` sentinel bug in `build_approval_denial_trends.py` and `build_approval_denial_detailed.py`
+- P2 rebuilt all artifacts (Stages 1–4) with 9 new P1 data files
+- Approval/denial trends now cover FY1992–2026 (34 fiscal years, 62 rows)
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Dashboard JSONs | 21 files |
+| Employer shards | ~95,152 files |
+| RAG chunks | 341 |
+| QA pairs | 719 |
+| Sync source | P2 Milestone 22 artifacts |
+
+---
+
 ## 2026-03-09 — Milestone 10.40: Fix Fiscal-Year Data Filtering in Sync Pipeline
 
 ### Objective

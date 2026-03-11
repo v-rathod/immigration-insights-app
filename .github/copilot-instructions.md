@@ -67,18 +67,18 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
 ### Recent Session Notes (Mar 10, 2026)
-**Milestone 10.40 Complete**: Fiscal-Year Data Filtering Fix
-- **Problem**: P3 sync was using calendar-based received_date cutoff, dropped valid FY2023 LCA rows
-- **Root cause**: Fiscal year is a legal/accounting boundary; using derived calendar cutoff caused data loss
-- **Solution**: Changed sync filter from `received_date ~36 months` → `fiscal_year >= max_fy - 3`
-- **Result**: Optum Services shard now has 1,928 rows (FY2023–2026), was 1,299 (FY2024–2026) ✅
-- **Test status**: 579 passing (wage-dashboard includes Optum regression check) ✅
-- **Regression prevention**: Monitor script confirms 2-minute polling of shard; test threshold ≥1,800 rows ✅
+**Milestone 10.41 Complete**: Full P2 Data Sync (Pipeline Refresh)
+- P1 data refresh: 9 new files (BLS CES, ACS, 6 Visa Stats PDFs, CA WARN) ✅
+- P2 Milestone 22: Fixed `_UNKNOWN` sentinel bug, full rebuild Stages 1–4 ✅
+- P3 sync: 21 dashboard JSONs + ~95K employer shards refreshed ✅
+- Approval/denial trends now cover FY1992–2026 (62 rows) ✅
+- **Test status**: 579 passing ✅
 
 **Key Documentation Updated**:
-- `PROGRESS.md`: Milestone 10.40 (P3) + Milestone 21 (P2) added
-- This file: Current project status, recent notes
-- All docs reflect Mar 10, 2026 state with fiscal-year filter fix completed
+- P1 PROGRESS.md: Created (Milestone 1)
+- P2 PROGRESS.md: Added Milestone 22
+- P3 PROGRESS.md: Added Milestone 10.41
+- All copilot-instructions.md: Updated with Mar 10 status
 
 ---
 
