@@ -96,6 +96,46 @@ MODEL_JSON = [
 # ---------------------------------------------------------------------------
 # Artifact-specific transforms applied during sync to reduce payload sizes
 # ---------------------------------------------------------------------------
+
+def _normalize_employer_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize ALL-CAPS employer names to Title Case.
+    
+    P2 Meridian data contains un-normalized ALL-CAPS names like:
+    - "SONY CORPORATION OF AMERICA" → "Sony Corporation Of America"
+    - "NW SERVICES CO DBA AQUANIMA" → "Nw Services Co Dba Aquanima"
+    
+    Excludes "UNKNOWN" sentinel and names that are legitimate abbreviations.
+    """
+    if df.empty or "employer_name" not in df.columns:
+        return df
+    
+    def should_normalize(name: str) -> bool:
+        """Check if a name should be title-cased."""
+        if not name or name == "UNKNOWN":
+            return False
+        if name != name.upper():  # Already mixed case
+            return False
+        if not any(c.isupper() for c in name):  # No letters
+            return False
+        # Spaced single-letter initials like "C C T S" are legitimate abbreviations
+        words = name.strip().split()
+        longest_word = max((len(w) for w in words), default=0)
+        return longest_word > 2  # Has at least one multi-letter word
+    
+    count_normalized = 0
+    def normalize(name: str) -> str:
+        nonlocal count_normalized
+        if should_normalize(name):
+            count_normalized += 1
+            return name.title()
+        return name
+    
+    df["employer_name"] = df["employer_name"].apply(normalize)
+    if count_normalized > 0:
+        print(f"      [name normalize] {count_normalized:,} employer names normalized to Title Case")
+    return df
+
+
 def _transform_worksite_geo_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """Keep only state-grain rows.
 
@@ -124,6 +164,8 @@ def _transform_employer_monthly_metrics(df: pd.DataFrame) -> pd.DataFrame:
     keep_ids = month_counts[month_counts >= 6].index
     result = df[df["employer_id"].isin(keep_ids)].reset_index(drop=True)
     print(f"      [monthly filter] {len(df):,} → {len(result):,} rows ({result['employer_id'].nunique():,} employers with ≥6 months)")
+    # Apply name normalization too
+    result = _normalize_employer_names(result)
     return result
 
 
@@ -131,6 +173,7 @@ def _transform_employer_monthly_metrics(df: pd.DataFrame) -> pd.DataFrame:
 ARTIFACT_TRANSFORMS: dict = {
     "worksite_geo_metrics": _transform_worksite_geo_metrics,
     "employer_monthly_metrics": _transform_employer_monthly_metrics,
+    "employer_friendliness_scores": _normalize_employer_names,
 }
 
 
