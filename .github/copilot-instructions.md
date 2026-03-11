@@ -56,7 +56,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 10, 2026)
-- **P3**: 579 tests passing, all dashboards live, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
+- **P3**: 586 tests passing, all dashboards live, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
 - **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 
@@ -532,7 +532,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-### Current File Inventory (as of Milestone 10.20)
+### Current File Inventory (as of Milestone 10.43)
 
 ### Source Files (75+ files)
 
@@ -602,6 +602,11 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/components/wage/RolePercentileTrend.tsx` | 5-year salary distribution chart — stacked area bands (p10/p25/median/p75/p90), OEWS reference line, TrendSummary badges (median growth, salary range, filings), rich tooltip with all percentiles |
 | `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; currently hidden from render but kept in codebase for future use |
 
+**Components — About**
+| File | Purpose |
+|------|------|
+| `src/components/about/tech-stack-chip.tsx` | Interactive tech stack chip — Framer Motion hover tooltip revealing 3-4 line explanation of why/where a tech tool is used; responsive tooltip with arrow; accessible aria-labels and keyboard navigation; shows Info icon on hover |
+
 **Components — Providers**
 | File | Purpose |
 |------|------|
@@ -630,7 +635,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (24 files, 575 tests)**
+**Tests (25 files, 586 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -657,6 +662,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
 | `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
 | `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
+| `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

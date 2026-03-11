@@ -1,5 +1,81 @@
 # Compass Progress Tracker
 
+## 2026-03-11 — Milestone 10.43: Interactive Tech Stack with ML/AI Tools & Contextual Explanations
+
+### Objective
+Enrich the About page with a comprehensive, interactive tech stack showcasing all technologies across Horizon/Meridian/Compass. Display 3-4 line contextual explanations when users hover over each tech item, referencing why and where each tool is used.
+
+### What Was Done
+
+1. **Expanded TECH_STACK data structure** (`src/app/about/page.tsx`)
+   - Grew from 13 items to **30+ items** with detailed explanations
+   - New structure: `{ label, detail, explanation }` (added `explanation` field)
+   - Organized by layer: P3 Compass frontend (12), ML/AI models (5), Data pipeline (11), P1 Horizon collection (6)
+
+2. **New ML/AI & Advanced Tools Added**
+   - **XGBoost**: Gradient boosting for SRS classifier (employer approval predictions)
+   - **Prophet**: Time-series forecasting for Priority Date Index (Visa Bulletin trends)
+   - **SHAP**: Feature importance & model explainability for SRS subscores
+   - **MLflow**: Experiment tracking for ML model versioning in Meridian
+   - **OpenAI API**: LLM fallback (GPT-4o-mini) for RAG/Ask feature when Groq rate-limited
+   - **Groq LLM (Llama 3.3 70B)**: Cloud-hosted inference for chat synthesis
+
+3. **Created `TechStackChip` component** (`src/components/about/tech-stack-chip.tsx`)
+   - Client-side React component with Framer Motion animations
+   - Shows label + info icon on render; tooltip appears on hover
+   - Tooltip displays: label header + detail subtitle + full 3-4 line explanation
+   - Smooth entrance/exit animations: `scale: 0.95` → `1.0`, fade in/out
+   - Accessible: aria-label, title attribute, keyboard-navigable button
+
+4. **Updated About page rendering**
+   - Replaced simple `<span>` tags with interactive `<TechStackChip>` components
+   - Tech items now reveal rich contextual information on hover
+   - Added import: `import { TechStackChip } from "@/components/about/tech-stack-chip"`
+
+5. **Test coverage** (7 new unit tests)
+   - `src/__tests__/tech-stack-chip.test.tsx`: Full component test suite
+   - Tests: render, hover → show tooltip, unhover → hide tooltip, accessibility, both detail + explanation visible
+   - Updated `src/__tests__/site-pages.test.tsx`: Verify new ML/AI tools (XGBoost, Prophet, SHAP) render
+
+6. **Explanation Language**
+   - All explanations reference Horizon/Meridian/Compass terminology
+   - Each explanation describes: what the tool does + why it matters + where it's used + how it fits the pipeline
+   - Examples:
+     - **XGBoost**: "Meridian's Sponsor Reliability Score (SRS) model: predicts employer approval likelihood from case history, wages, SOC mix, and geographic diversity."
+     - **Prophet**: "Facebook's Prophet fits Meridian's Priority Date Index (PDI) forecasts: extrapolates 14-year Visa Bulletin trends to predict when each EB category becomes current."
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **586 passing** (+7 new TechStackChip tests) |
+| TECH_STACK items | **30+ items** (was 13) |
+| ML/AI tools added | **6** (XGBoost, Prophet, SHAP, MLflow, OpenAI, Groq) |
+| New components | 1 (`TechStackChip.tsx`) |
+| Component lines | 93 (interactive with Framer Motion animations) |
+| TypeScript errors | 0 |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/app/about/page.tsx` | Expand TECH_STACK (13 → 30+ items); add `explanation` field; import & render `TechStackChip` component |
+| `src/components/about/tech-stack-chip.tsx` | **New** — Interactive chip with Framer Motion hover tooltip revealing explanation |
+| `src/__tests__/tech-stack-chip.test.tsx` | **New** — 7 unit tests for TechStackChip component behavior and accessibility |
+| `src/__tests__/site-pages.test.tsx` | Update AboutPage tech stack test to verify new ML/AI tools present (XGBoost, Prophet, SHAP) |
+
+### Dev Testing
+- ✅ `npm test -- --run`: All 586 tests passing
+- ✅ Dev server running on port 3001
+- ✅ `/about` page accessible with interactive tech chips
+- ✅ Hover tooltips display explanations (Framer Motion animations)
+- ⏳ User to verify locally before deployment
+
+### Next Steps
+1. ✅ User tests locally (`http://localhost:3001/about`)
+2. ⏳ Explicit user approval: "deploy to AWS"
+3. After approval: `npm run build` → S3 sync → CloudFront invalidation
+
+---
+
 ## 2026-03-11 — Milestone 10.42: Homepage UX Polish + Data Freshness Indicator
 
 ### Objective
