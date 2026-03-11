@@ -130,20 +130,20 @@ const TECH_STACK = [
     explanation: "Foundation for all Meridian ML pipelines: matrix operations, eigenvalue decomposition, statistical distributions, and optimization algorithms powering forecasting and scoring models.",
   },
   
-  // --- Data Pipeline & Infrastructure (P1 & P2) ---
+  // --- Data Pipeline & Infrastructure ---
   {
     label: "Python 3.11",
-    detail: "Data processing & modeling (P1 & P2)",
-    explanation: "Horizon collects data via Python scrapers and APIs; Meridian transforms it into 46 artifact tables using pandas, statsmodels, and scikit-learn. Fast, mature, and ML-friendly.",
+    detail: "Data processing & modeling",
+    explanation: "Horizon (data collection layer) uses Python scrapers and APIs; Meridian (analytics layer) transforms it into 46 artifact tables using pandas, statsmodels, and scikit-learn. Fast, mature, and ML-friendly.",
   },
   {
     label: "Pandas / Polars",
-    detail: "Data manipulation (P1 & P2)",
+    detail: "Data manipulation",
     explanation: "Horizon uses Pandas to parse PERM/LCA/BLS CSV feeds; Meridian uses Polars for fast in-memory transforms on 18.5M+ rows. Both support groupby, rolling windows, and time-series resampling.",
   },
   {
     label: "DuckDB",
-    detail: "OLAP queries on Parquet (P2)",
+    detail: "OLAP queries on Parquet",
     explanation: "Meridian uses DuckDB's SQL engine to query 17.4M-row Parquet fact tables directly without loading into memory. Enables complex joins and aggregations at scale.",
   },
   {
@@ -159,33 +159,33 @@ const TECH_STACK = [
   {
     label: "pytest",
     detail: "Data pipeline testing",
-    explanation: "Meridian runs 562 pytest cases validating data integrity: canonical employer names, NaN handling, fiscal-year filtering, and cross-artifact consistency before syncing to Compass.",
+    explanation: "Meridian (analytics) runs 562 pytest cases validating data integrity: canonical employer names, NaN handling, fiscal-year filtering, and cross-artifact consistency before syncing to Compass.",
   },
   
-  // --- Data Collection (P1: Horizon) ---
+  // --- Data Collection (Horizon) ---
   {
     label: "APScheduler / Cron",
-    detail: "Scheduled data collection (P1)",
+    detail: "Scheduled data collection",
     explanation: "Horizon uses APScheduler to run daily/weekly collection jobs: querying DOL PERM APIs, parsing State Department Visa Bulletin PDFs, polling BLS CES databases, and parsing USCIS reports.",
   },
   {
     label: "requests / httpx",
-    detail: "HTTP API clients (P1)",
+    detail: "HTTP API clients",
     explanation: "Horizon fetches data via requests (DOL, DHS, BLS APIs) and httpx (async State Dept scraping). Both handle retries, authentication, and rate limiting gracefully.",
   },
   {
     label: "BeautifulSoup4 / Selenium",
-    detail: "Web scraping & parsing (P1)",
+    detail: "Web scraping & parsing",
     explanation: "BeautifulSoup4 parses HTML tables from State Dept Visa Bulletin and DHS reports; Selenium handles JavaScript-heavy pages (ACS Census) that require browser automation.",
   },
   {
     label: "PDFMiner",
-    detail: "PDF document extraction (P1)",
+    detail: "PDF document extraction",
     explanation: "PDFMiner extracts text and tables from unstructured USCIS and State Department PDF reports. Handles multi-page documents, text layout preservation, and OCR fallbacks.",
   },
   {
     label: "MLflow",
-    detail: "ML experiment tracking (P2)",
+    detail: "ML experiment tracking",
     explanation: "Meridian logs model parameters, training metrics, and artifact versions in MLflow. Enables reproducible model selection and A/B testing of forecasting/scoring algorithms.",
   },
 ];
@@ -347,6 +347,84 @@ export default function AboutPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
+          THE VISION: NORTHSTAR
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section aria-label="Vision and architecture">
+        <FadeIn>
+          <GlassCard variant="elevated" padding="lg" className="relative overflow-hidden">
+            {/* Decorative gradient */}
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-gradient-to-br from-purple-500/10 to-blue-500/10 blur-3xl" />
+            <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 blur-3xl" />
+
+            <div className="relative space-y-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-400" strokeWidth={1.5} />
+                <h2 className="text-xl font-semibold">The Vision: NorthStar</h2>
+              </div>
+
+              <div className="space-y-4 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                <p>
+                  <span className="text-[var(--foreground)] font-semibold">NorthStar</span> is the guiding vision for
+                  this entire project. Just as a North Star guides sailors across
+                  uncertain oceans, this initiative aims to guide immigrants through
+                  the complex employment-based visa system with clarity, data, and hope.
+                </p>
+
+                <p>
+                  To make this vision real, the work is organized into three distinct
+                  layers, each with its own meaningful name:
+                </p>
+
+                <div className="space-y-3 mt-4 pl-4 border-l-2 border-[var(--border)]">
+                  <div>
+                    <h3 className="font-semibold text-[var(--foreground)] text-sm">
+                      Horizon — The Data Collection Layer
+                    </h3>
+                    <p className="text-xs">
+                      Continuously scans the horizon for new immigration data: scraping
+                      government announcements, monitoring visa bulletin changes, and
+                      aggregating labor statistics. The foundation that keeps everything current.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-[var(--foreground)] text-sm">
+                      Meridian — The Analytics Backbone
+                    </h3>
+                    <p className="text-xs">
+                      The measurement layer that curates raw data into intelligence.
+                      Meridian processes 18.5M+ records, trains ML models for predictions,
+                      computes employer reliability scores, and synthesizes insights. Like
+                      a surveyor using a meridian to map the land, this layer maps the
+                      immigration landscape.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-[var(--foreground)] text-sm">
+                      Compass — The User Experience (This App)
+                    </h3>
+                    <p className="text-xs">
+                      The tool that guides you. Compass takes Meridian's intelligence
+                      and presents it through interactive, personalized dashboards. It's
+                      your compass in the immigration journey — helping you navigate with
+                      confidence based on real data.
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs italic text-[var(--muted-foreground)] pt-2">
+                  Together, these three layers form a complete system for understanding
+                  employment-based immigration: collecting truth from the horizon,
+                  measuring it with precision, and guiding individuals with clarity.
+                </p>
+              </div>
+            </div>
+          </GlassCard>
+        </FadeIn>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
           PRINCIPLES
           ═══════════════════════════════════════════════════════════════════ */}
       <section aria-label="Principles">
@@ -465,14 +543,14 @@ export default function AboutPage() {
         <FadeIn>
           <div className="mt-6">
             <h3 className="mb-3 text-sm font-semibold text-[var(--muted-foreground)]">
-              Complete Tech Stack (P1, P2, P3)
+              Complete Tech Stack
             </h3>
             <p className="mb-4 text-xs text-[var(--muted-foreground)]">
-              <strong>P1 Horizon</strong> (data collection): Python web scrapers, APIs, scheduled tasks.
+              <strong>Horizon</strong> (data collection): Python web scrapers, APIs, scheduled tasks.
               <br />
-              <strong>P2 Meridian</strong> (analytics &amp; models): Python data pipelines, ML models, statistical analysis.
+              <strong>Meridian</strong> (analytics &amp; models): Python data pipelines, ML models, statistical analysis.
               <br />
-              <strong>P3 Compass</strong> (user experience): React/Next.js frontend, interactive dashboards, cloud LLM integration.
+              <strong>Compass</strong> (user experience): React/Next.js frontend, interactive dashboards, visualizations.
             </p>
             <div className="flex flex-wrap gap-2">
               {TECH_STACK.map((tech) => (

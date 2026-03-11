@@ -318,9 +318,13 @@ describe("AboutPage", () => {
 
   it("renders the three-repo pipeline", () => {
     render(<AboutPage />);
-    expect(screen.getByText("Horizon")).toBeInTheDocument();
-    expect(screen.getByText("Meridian")).toBeInTheDocument();
-    expect(screen.getByText("Compass")).toBeInTheDocument();
+    // Check that all three repository names appear on the page (in "How It Works" and "The Vision" sections)
+    const horizonElements = screen.getAllByText("Horizon");
+    const meridianElements = screen.getAllByText("Meridian");
+    const compassElements = screen.getAllByText("Compass");
+    expect(horizonElements.length).toBeGreaterThan(0);
+    expect(meridianElements.length).toBeGreaterThan(0);
+    expect(compassElements.length).toBeGreaterThan(0);
   });
 
   it("renders Get Involved CTA", () => {
@@ -332,19 +336,19 @@ describe("AboutPage", () => {
 
   it("renders tech stack pills from all three projects", () => {
     render(<AboutPage />);
-    // P3 Compass Frontend
+    // Compass Frontend
     expect(screen.getByText("Next.js 16")).toBeInTheDocument();
     expect(screen.getByText("TypeScript 5")).toBeInTheDocument();
     expect(screen.getByText("Tailwind CSS 4")).toBeInTheDocument();
     expect(screen.getByText("Recharts 2.15")).toBeInTheDocument();
-    // P2 Meridian (Data & Analytics)
+    // Meridian (Data & Analytics)
     expect(screen.getByText("Pandas / Polars")).toBeInTheDocument();
     expect(screen.getByText("Scikit-learn")).toBeInTheDocument();
     // New ML/AI tools
     expect(screen.getByText("XGBoost")).toBeInTheDocument();
     expect(screen.getByText("Prophet")).toBeInTheDocument();
     expect(screen.getByText("SHAP")).toBeInTheDocument();
-    // P1 Horizon (Data Collection)
+    // Horizon (Data Collection)
     expect(screen.getByText("BeautifulSoup4 / Selenium")).toBeInTheDocument();
     expect(screen.getByText("APScheduler / Cron")).toBeInTheDocument();
   });
