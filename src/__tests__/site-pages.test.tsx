@@ -332,15 +332,21 @@ describe("AboutPage", () => {
 
   it("renders tech stack pills from all three projects", () => {
     render(<AboutPage />);
-    // P3 Compass
+    // P3 Compass Frontend
     expect(screen.getByText("Next.js 16")).toBeInTheDocument();
     expect(screen.getByText("TypeScript 5")).toBeInTheDocument();
     expect(screen.getByText("Tailwind CSS 4")).toBeInTheDocument();
-    // P2 Meridian
+    expect(screen.getByText("Recharts 2.15")).toBeInTheDocument();
+    // P2 Meridian (Data & Analytics)
     expect(screen.getByText("Pandas / Polars")).toBeInTheDocument();
     expect(screen.getByText("Scikit-learn")).toBeInTheDocument();
-    // P1 Horizon
+    // New ML/AI tools
+    expect(screen.getByText("XGBoost")).toBeInTheDocument();
+    expect(screen.getByText("Prophet")).toBeInTheDocument();
+    expect(screen.getByText("SHAP")).toBeInTheDocument();
+    // P1 Horizon (Data Collection)
     expect(screen.getByText("BeautifulSoup4 / Selenium")).toBeInTheDocument();
+    expect(screen.getByText("APScheduler / Cron")).toBeInTheDocument();
   });
 });
 
