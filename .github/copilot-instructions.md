@@ -56,7 +56,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 11, 2026)
-- **P3**: 586 tests passing, all dashboards live with interactive tech stack, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
+- **P3**: 604 tests passing (26 files), all dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed
 - **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -638,7 +638,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (25 files, 586 tests)**
+**Tests (26 files, 604 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -666,6 +666,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
 | `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
 | `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
+| `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

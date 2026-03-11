@@ -2,10 +2,42 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # deploy.sh — Safe deployment script for Compass (P3)
 #
-# Usage:
+# USAGE — Single Environment (Current):
 #   ./scripts/deploy.sh              # Full deploy: build + sync + invalidate + verify
 #   ./scripts/deploy.sh --skip-build # Skip build, deploy existing out/
 #   ./scripts/deploy.sh --shards-only # Only sync employer shards
+#
+# MULTI-ENVIRONMENT DESIGN (Future Enhancement):
+# ────────────────────────────────────────────────────────────────────────────
+# To support local/staging/prod deployments, this script can be extended
+# with environment awareness. Design pattern:
+#
+# 1. Environment variable: COMPASS_ENV (default: prod)
+#    export COMPASS_ENV=staging
+#    ./scripts/deploy.sh
+#
+# 2. Configuration per environment:
+#    ┌────────────────────────────────────────────────────┐
+#    │ Environment │ S3 Bucket                          │ CloudFront DIst      │
+#    ├────────────────────────────────────────────────────┤
+#    │ local       │ (skip S3, use 'npm run dev')       │ N/A                  │
+#    │ staging     │ compass-staging-883107059193       │ E1LPLTVZ0035Q6 (TBD) │
+#    │ prod        │ compass-immigration-insights-...   │ E1LPLTVZ0035Q5       │
+#    └────────────────────────────────────────────────────┘
+#
+# 3. Implementation in deploy.sh (to be added):
+#    - Parse ${COMPASS_ENV} at top of script
+#    - Load environment-specific config from shell function
+#    - Pass env to all AWS CLI calls
+#    - Add --env=staging flag option for explicit override
+#
+# 4. GitHub Actions CI/CD integration:
+#    - Dev branch → staging deployment (on push)
+#    - Main branch → prod deployment (on merge)
+#    - Environment secrets in GitHub: AWS_ROLE_ARN per environment
+#
+# Implementation deferred to Phase 6 (Post-MVP). Current focus: prod only.
+# ─────────────────────────────────────────────────────────────────────────────
 #
 # This script prevents the "empty out/" footgun that previously caused Access
 # Denied errors by deleting all HTML from S3.

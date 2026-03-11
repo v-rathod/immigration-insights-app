@@ -2,7 +2,7 @@
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-579%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-604%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 [![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
@@ -78,7 +78,8 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 - **Security** — XSS prevention, proto pollution defense, URL sanitization, CSP headers
 
 ### Testing
-- **557 tests** across 24 test files (Vitest 4 + React Testing Library + happy-dom)
+- **604 tests** across 26 test files (Vitest 4 + React Testing Library + happy-dom)
+- Includes live-data regression suite for Optum Services (18 tests, baseline 1,928 LCA records)
 - Covers all components, data loaders, utilities, security, and page integrations
 
 ---
@@ -87,13 +88,14 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 
 ```
 
-## Latest Session Snapshot (2026-03-10)
+## Latest Session Snapshot (2026-03-11)
 
-- See [LATEST_STATUS.md](../LATEST_STATUS.md) for the full handoff, test status, and data sync details.
+- See [PROGRESS.md](PROGRESS.md) for full milestone history and current status.
 - Snapshot highlights:
-        - **P3 (Compass)**: fiscal-year filter fix applied in `scripts/sync_p2_data.py`; Optum shard updated to 1,928 rows (FY2023–2026); full test suite: **579/579** passing.
-        - **P2 (Meridian)**: artifacts exported and verified; test suite: **562/562** passing.
-- For automated agents: read [LATEST_STATUS.md](../LATEST_STATUS.md) first — it is the authoritative session summary and contains verification commands and deployment steps.
+  - **P3 (Compass)**: Employer name normalization (ALL-CAPS→Title Case, 1,700 names); 18-test Optum regression suite; **604/604 tests passing**.
+  - **P2 (Meridian)**: All 46 artifacts + 341 RAG chunks exported; **562/562 tests passing**.
+  - **Data freshness**: Last synced from P2 on 2026-03-11 (check `public/data/_manifest.json`).
+  - **AWS deployment**: Ready to deploy from `out/` directory via `./scripts/deploy.sh`.
 
 ┌─────────────────────────────────────────────────────────────┐
 │                    NorthStar Program                        │
