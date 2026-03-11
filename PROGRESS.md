@@ -1,5 +1,56 @@
 # Compass Progress Tracker
 
+## 2026-03-11 — Milestone 10.42: Homepage UX Polish + Data Freshness Indicator
+
+### Objective
+Replace the broken "Ask a Question" hero CTA, add a "Start Here" quick-access strip of the three most useful tools, and surface the last data-refresh date in the footer.
+
+### What Was Done
+
+1. **Hero CTA: "Ask a Question" → "Explore Dashboards"**
+   - Old button had `href="/about"` (mis-linked and the feature was disabled)
+   - Replaced with `<a href="#dashboards">` smooth-scroll anchor with `BarChart3` icon
+   - Both buttons now have clear, functional destinations
+
+2. **New "Start Here" Quick Access strip (homepage)**
+   - 3 flagship tool cards rendered above the full 8-dashboard grid
+   - Cards: **Priority Date Forecast** (→ Visa Bulletin), **Employer Score SRS** (→ Employer), **Wage Benchmarks** (→ Wage)
+   - Each card has a gradient icon, a data-scale badge, description, and hover arrow
+   - Gives first-time visitors a clear on-ramp before the full catalog
+
+3. **`DataFreshnessChip` component** (`src/components/ui/data-freshness-chip.tsx`)
+   - Fetches `synced_at` from `public/data/_manifest.json` on mount (client-side, non-blocking)
+   - Renders `↺ Data refreshed  Mar 11, 2026` in the footer bottom bar
+   - Silently hides if the manifest fetch fails — zero impact on render
+   - Exported from `src/components/ui/index.ts`
+
+4. **Fix: Hover animation causing blurry text on dashboard cards**
+   - Root cause: `hover:scale-[1.01]` on `GlassCard` `interactive` variant triggers fractional-scale sub-pixel rendering artifacts
+   - Removed scale transform; replaced with `hover:shadow-md hover:shadow-white/5` — same hover feedback, no blur
+   - Fix applies globally to all `GlassCard variant="interactive"` usage across the app
+
+5. **Test updated** — `landing-page.test.tsx`: renamed "Ask a Question CTA" → "Explore Dashboards CTA" test
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **579 passing** (all 24 files) |
+| TypeScript errors | 0 |
+| New files | 1 (`data-freshness-chip.tsx`) |
+| Modified files | 5 (`page.tsx`, `footer.tsx`, `glass-card.tsx`, `ui/index.ts`, `landing-page.test.tsx`) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/app/page.tsx` | Replace broken "Ask a Question" CTA; add Quick Access strip (3 cards); add `id="dashboards"` to section; new icon imports |
+| `src/components/ui/data-freshness-chip.tsx` | **New** — client component that reads `synced_at` from manifest and renders refresh date |
+| `src/components/layout/footer.tsx` | Import + render `DataFreshnessChip` above copyright line |
+| `src/components/ui/glass-card.tsx` | `interactive` variant: remove `hover:scale-[1.01] active:scale-[0.99]`; add shadow hover instead |
+| `src/components/ui/index.ts` | Export `DataFreshnessChip` |
+| `src/__tests__/landing-page.test.tsx` | Update CTA test text to match new label |
+
+---
+
 ## 2026-03-10 — Milestone 10.41: Full P2 Data Sync (Pipeline Refresh)
 
 ### What Was Done
@@ -2548,7 +2599,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.37 — 2026-03-06)
+## Quick Reference (Current State as of Milestone 10.42 — 2026-03-11)
 
 | Metric | Value |
 |--------|-------|
@@ -2562,9 +2613,9 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | P2 data synced | ✅ 35 JSON files + 95,152 employer shard files via `sync_p2_data.py` |
 | **public/data/ payload** | **~160 MB** (~85 MB dashboards + ~75 MB employer shards) |
 | Pages scaffolded | 16 (`/`, `/about`, `/privacy`, `/terms`, `/ask`, `/insights`, `/dashboard/employer/`, `/dashboard/visa-bulletin/`, `/dashboard/wage/`, `/dashboard/eb-category/`, `/dashboard/geographic/`, `/dashboard/job-demand/`, `/dashboard/processing/`, `/dashboard/backlog/`, `/dashboard/approvals/`, `/_not-found`) |
-| Components | 36 custom (layout, UI, SRS, PDI, wage incl. RawFilingsTable, approvals, providers) |
+| Components | 37 custom (layout, UI, SRS, PDI, wage incl. RawFilingsTable, approvals, providers; +DataFreshnessChip) |
 | Security | Full defense-in-depth (XSS, proto pollution, CSP, URL sanitization) |
-| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** (incl. Raw Filings) + **Ask** (RAG Q&A) + **My Insights** (personalized) + **Contact Us** (Formspree email) |
+| Flagship features | **PDC** (Priority Date Cortex) + **SRS** (Sponsor Reliability Score) + **Wage Hub** (incl. Raw Filings) + **Ask** (RAG Q&A) + **My Insights** (personalized) + **Contact Us** (Formspree email) + **Data Freshness Chip** (footer) |
 | Sidebar structure | Main → **Insights** (PDC, SRS) → Dashboards (6) → **Tools** (Ask) → **Project** (About) → **Personal** (My Insights) |
 | Dashboards built | **9 / 9** ✅ (SRS, Visa Bulletin/PDC, Wage, EB Category, Geographic, SOC Demand, Processing, Backlog, Approvals) |
 | Personalized panels | **1 / 5** (My Insights page with 3 smart panels: Green Card Forecast, Sponsor, Salary) |
@@ -2732,6 +2783,8 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.35 | 2026-03-06 | Filing Records Rename + Top Roles 36m | Label rename Raw Filings→Filing Records; 36-month aggregation window in sync script; Optum 3→12 roles; lazy loading 160→30MB; 557 tests |
 | 10.36 | 2026-03-06 | Wage Page 4 Bug Fixes + 18 Tests | Loading skeleton (animate-pulse), auto-collapse mutual exclusion, getEmployerRoles multi-year dedup (IMO 1→3 roles), 95K employer shards uploaded to S3 (fixes Filing Records prod 404); 575 tests |
 | 10.37 | 2026-03-06 | Font Fix + 36-Month LCA + Deploy Safeguard | 119 hardcoded text-white→CSS vars; 36-month LCA window (no cap); minFilings=1; deploy.sh with pre-flight+post-deploy checks; HTTP 200 restored; 576 tests |
+| 10.38–10.40 | 2026-03-10 | Fiscal-Year Filter Fix + Full P2 Sync | LCA filter calendar→fiscal_year; FY2023 data restored; ~95K employer shards; 579 tests |
+| 10.42 | 2026-03-11 | Homepage UX Polish + Data Freshness Indicator | Replace broken CTA; Quick Access 3-card strip; DataFreshnessChip in footer; fix hover blur on GlassCard; 579 tests |
 
 ---
 

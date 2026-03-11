@@ -4,6 +4,7 @@ export { StatCard } from "./stat-card";
 export { ThemeToggle } from "./theme-toggle";
 export { FeedbackWidget } from "./feedback-widget";
 export { ContactModal, ContactButton } from "./contact-modal";
+export { DataFreshnessChip } from "./data-freshness-chip";
 export {
   StaggerContainer,
   StaggerItem,

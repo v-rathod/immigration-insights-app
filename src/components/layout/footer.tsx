@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Compass, Github, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContactButton } from "@/components/ui/contact-modal";
+import { DataFreshnessChip } from "@/components/ui/data-freshness-chip";
 
 // ---------------------------------------------------------------------------
 // Link Groups
@@ -103,7 +104,8 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-8 flex flex-col items-center gap-2 text-center text-xs text-[var(--muted-foreground)]">
+        <div className="mt-8 flex flex-col items-center gap-3 text-center text-xs text-[var(--muted-foreground)]">
+          <DataFreshnessChip />
           <p>
             &copy; {year} Compass. Built with{" "}
             <Heart className="inline-block h-3 w-3 text-rose-400" strokeWidth={2} />{" "}

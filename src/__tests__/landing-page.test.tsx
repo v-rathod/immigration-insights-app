@@ -108,10 +108,10 @@ describe("Landing Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the Ask a Question CTA", async () => {
+  it("renders the Explore Dashboards CTA", async () => {
     renderLanding();
     expect(
-      await screen.findByText("Ask a Question")
+      await screen.findByText("Explore Dashboards")
     ).toBeInTheDocument();
   });
 

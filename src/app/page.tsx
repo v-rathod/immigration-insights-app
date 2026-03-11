@@ -7,12 +7,14 @@ import {
   Globe2,
   Building2,
   TrendingUp,
-  Search,
   ArrowRight,
   Star,
   Sparkles,
   Shield,
   Zap,
+  CalendarClock,
+  Briefcase,
+  DollarSign,
 } from "lucide-react";
 import {
   GlassCard,
@@ -116,6 +118,34 @@ const VALUE_PROPS = [
   },
 ];
 
+/** Three flagship tools surfaced as quick-access cards in the hero area */
+const QUICK_ACCESS = [
+  {
+    icon: CalendarClock,
+    title: "Priority Date Forecast",
+    description: "See when your EB category may become current based on historical trends",
+    href: "/dashboard/visa-bulletin",
+    gradient: "from-blue-500 to-cyan-400",
+    badge: "Most Popular",
+  },
+  {
+    icon: Briefcase,
+    title: "Employer Score (SRS)",
+    description: "Look up any sponsor's approval rate, wage compliance, and risk signals",
+    href: "/dashboard/employer",
+    gradient: "from-emerald-500 to-teal-400",
+    badge: "243K Employers",
+  },
+  {
+    icon: DollarSign,
+    title: "Wage Benchmarks",
+    description: "Compare your salary offer against real LCA filings for your role and location",
+    href: "/dashboard/wage",
+    gradient: "from-amber-500 to-orange-400",
+    badge: "9.6M Filings",
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
@@ -175,13 +205,13 @@ export default function LandingPage() {
                 Get Started
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
-              <Link
-                href="/about"
+              <a
+                href="#dashboards"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)]/50 px-7 py-3 text-sm font-medium text-[var(--foreground)] backdrop-blur-sm transition-all duration-300 hover:bg-[var(--muted)]/50 hover:border-[var(--muted-foreground)]/30"
               >
-                <Search className="h-4 w-4" />
-                Ask a Question
-              </Link>
+                <BarChart3 className="h-4 w-4" />
+                Explore Dashboards
+              </a>
             </div>
           </FadeIn>
         </div>
@@ -207,9 +237,74 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
+          QUICK ACCESS — 3 flagship tools
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section aria-label="Quick access to top tools">
+        <FadeIn>
+          <div className="mb-6 flex items-center gap-3">
+            <TrendingUp className="h-5 w-5 text-blue-400" strokeWidth={1.5} />
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">Start Here</h2>
+              <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+                The three tools most useful to anyone navigating the U.S. green card process
+              </p>
+            </div>
+          </div>
+        </FadeIn>
+
+        <StaggerContainer className="grid gap-4 sm:grid-cols-3">
+          {QUICK_ACCESS.map((item) => (
+            <StaggerItem key={item.href}>
+              <Link href={item.href} className="block h-full">
+                <GlassCard
+                  variant="interactive"
+                  padding="md"
+                  className="group relative h-full overflow-hidden"
+                >
+                  {/* Top gradient strip */}
+                  <div
+                    className={cn(
+                      "mb-4 h-0.5 w-full rounded-full bg-gradient-to-r opacity-60 transition-opacity duration-300 group-hover:opacity-100",
+                      item.gradient
+                    )}
+                  />
+                  {/* Icon */}
+                  <div
+                    className={cn(
+                      "mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br",
+                      item.gradient,
+                      "opacity-90"
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 text-white" strokeWidth={1.5} />
+                  </div>
+                  {/* Badge */}
+                  <span
+                    className={cn(
+                      "mb-2 inline-block rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest",
+                      "bg-white/[0.05] text-[var(--muted-foreground)]"
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                  <h3 className="mb-1.5 text-sm font-semibold text-[var(--foreground)]">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
+                    {item.description}
+                  </p>
+                  <ArrowRight className="absolute right-4 bottom-4 h-4 w-4 text-[var(--muted-foreground)] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0.5" />
+                </GlassCard>
+              </Link>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
           DASHBOARD GRID
           ═══════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Dashboards">
+      <section id="dashboards" aria-label="Dashboards">
         <FadeIn>
           <div className="mb-8 flex items-center gap-3">
             <Star className="h-5 w-5 text-amber-400" strokeWidth={1.5} />

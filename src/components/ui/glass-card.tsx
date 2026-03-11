@@ -45,7 +45,7 @@ const VARIANT_STYLES = {
   elevated:
     "bg-[var(--card-glass)] border-[var(--card-border)] shadow-lg shadow-black/5 dark:shadow-black/20",
   interactive:
-    "bg-[var(--card-glass)] border-[var(--card-border)] cursor-pointer hover:border-white/20 hover:scale-[1.01] active:scale-[0.99]",
+    "bg-[var(--card-glass)] border-[var(--card-border)] cursor-pointer hover:border-white/20 hover:shadow-md hover:shadow-white/5 transition-all duration-300",
   accent:
     "bg-[var(--card-glass)] border-[var(--card-border)] border-t-2 border-t-[var(--accent-blue)]",
 } as const;
