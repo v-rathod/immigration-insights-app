@@ -1,5 +1,53 @@
 # Compass Progress Tracker
 
+## 2026-03-11 — Milestone 10.44: Defer Ask/Chat Feature to Future Phase
+
+### Objective
+Remove Ask/Chat RAG feature from current scope and defer to future phases. This feature requires LLM integration (Groq, OpenAI) which is not needed for the MVP. Remove all LLM-related tools from tech stack documentation.
+
+### What Was Done
+
+1. **Removed Ask/Chat feature documentation**
+   - Ask/Chat (RAG-powered Q&A) is a future enhancement, not part of current MVP
+   - Meridian's 341 RAG chunks and pre-computed Q&A pairs remain available for future implementation
+
+2. **Removed LLM tools from TECH_STACK** (`src/app/about/page.tsx`)
+   - Removed: **Groq LLM (Llama 3.3 70B)** — Cloud-hosted inference for chat
+   - Removed: **OpenAI API (GPT-4o-mini)** — LLM fallback for production
+   - Kept: **MLflow** — Core P2 Meridian ML experiment tracking (not LLM-specific)
+   - Updated Vitest explanation: 579 → 586 tests, 24 → 25 files
+
+3. **Tech Stack Refocused**
+   - Current: 28 items (was 30+ when LLM tools included)
+   - Reflects only actively used technologies, not future plans
+   - Still includes all ML/AI tools (XGBoost, Prophet, SHAP, Scikit-learn, etc.) used in Meridian
+
+### Results
+| Metric | Value |
+|--------|-------|
+| TECH_STACK items | **28 items** (removed 2 LLM tools) |
+| LLM tools removed | 2 (Groq, OpenAI) |
+| Tests | 586 passing (all site-pages tests pass) |
+| TypeScript errors | 0 |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/app/about/page.tsx` | Remove Groq LLM and OpenAI API entries; update Vitest test count |
+
+### Dev Testing
+- ✅ `npm test -- --run src/__tests__/site-pages.test.tsx`: 37/37 passing
+- ✅ Tech stack now reflects current implementation, not future state
+
+### Rationale
+The Ask/Chat feature (powered by Groq/OpenAI LLMs) is valuable but not core to the MVP. Removing it from the current tech narrative:
+1. **Focuses documentation on what's implemented** — users see what's actually working now
+2. **Reduces cognitive load** — about page tech stack is more concise and relevant
+3. **Defers decision** — when/if Ask/Chat is built in future phases, LLM tools can be re-added
+4. **Preserves data** — P2 Meridian still exports 341 RAG chunks + 719 QA pairs for future use
+
+---
+
 ## 2026-03-11 — Milestone 10.43: Interactive Tech Stack with ML/AI Tools & Contextual Explanations
 
 ### Objective

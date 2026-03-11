@@ -55,10 +55,11 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 10, 2026)
-- **P3**: 586 tests passing, all dashboards live, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
+### Current Project Status (as of Mar 11, 2026)
+- **P3**: 586 tests passing, all dashboards live with interactive tech stack, 94K+ employer shards with FY2023 data (Optum: 1,928 rows), AWS CloudFront deployed
 - **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
+- **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
 
 ### Common Workflow Patterns
 1. **Modify P3 code** → Run `npm test` → Run `npm run build` → Commit to git
@@ -250,8 +251,10 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 /dashboard/soc-demand        → Dashboard 6: SOC Demand
 /dashboard/processing        → Dashboard 7: Processing Speed
 /dashboard/backlog           → Dashboard 8: Backlog Visualization
-/ask                         → RAG-powered Q&A search
 /ops                         → QA center (artifact inventory, test results)
+
+**Future Routes (Phase 5, when Ask/Chat is implemented):**
+- `/ask` → RAG-powered Q&A search (deferred to future phase)
 ```
 
 ---
@@ -300,14 +303,16 @@ interface UserProfile {
 
 ---
 
-## RAG Q&A Architecture
+## RAG Q&A Architecture (Future Reference — Phase 5)
+
+**Status**: This section describes the planned architecture for Ask/Chat feature, deferred to a future phase.
 
 | Layer | Implementation |
 |-------|---------------|
-| Pre-computed answers | `qa_cache.json` — 178 pairs, exact/fuzzy match first |
-| Chunk retrieval | `all_chunks.json` — 98 chunks, filtered by topic via Fuse.js |
+| Pre-computed answers | `qa_cache.json` — 719 pairs, exact/fuzzy match first |
+| Chunk retrieval | `all_chunks.json` — 341 chunks, filtered by topic via Fuse.js |
 | Topics | pd_forecast, employer, salary, visa_bulletin, geographic, occupation, processing, visa_demand, filings, general |
-| LLM | Groq (free cloud, Llama 3.3 70B) for dev; OpenAI GPT-4o-mini reserved for prod; Ollama local; Mock fallback |
+| LLM (Future) | Groq (free cloud, Llama 3.3 70B) for dev; OpenAI GPT-4o-mini reserved for prod; Ollama local; Mock fallback |
 
 ---
 
@@ -467,13 +472,11 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - [ ] D. Actionable Recommendations
 - [ ] E. Visual Dashboard Mosaic
 
-### Phase 5: RAG Q&A ✅
-- [x] Search-as-you-type with Fuse.js (182 QA pairs + 100 chunks)
-- [x] Topic-filtered browsing (10 topics, pill filters)
-- [x] Source attribution
-- [x] Cloud LLM integration (Groq free tier, Llama 3.3 70B)
-- [x] 4-backend cascade: Groq → OpenAI → Ollama → Mock
-- [x] 3-tier architecture: QA cache → chunk retrieval → LLM synthesis
+### Phase 5: RAG Q&A ⏳ (Deferred to Future)
+- **Status**: Deferred — Ask/Chat feature not part of current MVP
+- **Reason**: Requires LLM integration (Groq, OpenAI) adding complexity without core value
+- **Data Ready**: P2 Meridian exports 341 RAG chunks + 719 QA pairs for future implementation
+- **Note**: When/if implemented in future, will follow: QA cache → chunk retrieval → LLM synthesis
 
 ### Phase 6: Deploy
 - [ ] S3 + CloudFront + Route53 Terraform/CDK

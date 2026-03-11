@@ -90,12 +90,7 @@ const TECH_STACK = [
   {
     label: "Vitest 4",
     detail: "Unit + component testing",
-    explanation: "Vitest runs 579 tests across 24 files: 55 component tests, 18 utility tests, and 506 data loader tests. happy-dom replaces jsdom for lighter ESM compatibility and faster feedback loops.",
-  },
-  {
-    label: "Groq LLM (Llama 3.3)",
-    detail: "Cloud-hosted LLM for RAG",
-    explanation: "Groq runs free-tier Llama 3.3 70B on custom LPU hardware for Compass's Ask feature. 30 RPM limit; production uses OpenAI GPT-4o-mini as fallback. Generates answers from Meridian's 341 pre-computed RAG chunks.",
+    explanation: "Vitest runs 586 tests across 25 files: 55 component tests, 18 utility tests, and 513 data loader tests. happy-dom replaces jsdom for lighter ESM compatibility and faster feedback loops.",
   },
   {
     label: "AWS S3 + CloudFront",
@@ -192,11 +187,6 @@ const TECH_STACK = [
     label: "MLflow",
     detail: "ML experiment tracking (P2)",
     explanation: "Meridian logs model parameters, training metrics, and artifact versions in MLflow. Enables reproducible model selection and A/B testing of forecasting/scoring algorithms.",
-  },
-  {
-    label: "OpenAI API (GPT-4o-mini)",
-    detail: "LLM fallback for production RAG",
-    explanation: "Compass falls back to OpenAI's GPT-4o-mini ($0.05 per 1M input tokens) when Groq rate limits are exhausted. Ensures Ask feature never fails in production.",
   },
 ];
 
