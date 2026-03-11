@@ -34,12 +34,35 @@ import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
 
 const TECH_STACK = [
-  { label: "Next.js 16", detail: "Static export, zero server cost" },
-  { label: "TypeScript", detail: "Strict mode, full type coverage" },
+  // --- P3: Compass (Frontend) ---
+  { label: "Next.js 16", detail: "Static export (zero backend)" },
+  { label: "React 19", detail: "Server + client components" },
+  { label: "TypeScript 5", detail: "Strict mode, full type coverage" },
   { label: "Tailwind CSS 4", detail: "Aurora design system" },
-  { label: "Recharts", detail: "Interactive data visualization" },
-  { label: "Framer Motion", detail: "Purposeful micro-interactions" },
-  { label: "Fuse.js", detail: "Client-side fuzzy search" },
+  { label: "shadcn/ui", detail: "Radix UI primitives" },
+  { label: "Recharts 2.15", detail: "Interactive data visualization" },
+  { label: "Framer Motion 12", detail: "Purposeful micro-interactions" },
+  { label: "Fuse.js 7", detail: "Client-side fuzzy search" },
+  { label: "nuqs 2.4", detail: "URL state management" },
+  { label: "PostHog", detail: "Product analytics + session recording" },
+  { label: "Vitest 4", detail: "Unit + component testing" },
+  { label: "Groq LLM (Llama 3.3)", detail: "Cloud-hosted LLM for RAG" },
+  { label: "AWS S3 + CloudFront", detail: "Static site hosting + CDN" },
+  
+  // --- Data & Analytics (P1 & P2) ---
+  { label: "Python 3.11", detail: "Data processing & modeling (P1 & P2)" },
+  { label: "Pandas / Polars", detail: "Data manipulation (P1 & P2)" },
+  { label: "DuckDB", detail: "OLAP queries on Parquet (P2)" },
+  { label: "Apache Parquet", detail: "Columnar data format" },
+  { label: "PyArrow", detail: "In-memory data interchange" },
+  { label: "Scikit-learn", detail: "ML models (forecasting, scoring)" },
+  { label: "Statsmodels", detail: "Time-series & statistical analysis" },
+  { label: "NumPy / SciPy", detail: "Numerical computing" },
+  { label: "pytest", detail: "Data pipeline testing" },
+  { label: "APScheduler / Cron", detail: "Scheduled data collection (P1)" },
+  { label: "requests / httpx", detail: "HTTP API clients (P1)" },
+  { label: "BeautifulSoup4 / Selenium", detail: "Web scraping & parsing (P1)" },
+  { label: "PDFMiner", detail: "PDF document extraction (P1)" },
 ];
 
 const DATA_SOURCES = [
@@ -87,7 +110,7 @@ const PRINCIPLES = [
     icon: Sparkles,
     title: "Free Forever",
     description:
-      "Hosted on AWS using S3 and CloudFront - globally distributed, fast, and reliable. No premium tiers, no paywalls, no ads. Immigration tools shouldn't have a price tag.",
+      "Hosted globally on AWS with S3 and CloudFront - fast, reliable, and always accessible. No premium tiers, no paywalls, no ads. Immigration tools shouldn't have a price tag.",
   },
   {
     icon: Users,
@@ -185,7 +208,7 @@ export default function AboutPage() {
                   NorthStar Compass is open-source, free, and privacy-first. Your
                   data never leaves your browser. There are no accounts, no
                   tracking pixels, no API keys, and no servers to hack. It&apos;s
-                  a static website that costs less than a coffee to host each month.
+                  a statically-hosted web application, deployed globally for speed and reliability.
                 </p>
                 <p className="text-[var(--foreground)] font-medium">
                   If this project helps even one person navigate their immigration
@@ -317,8 +340,15 @@ export default function AboutPage() {
         <FadeIn>
           <div className="mt-6">
             <h3 className="mb-3 text-sm font-semibold text-[var(--muted-foreground)]">
-              Tech Stack
+              Complete Tech Stack (P1, P2, P3)
             </h3>
+            <p className="mb-4 text-xs text-[var(--muted-foreground)]">
+              <strong>P1 Horizon</strong> (data collection): Python web scrapers, APIs, scheduled tasks.
+              <br />
+              <strong>P2 Meridian</strong> (analytics &amp; models): Python data pipelines, ML models, statistical analysis.
+              <br />
+              <strong>P3 Compass</strong> (user experience): React/Next.js frontend, interactive dashboards, cloud LLM integration.
+            </p>
             <div className="flex flex-wrap gap-2">
               {TECH_STACK.map((tech) => (
                 <span

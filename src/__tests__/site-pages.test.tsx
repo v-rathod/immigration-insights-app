@@ -330,11 +330,17 @@ describe("AboutPage", () => {
     expect(screen.getByText("Contact")).toBeInTheDocument();
   });
 
-  it("renders tech stack pills", () => {
+  it("renders tech stack pills from all three projects", () => {
     render(<AboutPage />);
+    // P3 Compass
     expect(screen.getByText("Next.js 16")).toBeInTheDocument();
-    expect(screen.getByText("TypeScript")).toBeInTheDocument();
+    expect(screen.getByText("TypeScript 5")).toBeInTheDocument();
     expect(screen.getByText("Tailwind CSS 4")).toBeInTheDocument();
+    // P2 Meridian
+    expect(screen.getByText("Pandas / Polars")).toBeInTheDocument();
+    expect(screen.getByText("Scikit-learn")).toBeInTheDocument();
+    // P1 Horizon
+    expect(screen.getByText("BeautifulSoup4 / Selenium")).toBeInTheDocument();
   });
 });
 
