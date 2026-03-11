@@ -591,7 +591,6 @@ export default function AboutPage() {
                 View on GitHub
               </a>
               <ContactButton
-                variant="secondary"
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/50"
               >
                 <Mail className="h-4 w-4" strokeWidth={1.5} />
