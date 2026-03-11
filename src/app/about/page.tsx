@@ -27,6 +27,7 @@ import {
   StaggerContainer,
   StaggerItem,
 } from "@/components/ui";
+import { ContactButton } from "@/components/ui/contact-modal";
 import { TechStackChip } from "@/components/about/tech-stack-chip";
 import { cn } from "@/lib/utils";
 
@@ -521,13 +522,13 @@ export default function AboutPage() {
                 <Github className="h-4 w-4" strokeWidth={1.5} />
                 View on GitHub
               </a>
-              <a
-                href="mailto:northstar-compass@example.com"
+              <ContactButton
+                variant="secondary"
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/50"
               >
                 <Mail className="h-4 w-4" strokeWidth={1.5} />
                 Contact
-              </a>
+              </ContactButton>
               <Link
                 href="/insights"
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]/50"
