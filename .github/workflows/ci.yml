@@ -41,7 +41,9 @@ jobs:
         run: npm config set registry https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm install --no-audit
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit
         timeout-minutes: 15
 
       - name: Run unit tests
