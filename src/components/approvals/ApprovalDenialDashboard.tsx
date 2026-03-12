@@ -100,7 +100,7 @@ const GRAD = {
 // Custom Tooltip
 // ---------------------------------------------------------------------------
 
-function TrendTooltip({ active, payload, label }: any) {
+function TrendTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PermDetailPoint }> }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
@@ -144,7 +144,7 @@ function TrendTooltip({ active, payload, label }: any) {
   );
 }
 
-function VelocityTooltip({ active, payload }: any) {
+function VelocityTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PermDetailPoint }> }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
@@ -169,7 +169,7 @@ function VelocityTooltip({ active, payload }: any) {
   );
 }
 
-function CategoryTooltip({ active, payload }: any) {
+function CategoryTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: CategoryRow }> }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
@@ -621,6 +621,7 @@ function RiskWindow({ data }: { data: PermDetailPoint[] }) {
   useEffect(() => {
     const profile = secureGet<{ priorityDate?: string }>("user_profile");
     if (profile?.priorityDate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPriorityDate(profile.priorityDate);
     }
   }, []);
@@ -819,8 +820,8 @@ export function ApprovalDenialDashboard() {
         setSummary(sum);
         setPermDetailed(perm.data_points);
         setCategories(cats);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message ?? "Failed to load data");
+      } catch (e: unknown) {
+        if (!cancelled) setError((e as Error).message ?? "Failed to load data");
       } finally {
         if (!cancelled) setLoading(false);
       }

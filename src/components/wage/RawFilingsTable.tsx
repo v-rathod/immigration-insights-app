@@ -122,6 +122,40 @@ function SortIcon({ col, sort }: { col: string; sort: SortState }) {
   );
 }
 
+function TH({
+  col,
+  children,
+  className,
+  sort,
+  onToggle,
+  onResetPage,
+}: {
+  col: string;
+  children: React.ReactNode;
+  className?: string;
+  sort: SortState;
+  onToggle: (col: string) => void;
+  onResetPage: () => void;
+}) {
+  return (
+    <th
+      className={cn(
+        "px-3 py-2.5 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide cursor-pointer select-none whitespace-nowrap hover:text-[var(--foreground)]/80 transition-colors",
+        className
+      )}
+      onClick={() => {
+        onToggle(col);
+        onResetPage();
+      }}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        <SortIcon col={col} sort={sort} />
+      </span>
+    </th>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // LCA Filings Tab
 // ---------------------------------------------------------------------------
@@ -193,32 +227,6 @@ function LcaFilingsTab({
 
   // Reset page when filters change
   const resetPage = () => setPage(0);
-
-  const TH = ({
-    col,
-    children,
-    className,
-  }: {
-    col: string;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <th
-      className={cn(
-        "px-3 py-2.5 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide cursor-pointer select-none whitespace-nowrap hover:text-[var(--foreground)]/80 transition-colors",
-        className
-      )}
-      onClick={() => {
-        toggle(col);
-        resetPage();
-      }}
-    >
-      <span className="inline-flex items-center gap-1">
-        {children}
-        <SortIcon col={col} sort={sort} />
-      </span>
-    </th>
-  );
 
   const clearFilters = () => {
     setSearch("");
@@ -326,13 +334,13 @@ function LcaFilingsTab({
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-[var(--foreground)]/[0.06] bg-[var(--foreground)]/[0.02]">
-              <TH col="job_title">Job Title</TH>
-              <TH col="soc_title" className="hidden lg:table-cell">Occupation</TH>
-              <TH col="worksite_city">Location</TH>
-              <TH col="wage_annual">Base Salary</TH>
-              <TH col="case_status">Status</TH>
-              <TH col="received_date">Filed</TH>
-              <TH col="decision_date" className="hidden xl:table-cell">Decision</TH>
+              <TH col="job_title" sort={sort} onToggle={toggle} onResetPage={resetPage}>Job Title</TH>
+              <TH col="soc_title" className="hidden lg:table-cell" sort={sort} onToggle={toggle} onResetPage={resetPage}>Occupation</TH>
+              <TH col="worksite_city" sort={sort} onToggle={toggle} onResetPage={resetPage}>Location</TH>
+              <TH col="wage_annual" sort={sort} onToggle={toggle} onResetPage={resetPage}>Base Salary</TH>
+              <TH col="case_status" sort={sort} onToggle={toggle} onResetPage={resetPage}>Status</TH>
+              <TH col="received_date" sort={sort} onToggle={toggle} onResetPage={resetPage}>Filed</TH>
+              <TH col="decision_date" className="hidden xl:table-cell" sort={sort} onToggle={toggle} onResetPage={resetPage}>Decision</TH>
               <th className="px-3 py-2.5 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide whitespace-nowrap hidden xl:table-cell">
                 FT
               </th>

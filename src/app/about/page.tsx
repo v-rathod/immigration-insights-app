@@ -405,8 +405,8 @@ export default function AboutPage() {
                       Compass — The User Experience (This App)
                     </h3>
                     <p className="text-xs">
-                      The tool that guides you. Compass takes Meridian's intelligence
-                      and presents it through interactive, personalized dashboards. It's
+                      The tool that guides you. Compass takes Meridian&apos;s intelligence
+                      and presents it through interactive, personalized dashboards. It&apos;s
                       your compass in the immigration journey — helping you navigate with
                       confidence based on real data.
                     </p>

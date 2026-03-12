@@ -11,8 +11,8 @@
  * Run after `npm run sync-data` to catch regressions when P2 artifacts change.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync, readdirSync as fsReaddirSync, existsSync } from "fs";
+import { join, basename } from "path";
 
 // Resolve from project root (vitest runs from package.json directory)
 const PUBLIC_DATA = join(process.cwd(), "public", "data");
@@ -209,11 +209,10 @@ describe("Cross-file canonical employer name contract", () => {
 // ─── Employer shard sample: names normalized ─────────────────────────────────
 
 describe("Employer shard name normalization (sample)", () => {
-  const { readdirSync: rd, readFileSync: rf, existsSync } = require("fs");
   const empDir = join(PUBLIC_DATA, "employers");
   const shardFiles = (() => {
     if (!existsSync(empDir)) return [];
-    return (rd(empDir) as string[]).filter(
+    return (fsReaddirSync(empDir) as string[]).filter(
       (f: string) => f.endsWith(".json") && !f.startsWith("_")
     );
   })();
@@ -224,7 +223,7 @@ describe("Employer shard name normalization (sample)", () => {
   const sample: Array<{ employer_name?: string; employer_id?: string }> = [];
   for (let i = 0; i < shardFiles.length && sample.length < SAMPLE_SIZE; i += step) {
     try {
-      const raw = rf(join(empDir, shardFiles[i]), "utf-8");
+      const raw = readFileSync(join(empDir, shardFiles[i]), "utf-8");
       const sanitized = raw.replace(/:\s*NaN\b/g, ": null");
       sample.push(JSON.parse(sanitized));
     } catch {
@@ -260,10 +259,9 @@ describe("JSON spec compliance", () => {
   const SKIP_DIRS = new Set(["employers"]);
 
   const readdirSync = (dir: string): string[] => {
-    const { readdirSync: rd } = require("fs");
-    const { join, basename } = require("path");
-    const entries = rd(dir, { withFileTypes: true });
+    const entries = fsReaddirSync(dir, { withFileTypes: true });
     const files: string[] = [];
+    void basename; // used via top-level import
     for (const e of entries) {
       const full = join(dir, e.name);
       if (e.isDirectory()) {
@@ -277,13 +275,11 @@ describe("JSON spec compliance", () => {
 
   const DATA_DIR = join(process.cwd(), "public", "data");
   const allJsonFiles = (() => {
-    const { existsSync } = require("fs");
     if (!existsSync(DATA_DIR)) return [];
     return readdirSync(DATA_DIR);
   })();
 
   it("no JSON file contains bare NaN tokens (invalid JSON spec)", () => {
-    const { readFileSync } = require("fs");
     const BAD_NAN = /(?<=[:\[,])\s*NaN\b/;
     const violators: string[] = [];
     for (const file of allJsonFiles) {
@@ -297,11 +293,9 @@ describe("JSON spec compliance", () => {
   });
 
   it("employer shard sample has no bare NaN tokens", () => {
-    const { readFileSync, readdirSync: rd, existsSync } = require("fs");
-    const { join } = require("path");
     const empDir = join(DATA_DIR, "employers");
     if (!existsSync(empDir)) return; // skip if no shards
-    const shards = rd(empDir)
+    const shards = fsReaddirSync(empDir)
       .filter((f: string) => f.endsWith(".json") && f !== "_index.json");
     // Sample up to 200 shards for speed
     const SAMPLE = 200;

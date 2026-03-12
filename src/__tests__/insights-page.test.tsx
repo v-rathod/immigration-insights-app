@@ -129,6 +129,7 @@ vi.mock("@/components/srs/employer-search", () => ({
             wage_subscore: 85,
             sustainability_subscore: 88,
             srs_ml: 87,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any)
         }
         data-testid="mock-select-employer"

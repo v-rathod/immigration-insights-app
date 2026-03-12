@@ -36,7 +36,7 @@ vi.mock("framer-motion", async () => {
       {
         get: (_, tag: string) => {
           return ReactMod.forwardRef(
-            ({ children, className, style, ...rest }: any, ref: any) => {
+            ({ children, className, style, ...rest }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: unknown }, ref: React.Ref<unknown>) => {
               const motionKeys = new Set([
                 "variants", "initial", "animate", "exit",
                 "whileHover", "whileTap", "whileInView",
@@ -57,7 +57,7 @@ vi.mock("framer-motion", async () => {
         },
       }
     ),
-    AnimatePresence: ({ children }: any) => <>{children}</>,
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useSpring: () => ({ set: vi.fn(), get: () => 0 }),
     useTransform: (_: unknown, fn: (v: number) => unknown) => {
       try { return fn(0); } catch { return "0"; }
@@ -69,9 +69,9 @@ vi.mock("framer-motion", async () => {
 // ── Mock recharts ────────────────────────────────────────────────────────
 
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-  ComposedChart: ({ children }: any) => <div data-testid="composed-chart">{children}</div>,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+  ComposedChart: ({ children }: { children: React.ReactNode }) => <div data-testid="composed-chart">{children}</div>,
+  BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,
   Line: () => <div data-testid="line" />,
   XAxis: () => null,
@@ -334,6 +334,7 @@ const DEFAULT_CATS_MOCK: CategoryRow[] = [
 
 function resetLoaderMocks() {
   loadApprovalSummaryMock.mockResolvedValue(DEFAULT_SUMMARY_MOCK);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loadPermDetailedMock.mockResolvedValue(DEFAULT_PERM_MOCK as any);
   loadCategoryComparisonMock.mockResolvedValue(DEFAULT_CATS_MOCK);
 }
@@ -480,9 +481,10 @@ describe("ApprovalDenialDashboard", () => {
 
 // ── Tests: Static JSON Data Integrity ─────────────────────────────────────
 
+import * as fs from "fs";
+import * as path from "path";
+
 describe("Approval/Denial JSON Data Integrity", () => {
-  const fs = require("fs");
-  const path = require("path");
   const dataDir = path.join(__dirname, "../../public/data/dashboards/approvals");
 
   function loadJson(file: string) {
@@ -508,7 +510,7 @@ describe("Approval/Denial JSON Data Integrity", () => {
 
   it("approval_denial_trends.json has 3 data sources", () => {
     const data = loadJson("approval_denial_trends.json");
-    const sources = new Set(data.map((r: any) => r.data_source));
+    const sources = new Set(data.map((r: Record<string, unknown>) => r.data_source));
     expect(sources.size).toBe(3);
     expect(sources.has("PERM_Labor_Certification")).toBe(true);
     expect(sources.has("USCIS_Forms")).toBe(true);
@@ -539,7 +541,7 @@ describe("Approval/Denial JSON Data Integrity", () => {
   it("approval_denial_by_category.json has 3 tracks", () => {
     const data = loadJson("approval_denial_by_category.json");
     expect(data.length).toBe(3);
-    const sources = data.map((r: any) => r.data_source);
+    const sources = data.map((r: Record<string, unknown>) => r.data_source);
     expect(sources).toContain("PERM_Labor_Certification");
     expect(sources).toContain("USCIS_Forms");
     expect(sources).toContain("Visa_Applications");
@@ -547,8 +549,8 @@ describe("Approval/Denial JSON Data Integrity", () => {
 
   it("PERM has highest case volume in by_category", () => {
     const data = loadJson("approval_denial_by_category.json");
-    const uscis = data.find((r: any) => r.data_source === "USCIS_Forms");
-    const perm = data.find((r: any) => r.data_source === "PERM_Labor_Certification");
+    const uscis = data.find((r: Record<string, unknown>) => r.data_source === "USCIS_Forms");
+    const perm = data.find((r: Record<string, unknown>) => r.data_source === "PERM_Labor_Certification");
     // USCIS actually has more total cases than PERM
     expect(uscis.total_cases).toBeGreaterThan(perm.total_cases);
   });
@@ -560,7 +562,7 @@ describe("Approval/Denial JSON Data Integrity", () => {
 
   it("perm_trends_detailed.json spans FY2008 to FY2026", () => {
     const data = loadJson("perm_trends_detailed.json");
-    const years = data.data_points.map((d: any) => d.fiscal_year);
+    const years = data.data_points.map((d: Record<string, unknown>) => d.fiscal_year as number);
     expect(Math.min(...years)).toBe(2008);
     expect(Math.max(...years)).toBe(2026);
   });
@@ -568,24 +570,24 @@ describe("Approval/Denial JSON Data Integrity", () => {
   it("perm_trends_detailed.json has YoY change fields", () => {
     const data = loadJson("perm_trends_detailed.json");
     // First year won't have YoY, but later years should
-    const withYoy = data.data_points.filter((d: any) => d.yoy_approval_rate_change != null);
+    const withYoy = data.data_points.filter((d: Record<string, unknown>) => d.yoy_approval_rate_change != null);
     expect(withYoy.length).toBeGreaterThanOrEqual(15);
   });
 
   it("FY2025 has highest approval rate in PERM history", () => {
     const data = loadJson("perm_trends_detailed.json");
-    const fy2025 = data.data_points.find((d: any) => d.fiscal_year === 2025);
+    const fy2025 = data.data_points.find((d: Record<string, unknown>) => d.fiscal_year === 2025);
     expect(fy2025).toBeDefined();
     for (const d of data.data_points) {
       if (d.fiscal_year !== 2025 && d.fiscal_year !== 2026) {
-        expect(fy2025.approval_rate).toBeGreaterThanOrEqual(d.approval_rate);
+        expect((fy2025 as Record<string, unknown>).approval_rate).toBeGreaterThanOrEqual((d as Record<string, unknown>).approval_rate);
       }
     }
   });
 
   it("counts are non-negative across all data points", () => {
     const data = loadJson("perm_trends_detailed.json");
-    for (const d of data.data_points) {
+    for (const d of data.data_points as Record<string, unknown>[]) {
       expect(d.approved).toBeGreaterThanOrEqual(0);
       expect(d.denied).toBeGreaterThanOrEqual(0);
       expect(d.total).toBeGreaterThanOrEqual(0);

@@ -163,12 +163,14 @@ export function EmployerProfile({
 
   // Reset filing state when employer changes — allows re-fetching for new employer
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setLcaFilings([]);
     setH1bPetitions([]);
     setLcaTotal(0);
     setLcaFyRange(null);
     setFilingsLoading(false);
     setFilingsLoaded(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [employerName]);
 
   // Triggered only when user first opens the Filing Records panel.

@@ -81,6 +81,34 @@ function MiniSparkline({ employerName, trends, visaType }: { employerName: strin
   );
 }
 
+function SortHeader({
+  label,
+  sortK,
+  className: hcn,
+  currentSortKey,
+  onSort,
+}: {
+  label: string;
+  sortK: SortKey;
+  className?: string;
+  currentSortKey: SortKey;
+  onSort: (k: SortKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSort(sortK)}
+      className={cn(
+        "flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] hover:text-white transition-colors",
+        currentSortKey === sortK && "text-blue-400",
+        hcn
+      )}
+    >
+      {label}
+      <ArrowUpDown className={cn("h-3 w-3", currentSortKey === sortK && "text-blue-400")} />
+    </button>
+  );
+}
+
 export function EmployerWageTable({
   rankings,
   trends,
@@ -123,20 +151,6 @@ export function EmployerWageTable({
     else { setSortKey(key); setSortDesc(true); }
   };
 
-  const SortHeader = ({ label, sortK, className: hcn }: { label: string; sortK: SortKey; className?: string }) => (
-    <button
-      onClick={() => handleSort(sortK)}
-      className={cn(
-        "flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] hover:text-white transition-colors",
-        sortKey === sortK && "text-blue-400",
-        hcn
-      )}
-    >
-      {label}
-      <ArrowUpDown className={cn("h-3 w-3", sortKey === sortK && "text-blue-400")} />
-    </button>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -147,9 +161,9 @@ export function EmployerWageTable({
       {/* Header */}
       <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 px-4 py-2 border-b border-white/[0.06]">
         <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Employer</span>
-        <SortHeader label="Median" sortK="median" className="justify-end" />
-        <SortHeader label="Above Market" sortK="premium" className="justify-end" />
-        <SortHeader label="vs. Min. Req." sortK="pw_ratio" className="justify-end" />
+        <SortHeader label="Median" sortK="median" className="justify-end" currentSortKey={sortKey} onSort={handleSort} />
+        <SortHeader label="Above Market" sortK="premium" className="justify-end" currentSortKey={sortKey} onSort={handleSort} />
+        <SortHeader label="vs. Min. Req." sortK="pw_ratio" className="justify-end" currentSortKey={sortKey} onSort={handleSort} />
         <div className="w-6" />
       </div>
 

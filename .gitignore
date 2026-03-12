@@ -50,3 +50,11 @@ next-env.d.ts
 
 # Temporary scripts
 tmp_script_*.py
+
+# AI agent session logs (may contain secrets in history files)
+.wingman/
+.docs/
+
+# Python cache
+__pycache__/
+*.pyc
