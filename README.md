@@ -2,7 +2,7 @@
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-604%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-601%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 [![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
@@ -92,10 +92,10 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 
 - See [PROGRESS.md](PROGRESS.md) for full milestone history and current status.
 - Snapshot highlights:
-  - **P3 (Compass)**: Employer name normalization (ALL-CAPS→Title Case, 1,700 names); 18-test Optum regression suite; **604/604 tests passing**.
+  - **P3 (Compass)**: 9 dashboards live, shard-based employer data architecture (95K+ shards), employer name normalization (ALL-CAPS→Title Case), Optum regression suite; **601/601 tests passing**.
   - **P2 (Meridian)**: All 46 artifacts + 341 RAG chunks exported; **562/562 tests passing**.
-  - **Data freshness**: Last synced from P2 on 2026-03-11 (check `public/data/_manifest.json`).
-  - **AWS deployment**: Ready to deploy from `out/` directory via `./scripts/deploy.sh`.
+  - **Data freshness**: Last synced from P2 on 2026-03-11 (check `public/data/employers/_freshness.json`).
+  - **AWS deployment**: Live at `https://d10immmzyp7xgr.cloudfront.net` · Deploy via `bash scripts/deploy.sh --skip-build`.
 
 ┌─────────────────────────────────────────────────────────────┐
 │                    NorthStar Program                        │
@@ -112,7 +112,7 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 │   ▼                                                         │
 │   ★ Compass  (immigration-insights-app) ← THIS REPO        │
 │      Static Next.js app · S3 + CloudFront                   │
-│      8 dashboards · 5 personalized panels · RAG Q&A         │
+│      9 dashboards · /insights panel · RAG Q&A (future)      │
 │      Hosting cost: ~$1–3/month on AWS                       │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -131,17 +131,23 @@ Meridian artifacts/
 scripts/sync_p2_data.py  (Parquet → JSON conversion)
         │
         ▼
-public/data/             (28 static JSON files)
-├── dashboards/          (one dir per dashboard)
-├── dims/                (dimension lookups)
-├── models/              (forecast outputs)
-└── rag/                 (chunks + QA cache)
+public/data/             (static JSON — employer shard architecture)
+├── employers/           (~95K per-employer shards, 3–1048KB each)
+│   ├── _index.json      (shard key → filename mapping)
+│   ├── _search.json     (14MB employer search index, <20MB CDN limit)
+│   ├── _freshness.json  (49 bytes — data freshness timestamp)
+│   └── {sha1}.json      (per-employer: SRS + wage + LCA data)
+├── dashboards/          (9 dirs, pre-aggregated dashboard data)
+├── dims/                (dim_country, dim_soc, dim_area, dim_visa_*)
+├── models/              (pd_forecasts.json — forecast outputs)
+└── rag/                 (341 chunks + 719 QA pairs)
         │
         ▼
-next build → out/        (Pure HTML/CSS/JS)
+next build → out/        (Pure HTML/CSS/JS, 18 pages)
         │
         ▼
 S3 + CloudFront          (Static hosting, ~$1–3/mo)
+https://d10immmzyp7xgr.cloudfront.net
 ```
 
 ### Artifact Inventory (as of 2026-02-27)
@@ -182,7 +188,7 @@ All new tables and RAG/QA artifacts will appear in `public/data/` for static use
 | Animations | Framer Motion | 12.x |
 | Icons | Lucide React | 0.470.x |
 | Search | Fuse.js (client-side fuzzy) | 7.x |
-| LLM | Groq (Llama 3.3 70B) / OpenAI (GPT-4o-mini) | — |
+| LLM | Groq / OpenAI (deferred — Ask/Chat future phase) | — |
 | Analytics | PostHog (free cloud) | Latest |
 | Contact Form | Formspree | Free tier |
 | Testing | Vitest 4 + React Testing Library + happy-dom | 4.x |
@@ -228,15 +234,16 @@ immigration-insights-app/
 ├── .github/
 │   └── copilot-instructions.md    # AI assistant context (auto-loaded by Copilot)
 ├── public/
-│   └── data/                      # ~85 MB pre-built JSON (from sync_p2_data.py)
-│       ├── dashboards/            # 9 dashboard data dirs
-│       ├── dims/                  # Dimension lookups (employer, SOC, country, area)
+│   └── data/                      # ~1.3 GB pre-built JSON (from sync_p2_data.py)
+│       ├── employers/             # ~95K per-employer shards + _search.json + _freshness.json
+│       ├── dashboards/            # 9 dashboard data dirs (pre-aggregated)
+│       ├── dims/                  # Dimension lookups (SOC, country, area, visa)
 │       ├── models/                # Forecast model outputs (pd_forecasts.json)
 │       └── rag/                   # RAG chunks + QA cache
 ├── scripts/
-│   └── sync_p2_data.py            # Parquet → JSON converter with optimization transforms
+│   └── sync_p2_data.py            # Parquet → JSON converter + shard consolidation
 ├── src/
-│   ├── __tests__/                 # 24 test files, 557 tests
+│   ├── __tests__/                 # 26 test files, 601 tests
 │   ├── app/
 │   │   ├── layout.tsx             # Root layout (Geist font, theme, PostHog)
 │   │   ├── page.tsx               # Landing page
@@ -261,8 +268,8 @@ immigration-insights-app/
 │   │   └── ui/                    # GlassCard, NumberTicker, StatCard, ContactModal, FeedbackWidget, ...
 │   ├── lib/
 │   │   ├── analytics/             # PostHog typed event helpers (21 events)
-│   │   ├── data/                  # Data loaders per dashboard (9 files)
-│   │   ├── search/                # RAG engine + LLM service (4 backends)
+│   │   ├── data/                  # Data loaders per dashboard + employer-shard.ts
+│   │   ├── search/                # RAG engine + LLM service (4 backends, future)
 │   │   ├── security/              # XSS, CSP, URL sanitization, secure localStorage
 │   │   └── utils/                 # cn(), formatters
 │   └── types/
@@ -335,27 +342,20 @@ No Lambda, no database, no API Gateway, no EC2.
 
 MIT
 
-## Temporary File Usage for Automation
+## Deploy Commands
 
-To streamline operations and avoid repeated permission prompts during temporary script execution, 10 reusable temporary files have been pre-created in the workspace:
+```bash
+# Build static export (skip slow prebuild data sync — data already in public/data/)
+npx next build        # → out/  (18 HTML pages)
 
-- `tmp_script_1.py`
-- `tmp_script_2.py`
-- `tmp_script_3.py`
-- `tmp_script_4.py`
-- `tmp_script_5.py`
-- `tmp_script_6.py`
-- `tmp_script_7.py`
-- `tmp_script_8.py`
-- `tmp_script_9.py`
-- `tmp_script_10.py`
+# Fresh deploy to AWS (deletes stale S3 files, syncs employer shards size-only)
+bash scripts/deploy.sh --skip-build
 
-### Purpose
-These files are used for:
-- Running temporary Python scripts.
-- Avoiding the need for new file creation prompts.
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation \
+  --distribution-id E1LPLTVZ0035Q5 \
+  --paths "/*"
 
-### Guidelines
-- These files will be reused for all temporary script needs.
-- Do not delete these files unless absolutely necessary.
-- If additional temporary files are required, create them following the same naming convention (`tmp_script_11.py`, etc.).
+# CloudFront URL: https://d10immmzyp7xgr.cloudfront.net
+# S3 Bucket:      compass-immigration-insights-883107059193
+```

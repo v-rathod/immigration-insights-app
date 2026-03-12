@@ -1,5 +1,51 @@
 # Compass Progress Tracker
 
+## 2026-03-11 — Milestone 10.48: AWS Production Deployment
+
+### Objective
+Deploy the fully-built Milestone 10.47 shard architecture to AWS S3 + CloudFront and verify all 18 pages and 95K+ employer shards are live and accessible.
+
+### What Was Done
+
+1. **Fresh static build** — `npx next build` produced 18 HTML pages, TypeScript clean, 0 errors
+2. **S3 main sync** — `aws s3 sync out/ s3://compass-immigration-insights-883107059193/ --delete` (57 files uploaded; stale monolithic JSON files removed via `--delete`)
+3. **Employer shard sync** — `aws s3 sync out/data/employers/ s3://...data/employers/ --size-only` — 95,153 shards confirmed in S3
+4. **CloudFront invalidation** — `aws cloudfront create-invalidation --distribution-id E1LPLTVZ0035Q5 --paths "/*"` → Invalidation `IAN2DFSMNINKNVXJX0LWPL3E6N` completed
+5. **Post-deploy verification** — All 12 page routes return HTTP 200; Optum shard returns 200 w/ 1,928 LCA records + 10 H-1B petitions; employer search index accessible
+6. **Documentation update** — README.md updated with shard architecture diagram, correct test count (601), deploy commands, CloudFront URL, removed stale "temp files" section
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | 601 passing (26 files) |
+| Build | ✅ 18 pages, TypeScript clean |
+| S3 files | 95,153 employer shards + 57 site files |
+| CloudFront | `d10immmzyp7xgr.cloudfront.net` |
+| HTTP status | All 12 routes: 200 ✓ |
+| Optum shard | 200 · 736KB · 1,928 LCA + 10 H-1B ✓ |
+| Page load reduction | Wage/SRS: ~401MB → ~14MB (28×) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `README.md` | Updated shard architecture diagram, test badge (601), deploy commands, CloudFront URL, removed stale temp-files section |
+| `PROGRESS.md` | This entry |
+
+### Infrastructure
+| Resource | Value |
+|----------|-------|
+| S3 Bucket | `compass-immigration-insights-883107059193` (us-east-1) |
+| CloudFront | Distribution `E1LPLTVZ0035Q5` |
+| Live URL | `https://d10immmzyp7xgr.cloudfront.net` |
+| Hosting cost | ~$1–3/month |
+
+### Next Steps
+1. Monitor CloudFront for any 4xx/5xx errors in access logs
+2. Implement custom domain (Route 53 + ACM SSL cert)
+3. Phase 4 completion: Full Insights panels (Green Card Forecast, Employer deep-dive, Job Market)
+
+---
+
 ## 2026-03-11 — Milestone 10.47: Unified Employer Sharding — 200× Payload Reduction
 
 ### Objective
