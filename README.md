@@ -325,6 +325,56 @@ Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired. Full patterns in [`BES
 
 No Lambda, no database, no API Gateway, no EC2.
 
+## CI/CD — GitHub Actions
+
+Three-layer verification ensures deployments are safe:
+
+### 1. Pre-Deploy Gate: `CI` Workflow
+Runs on every push to `main`/`dev` and every PR to `main`. Blocks merges if any fail:
+- **Unit tests** — 601 tests via Vitest (components, data loaders, security, rendering)
+- **TypeScript check** — strict mode, catches type regressions
+- **ESLint** — enforces code conventions
+
+**Execution:** ~2–3 minutes
+
+**View results:** [GitHub → Actions → CI](https://github.com/v-rathod/immigration-insights-app/actions/workflows/ci.yml)
+
+### 2. Post-Deploy Smoke Tests: `npm run smoke`
+Runs automatically after `scripts/deploy.sh` — wired into the deploy script. Also available manually:
+```bash
+npm run smoke                          # Against prod CloudFront
+SMOKE_TEST_URL=http://localhost:3000 npm run smoke  # Against local dev server
+```
+
+**What it checks (37 total):**
+- 15 pages return HTTP 200 ✓
+- Employer search index (`_search.json`, 14MB) exists and is correct size ✓
+- 22 critical data files accessible at expected sizes ✓
+- `_freshness.json` contains valid `synced_at` timestamp ✓
+- `srs_overview.json` has valid employer counts ✓
+
+**Why this matters:** Catches missing data files (like the `_search.json` bug from today's deploy that caused "failed to load page")
+
+**Execution:** ~45 seconds
+
+### 3. Synthetic Monitoring: `Smoke Tests` Workflow
+Runs every 6 hours automatically + manual trigger option. Acts as uptime monitoring.
+
+If the site goes down at 3am (CloudFront cache error, S3 policy change, etc.), you get an email within 6 hours.
+
+**Manual trigger:** [GitHub → Actions → Smoke Tests → Run workflow](https://github.com/v-rathod/immigration-insights-app/actions/workflows/smoke.yml)
+
+**Execution:** ~45 seconds per run
+
+### Test Results Dashboard
+
+View all workflow runs: **GitHub repo → [Actions tab](https://github.com/v-rathod/immigration-insights-app/actions)**
+
+For each workflow:
+- Green ✅ badge = all checks passed
+- Red ❌ badge = failure (click to see which step failed)
+- Click workflow name → click run → scroll down for detailed logs
+
 ## Data Sources (via Horizon + Meridian)
 
 | Source | Records | Coverage |
