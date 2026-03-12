@@ -50,12 +50,7 @@ import {
   loadSalaryBenchmarksStates,
   loadSocSalaryMarket,
   loadEmployerWageRankings,
-  loadEmployerSalaryTrend,
-  loadEmployerSearchIndex,
-  loadEmployerRoleProfiles,
-  loadEmployerRoleTrends,
   getSocList,
-  getEmployerList,
   getNationalBenchmark,
   getLatestMarket,
   getYoyGrowth,
@@ -67,9 +62,16 @@ import {
   type SocSalaryMarket,
   type EmployerWageRanking,
   type EmployerSalaryTrend,
-  type EmployerSearchIndex,
   type EmployerRoleTrend,
 } from "@/lib/data/wage";
+import {
+  loadEmployerSearch,
+  loadEmployerShard,
+  extractWageTrend,
+  extractWageRoles,
+  extractWageRoleTrends,
+  type EmployerSearchEntry,
+} from "@/lib/data/employer-shard";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -257,14 +259,13 @@ export function WageIntelligenceHub() {
   const [market, setMarket] = useState<SocSalaryMarket[]>([]);
   const [rankings, setRankings] = useState<EmployerWageRanking[]>([]);
   const [trends, setTrends] = useState<EmployerSalaryTrend[]>([]);
-  const [searchIndex, setSearchIndex] = useState<EmployerSearchIndex[]>([]);
+  const [searchEntries, setSearchEntries] = useState<EmployerSearchEntry[]>([]);
   const [roleProfiles, setRoleProfiles] = useState<EmployerWageRanking[]>([]);
   const [roleTrends, setRoleTrends] = useState<EmployerRoleTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [employerDataLoading, setEmployerDataLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const heavyDataLoaded = useRef(false);
 
   // ── Search / selection state ──────────────────────────────────────────────
   const [searchMode, setSearchMode] = useState<SearchMode>("employer");
@@ -281,27 +282,26 @@ export function WageIntelligenceHub() {
   const socFuseRef = useRef<Fuse<SocOption> | null>(null);
   const employerFuseRef = useRef<Fuse<string> | null>(null);
 
-  // ── Load lightweight data on mount (~30 MB total) ──────────────────────
-  // Heavy files (employer_salary_trend 81MB, role_profiles 24MB, role_trends 25MB)
-  // are deferred until the user selects an employer or opens the Top Employers tab.
+  // ── Load lightweight data on mount ──────────────────────────────────────
+  // Search index (~14 MB) + small files. Heavy employer data (trend, roles)
+  // are now loaded per-employer from individual shards on selection.
   useEffect(() => {
     async function load() {
       try {
-        const [nat, sts, mkt, rnk, searchIdx] = await Promise.all([
+        const [nat, sts, mkt, rnk, entries] = await Promise.all([
           loadSalaryBenchmarksNational(),
           loadSalaryBenchmarksStates(),
           loadSocSalaryMarket(),
           loadEmployerWageRankings(),
-          loadEmployerSearchIndex(),
+          loadEmployerSearch(),
         ]);
         setNational(nat);
         setStates(sts);
         setMarket(mkt);
         setRankings(rnk);
-        setSearchIndex(searchIdx);
+        setSearchEntries(entries);
 
         // Build job category Fuse index — enriched with role aliases for better discoverability.
-        // (employer_salary_trend, employer_role_profiles, employer_role_trends loaded lazily below)
         // Searching "backend engineer" or "web developer" surfaces "Software Developers (15-1252)".
         const socList = getSocList(mkt).map((soc) => ({
           ...soc,
@@ -317,11 +317,8 @@ export function WageIntelligenceHub() {
           ignoreLocation: true,
         });
 
-        // Build Employer Fuse index over ALL employers in the search index.
-        // With ≥5 filing threshold, every meaningful employer is searchable.
-        // The search index itself has ~102K employers; trend + role profile
-        // data is available for all of them.
-        const empList = searchIdx.map((e) => e.employer_name);
+        // Build Employer Fuse index over unified search entries.
+        const empList = entries.map((e) => e.employer_name);
         employerFuseRef.current = new Fuse(empList, {
           threshold: 0.3,
           minMatchCharLength: 2,
@@ -340,35 +337,32 @@ export function WageIntelligenceHub() {
     if (profile?.wageOffered && profile.wageOffered > 0) setUserProfile(profile);
   }, []);
 
-  // ── Lazy-load heavy data (130 MB) only when actually needed ───────────────
-  // Triggers when: employer is selected, OR user opens the "Top Employers" tab in role mode.
-  // Loads at most once per session (guarded by heavyDataLoaded ref).
+  // ── Load employer shard on selection ───────────────────────────────────
+  // Fetches a single ~3–50 KB shard instead of 130+ MB monolithic files.
   useEffect(() => {
-    if (heavyDataLoaded.current) return;
-    if (!selectedEmployer && !(selectedSoc && activeTab === "employers")) return;
-    heavyDataLoaded.current = true;
+    if (!selectedEmployer) return;
+    const entry = searchEntries.find((e) => e.employer_name === selectedEmployer);
+    if (!entry?.employer_id) return;
     setEmployerDataLoading(true);
-    Promise.all([
-      loadEmployerSalaryTrend(),
-      loadEmployerRoleProfiles(),
-      loadEmployerRoleTrends(),
-    ])
-      .then(([trd, rolePro, roleTrd]) => {
-        setTrends(trd);
-        setRoleProfiles(rolePro);
-        setRoleTrends(roleTrd);
+    loadEmployerShard(entry.employer_id)
+      .then((shard) => {
+        if (shard) {
+          setTrends(extractWageTrend(shard));
+          setRoleProfiles(extractWageRoles(shard));
+          setRoleTrends(extractWageRoleTrends(shard));
+        }
       })
-      .catch((e) => console.error("[WageHub] lazy load error", e))
+      .catch((e) => console.error("[WageHub] shard load error", e))
       .finally(() => setEmployerDataLoading(false));
-  }, [selectedEmployer, selectedSoc, activeTab]);
+  }, [selectedEmployer, searchEntries]);
 
   // ── Employer list for empty-state quick picks (top employers by filing count) ──
   const allEmployers = useMemo(() => {
-    return [...searchIndex]
+    return [...searchEntries]
       .sort((a, b) => b.total_filings - a.total_filings)
       .slice(0, 500)
       .map((e) => e.employer_name);
-  }, [searchIndex]);
+  }, [searchEntries]);
 
   // ── Search handler ────────────────────────────────────────────────────────
   const handleSearch = useCallback(
@@ -387,7 +381,7 @@ export function WageIntelligenceHub() {
         // Enrich with wage data for smart sorting
         const enriched = fuseResults.map((r) => {
           const name = r.item;
-          const empData = searchIndex.find((e) => e.employer_name === name);
+          const empData = searchEntries.find((e) => e.employer_name === name);
           return {
             item: {
               employer_name: name,
@@ -433,7 +427,7 @@ export function WageIntelligenceHub() {
         setShowDropdown(results.length > 0);
       }
     },
-    [searchMode, market, searchIndex]
+    [searchMode, market, searchEntries]
   );
 
   // Re-run search when mode switches

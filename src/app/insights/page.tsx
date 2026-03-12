@@ -56,14 +56,17 @@ import {
   COUNTRY_LABELS,
 } from "@/lib/data/pdi";
 import {
-  loadSrsScores,
   loadSrsScoresML,
-  loadEmployerMonthlyMetrics,
   loadEmployerRiskFeatures,
-  filterOverallScores,
-  getEmployerMetrics,
   getEmployerRisk,
 } from "@/lib/data/srs";
+import {
+  loadEmployerSearch,
+  loadEmployerShard,
+  extractSrsFromShard,
+  extractMonthlyMetrics,
+  type EmployerSearchEntry,
+} from "@/lib/data/employer-shard";
 import {
   loadSalaryBenchmarksNational,
   getNationalBenchmark,
@@ -545,7 +548,6 @@ function SponsorPanel({
   profile,
   overallScores,
   mlScores,
-  monthlyMetrics,
   riskFeatures,
   onEmployerSelect,
   selectedEmployer,
@@ -555,7 +557,6 @@ function SponsorPanel({
   profile: UserProfile;
   overallScores: SponsorReliabilityScore[];
   mlScores: SponsorReliabilityScoreML[];
-  monthlyMetrics: EmployerMonthlyMetric[];
   riskFeatures: EmployerRiskFeature[];
   onEmployerSelect: (e: SponsorReliabilityScore) => void;
   selectedEmployer: (SponsorReliabilityScore & { srs_ml?: number }) | null;
@@ -1045,8 +1046,8 @@ export default function InsightsPage() {
 
   // SRS data
   const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
+  const [searchEntries, setSearchEntries] = useState<EmployerSearchEntry[]>([]);
   const [mlScores, setMlScores] = useState<SponsorReliabilityScoreML[]>([]);
-  const [monthlyMetrics, setMonthlyMetrics] = useState<EmployerMonthlyMetric[]>([]);
   const [riskFeatures, setRiskFeatures] = useState<EmployerRiskFeature[]>([]);
   const [selectedEmployer, setSelectedEmployer] = useState<
     (SponsorReliabilityScore & { srs_ml?: number }) | null
@@ -1097,16 +1098,31 @@ export default function InsightsPage() {
   }, [profile.category, profile.country, profile.priorityDate]);
 
   // Auto-restore saved employer selection once SRS scores are available
+  // Auto-match employer from profile name (via search entries)
   useEffect(() => {
     if (overallScores.length === 0 || selectedEmployer) return;
     if (!profile.employerName) return;
     const needle = profile.employerName.toLowerCase();
     const match = overallScores.find((s) => s.employer_name.toLowerCase() === needle);
     if (match) {
-      const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
-      setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
-      setSelectedMetrics(getEmployerMetrics(monthlyMetrics, match.employer_id));
-      setSelectedRisk(getEmployerRisk(riskFeatures, match.employer_id));
+      // Load the shard for full details
+      loadEmployerShard(match.employer_id)
+        .then((shard) => {
+          if (shard) {
+            const fullSrs = extractSrsFromShard(shard);
+            const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
+            setSelectedEmployer({ ...(fullSrs ?? match), srs_ml: mlMatch?.srs_ml });
+            setSelectedMetrics(extractMonthlyMetrics(shard));
+            setSelectedRisk(getEmployerRisk(riskFeatures, match.employer_id));
+          } else {
+            const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
+            setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
+          }
+        })
+        .catch(() => {
+          const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
+          setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overallScores]);
@@ -1116,18 +1132,27 @@ export default function InsightsPage() {
     Promise.all([
       loadPdForecasts(),
       loadCutoffTrends(),
-      loadSrsScores(),
+      loadEmployerSearch(),
       loadSrsScoresML(),
-      loadEmployerMonthlyMetrics(),
       loadEmployerRiskFeatures(),
       loadSalaryBenchmarksNational(),
     ])
-      .then(([fc, tr, scores, ml, metrics, risks, bench]) => {
+      .then(([fc, tr, entries, ml, risks, bench]) => {
         setForecasts(fc);
         setTrends(tr);
-        setOverallScores(filterOverallScores(scores));
+        setSearchEntries(entries);
+        // Build lightweight SponsorReliabilityScore[] for EmployerSearch component
+        const asScores: SponsorReliabilityScore[] = entries
+          .filter((e) => e.srs_score != null || e.total_filings > 0)
+          .map((e) => ({
+            employer_name: e.employer_name,
+            employer_id: e.employer_id,
+            scope: "overall",
+            srs: e.srs_score,
+            srs_tier: e.srs_tier,
+          } as SponsorReliabilityScore));
+        setOverallScores(asScores);
         setMlScores(ml);
-        setMonthlyMetrics(metrics);
         setRiskFeatures(risks);
         setBenchmarks(bench);
       })
@@ -1146,17 +1171,26 @@ export default function InsightsPage() {
     });
   }, []);
 
-  // Employer selection from SRS search
+  // Employer selection from SRS search — loads shard for full data
   const handleEmployerSelect = useCallback(
-    (employer: SponsorReliabilityScore) => {
-      const mlMatch = mlScores.find((m) => m.employer_id === employer.employer_id);
-      setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
-      setSelectedMetrics(getEmployerMetrics(monthlyMetrics, employer.employer_id));
-      setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+    async (employer: SponsorReliabilityScore) => {
+      const shard = await loadEmployerShard(employer.employer_id).catch(() => null);
+      if (shard) {
+        const fullSrs = extractSrsFromShard(shard);
+        const mlMatch = mlScores.find((m) => m.employer_id === employer.employer_id);
+        setSelectedEmployer({ ...(fullSrs ?? employer), srs_ml: mlMatch?.srs_ml });
+        setSelectedMetrics(extractMonthlyMetrics(shard));
+        setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+      } else {
+        const mlMatch = mlScores.find((m) => m.employer_id === employer.employer_id);
+        setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
+        setSelectedMetrics([]);
+        setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+      }
       // Sync employer name back to profile
       handleProfileChange({ employerName: employer.employer_name });
     },
-    [mlScores, monthlyMetrics, riskFeatures, handleProfileChange]
+    [mlScores, riskFeatures, handleProfileChange]
   );
 
   // Loading state
@@ -1243,7 +1277,6 @@ export default function InsightsPage() {
             profile={profile}
             overallScores={overallScores}
             mlScores={mlScores}
-            monthlyMetrics={monthlyMetrics}
             riskFeatures={riskFeatures}
             onEmployerSelect={handleEmployerSelect}
             selectedEmployer={selectedEmployer}

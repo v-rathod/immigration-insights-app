@@ -171,9 +171,7 @@ vi.mock("@/lib/data/srs", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/data/srs")>();
   return {
     ...actual,
-    loadSrsScores: vi.fn().mockResolvedValue([]),
     loadSrsScoresML: vi.fn().mockResolvedValue([]),
-    loadEmployerMonthlyMetrics: vi.fn().mockResolvedValue([]),
     loadEmployerRiskFeatures: vi.fn().mockResolvedValue([]),
   };
 });
@@ -196,6 +194,13 @@ vi.mock("@/lib/data/wage", async (importActual) => {
     ]),
   };
 });
+
+vi.mock("@/lib/data/employer-shard", () => ({
+  loadEmployerSearch: vi.fn().mockResolvedValue([]),
+  loadEmployerShard: vi.fn().mockResolvedValue(null),
+  extractSrsFromShard: vi.fn().mockReturnValue(null),
+  extractMonthlyMetrics: vi.fn().mockReturnValue([]),
+}));
 
 // Mock security module
 const mockStorage: Record<string, unknown> = {};

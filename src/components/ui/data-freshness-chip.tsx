@@ -28,7 +28,7 @@ export function DataFreshnessChip() {
   const [refreshed, setRefreshed] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/data/_manifest.json")
+    fetch("/data/_freshness.json")
       .then<Manifest>((r) => r.json())
       .then((manifest) => {
         if (manifest?.synced_at) {

@@ -78,7 +78,7 @@ DIMENSION_ARTIFACTS = [
     "dim_area.parquet",
     "dim_visa_class.parquet",
     "dim_visa_ceiling.parquet",
-    "dim_employer.parquet",
+    # dim_employer.parquet removed — 52 MB, never loaded by any P3 component
 ]
 
 MODEL_ARTIFACTS = [
@@ -921,17 +921,291 @@ def sync_employer_raw_filings():
         print(f"  ↷ {skipped} employers skipped (no LCA data in window)")
 
 
+def consolidate_employer_shards():
+    """
+    Consolidate monolithic employer JSON files into per-employer shards.
+
+    Reads already-generated monolithic JSON files (wage + SRS) and embeds
+    employer-specific slices into existing per-employer shard files.  Also
+    generates:
+      • _search.json  — unified employer search index (~16 MB, <20 MB CloudFront limit)
+      • srs_overview.json — pre-computed SRS aggregate statistics (~200 bytes)
+      • _freshness.json  — sync timestamp (~50 bytes, replaces 14 MB _manifest.json for UI)
+
+    After consolidation the monolithic files are removed from the build output,
+    cutting ~400 MB of redundant data.
+    """
+    import math as _math
+
+    print("\n🔗 Consolidating employer shards (embedding wage + SRS data)...")
+    employers_dir = OUT_DIR / "employers"
+    employer_dir = OUT_DASHBOARDS / "employer"
+    wage_dir = OUT_DASHBOARDS / "wage"
+
+    # ── Read the shard index ───────────────────────────────────────────────
+    index_path = employers_dir / "_index.json"
+    if not index_path.exists():
+        print("  ⚠ _index.json missing — run sync_employer_raw_filings() first")
+        return
+    with open(index_path) as f:
+        emp_index: dict = json.load(f)  # employer_name → employer_id (hash)
+
+    # Build reverse map: employer_id → employer_name
+    id_to_name = {v: k for k, v in emp_index.items()}
+
+    # ── Load monolithic wage JSONs ─────────────────────────────────────────
+    def _load_json_safe(path: Path) -> list:
+        if not path.exists():
+            print(f"  ⚠ {path.name} not found — skipping")
+            return []
+        with open(path) as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+
+    role_profiles_raw = _load_json_safe(wage_dir / "employer_role_profiles.json")
+    salary_trend_raw = _load_json_safe(wage_dir / "employer_salary_trend.json")
+    role_trends_raw = _load_json_safe(wage_dir / "employer_role_trends.json")
+    search_index_raw = _load_json_safe(wage_dir / "employer_search_index.json")
+
+    # ── Load monolithic SRS JSONs ──────────────────────────────────────────
+    srs_scores_raw = _load_json_safe(employer_dir / "employer_friendliness_scores.json")
+    srs_monthly_raw = _load_json_safe(employer_dir / "employer_monthly_metrics.json")
+
+    # ── Group by employer_name ─────────────────────────────────────────────
+    def _group_by(records: list, key: str = "employer_name") -> dict:
+        grouped: dict = {}
+        for r in records:
+            k = r.get(key)
+            if k:
+                grouped.setdefault(k, []).append(r)
+        return grouped
+
+    role_profiles_by_emp = _group_by(role_profiles_raw)
+    salary_trend_by_emp = _group_by(salary_trend_raw)
+    role_trends_by_emp = _group_by(role_trends_raw)
+
+    def _group_by_id(records: list, key: str = "employer_id") -> dict:
+        grouped: dict = {}
+        for r in records:
+            k = r.get(key)
+            if k:
+                grouped.setdefault(k, []).append(r)
+        return grouped
+
+    srs_scores_by_id = _group_by_id(srs_scores_raw)
+    srs_monthly_by_id = _group_by_id(srs_monthly_raw)
+
+    # Build search index lookup by name for SRS enrichment
+    search_index_map = {r["employer_name"]: r for r in search_index_raw}
+
+    # ── NaN sanitizer ──────────────────────────────────────────────────────
+    def _nan_to_null(v):
+        if isinstance(v, float) and (v != v or _math.isinf(v)):
+            return None
+        if isinstance(v, dict):
+            return {kk: _nan_to_null(vv) for kk, vv in v.items()}
+        if isinstance(v, list):
+            return [_nan_to_null(x) for x in v]
+        return v
+
+    # ── Strip redundant employer_name/employer_id from embedded arrays ─────
+    # These fields are already on the shard root, no need to repeat in every
+    # child record (saves ~10-20% shard size for large employers).
+    def _strip_emp_fields(records: list) -> list:
+        return [
+            {k: v for k, v in r.items() if k not in ("employer_name", "employer_id")}
+            for r in records
+        ]
+
+    # ── Consolidate into each shard ────────────────────────────────────────
+    shards_enriched = 0
+    for emp_name, emp_id in emp_index.items():
+        shard_path = employers_dir / f"{emp_id}.json"
+        if not shard_path.exists():
+            continue
+
+        with open(shard_path) as f:
+            shard = json.load(f)
+
+        # Embed wage data
+        wage_roles = role_profiles_by_emp.get(emp_name, [])
+        wage_trend = salary_trend_by_emp.get(emp_name, [])
+        wage_role_trends = role_trends_by_emp.get(emp_name, [])
+        if wage_roles:
+            shard["wage_roles"] = _strip_emp_fields(wage_roles)
+        if wage_trend:
+            shard["wage_trend"] = _strip_emp_fields(wage_trend)
+        if wage_role_trends:
+            shard["wage_role_trends"] = _strip_emp_fields(wage_role_trends)
+
+        # Embed SRS data — filter to overall scope only
+        srs_records = srs_scores_by_id.get(emp_id, [])
+        srs_overall = [r for r in srs_records if r.get("scope") == "overall"]
+        if srs_overall:
+            srs_entry = srs_overall[0].copy()
+            # Remove redundant fields (already on shard root)
+            for k in ("employer_name", "employer_id"):
+                srs_entry.pop(k, None)
+            shard["srs"] = srs_entry
+        srs_monthly = srs_monthly_by_id.get(emp_id, [])
+        if srs_monthly:
+            shard["srs_monthly"] = _strip_emp_fields(srs_monthly)
+
+        shard_path.write_text(json.dumps(_nan_to_null(shard)))
+        shards_enriched += 1
+
+    print(f"  ✓ {shards_enriched:,} shards enriched with wage + SRS data")
+
+    # ── Sample shard sizes ─────────────────────────────────────────────────
+    import random
+    sample_ids = random.sample(list(emp_index.values()), min(100, len(emp_index)))
+    sample_sizes = []
+    for sid in sample_ids:
+        sp = employers_dir / f"{sid}.json"
+        if sp.exists():
+            sample_sizes.append(sp.stat().st_size)
+    if sample_sizes:
+        avg_kb = sum(sample_sizes) / len(sample_sizes) / 1024
+        max_kb = max(sample_sizes) / 1024
+        print(f"    Sample shard stats: avg {avg_kb:.1f} KB, max {max_kb:.1f} KB (n={len(sample_sizes)})")
+
+    # ── Generate unified search index (_search.json) ───────────────────────
+    # Enriches existing search index with SRS score/tier for cross-dashboard search.
+    unified_search = []
+    # Build SRS lookup: employer_name → {srs_score, srs_tier}
+    srs_lookup: dict = {}
+    for rec in srs_scores_raw:
+        if rec.get("scope") == "overall":
+            name = rec.get("employer_name")
+            if name:
+                efs_val = rec.get("efs")
+                srs_val = efs_val if efs_val is not None and not (isinstance(efs_val, float) and efs_val != efs_val) else None
+                srs_tier = rec.get("efs_tier", "Unrated") if srs_val is not None else "Unrated"
+                srs_lookup[name] = {"srs_score": srs_val, "srs_tier": srs_tier}
+
+    for rec in search_index_raw:
+        name = rec["employer_name"]
+        entry = {
+            "employer_name": name,
+            "employer_id": emp_index.get(name, ""),
+            "total_filings": rec.get("total_filings", 0),
+            "n_soc_codes": rec.get("n_soc_codes", 0),
+            "latest_median_salary": rec.get("latest_median_salary", 0),
+            "latest_year": rec.get("latest_year", 0),
+        }
+        srs_info = srs_lookup.get(name)
+        if srs_info:
+            entry["srs_score"] = srs_info["srs_score"]
+            entry["srs_tier"] = srs_info["srs_tier"]
+        else:
+            entry["srs_score"] = None
+            entry["srs_tier"] = "Unrated"
+        unified_search.append(entry)
+
+    # Also add SRS-only employers not in the wage search index
+    wage_names = {r["employer_name"] for r in search_index_raw}
+    for rec in srs_scores_raw:
+        if rec.get("scope") != "overall":
+            continue
+        name = rec.get("employer_name")
+        if name and name not in wage_names:
+            emp_id = emp_index.get(name, "")
+            efs_val = rec.get("efs")
+            srs_val = efs_val if efs_val is not None and not (isinstance(efs_val, float) and efs_val != efs_val) else None
+            srs_tier = rec.get("efs_tier", "Unrated") if srs_val is not None else "Unrated"
+            unified_search.append({
+                "employer_name": name,
+                "employer_id": emp_id,
+                "total_filings": 0,
+                "n_soc_codes": 0,
+                "latest_median_salary": 0,
+                "latest_year": 0,
+                "srs_score": srs_val,
+                "srs_tier": srs_tier,
+            })
+
+    # Sort by filing count desc
+    unified_search.sort(key=lambda x: x.get("total_filings", 0), reverse=True)
+
+    search_path = employers_dir / "_search.json"
+    search_path.write_text(json.dumps(_nan_to_null(unified_search)))
+    search_kb = search_path.stat().st_size / 1024
+    print(f"  ✓ _search.json: {len(unified_search):,} employers → {search_kb:.0f} KB")
+
+    # ── Generate SRS overview stats ────────────────────────────────────────
+    overall_scores = [r for r in srs_scores_raw if r.get("scope") == "overall"]
+    rated = []
+    tier_counts = {"Excellent": 0, "Good": 0, "Moderate": 0, "Below Average": 0, "Poor": 0, "Unrated": 0}
+    for r in overall_scores:
+        efs_val = r.get("efs")
+        srs_val = efs_val if efs_val is not None and not (isinstance(efs_val, float) and efs_val != efs_val) else None
+        tier = r.get("efs_tier", "Unrated")
+        if tier not in tier_counts:
+            tier = "Unrated"
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+        if srs_val is not None:
+            rated.append(srs_val)
+
+    rated.sort()
+    avg_score = round(sum(rated) / len(rated), 1) if rated else 0
+    mid = len(rated) // 2
+    median_score = rated[mid] if rated else 0
+    if len(rated) > 0 and len(rated) % 2 == 0:
+        median_score = round((rated[mid - 1] + rated[mid]) / 2, 1)
+
+    srs_overview = {
+        "totalEmployers": len(overall_scores),
+        "ratedEmployers": len(rated),
+        "avgScore": avg_score,
+        "medianScore": median_score,
+        "tierDistribution": tier_counts,
+    }
+    overview_path = employer_dir / "srs_overview.json"
+    overview_path.parent.mkdir(parents=True, exist_ok=True)
+    overview_path.write_text(json.dumps(srs_overview))
+    print(f"  ✓ srs_overview.json: {len(overall_scores):,} employers → {overview_path.stat().st_size} bytes")
+
+    # ── Generate _freshness.json ───────────────────────────────────────────
+    freshness_path = OUT_DIR / "_freshness.json"
+    freshness_path.write_text(json.dumps({"synced_at": datetime.now(timezone.utc).isoformat()}))
+    print(f"  ✓ _freshness.json: {freshness_path.stat().st_size} bytes")
+
+    # ── Remove monolithic files (now embedded in shards) ───────────────────
+    monolithic_files = [
+        wage_dir / "employer_role_profiles.json",
+        wage_dir / "employer_salary_trend.json",
+        wage_dir / "employer_role_trends.json",
+        wage_dir / "employer_search_index.json",
+        employer_dir / "employer_friendliness_scores.json",
+        employer_dir / "employer_monthly_metrics.json",
+        OUT_DIMS / "dim_employer.json",
+    ]
+    removed = 0
+    freed_mb = 0
+    for fp in monolithic_files:
+        if fp.exists():
+            freed_mb += fp.stat().st_size / (1024 * 1024)
+            fp.unlink()
+            removed += 1
+    print(f"  ✓ Removed {removed} monolithic files ({freed_mb:.0f} MB freed)")
+
+
 def write_manifest():
-    """Write a build manifest with timestamps and sizes."""
+    """Write a build manifest with timestamps and sizes (for ops/debugging)."""
     manifest = {
         "synced_at": datetime.now(timezone.utc).isoformat(),
         "p2_root": str(P2_ROOT),
         "files": {},
     }
 
+    # Only catalog non-shard files (avoid listing 95K+ shard files)
     for json_path in OUT_DIR.rglob("*.json"):
         rel = json_path.relative_to(OUT_DIR)
-        manifest["files"][str(rel)] = {
+        # Skip individual employer shards to keep manifest manageable
+        rel_str = str(rel)
+        if rel_str.startswith("employers/") and rel_str != "employers/_index.json" and rel_str != "employers/_search.json":
+            continue
+        manifest["files"][rel_str] = {
             "size_bytes": json_path.stat().st_size,
             "modified": datetime.fromtimestamp(
                 json_path.stat().st_mtime, tz=timezone.utc
@@ -976,6 +1250,7 @@ def main():
         sync_dashboards(dashboard_filter)
         sync_wage_dashboard()
         sync_employer_raw_filings()
+        consolidate_employer_shards()
         sync_dimensions()
         sync_models()
         sync_rag()

@@ -20,15 +20,19 @@ import {
   SrsOverview,
 } from "@/components/srs";
 import {
-  loadSrsScores,
   loadSrsScoresML,
-  loadEmployerMonthlyMetrics,
   loadEmployerRiskFeatures,
-  filterOverallScores,
-  getEmployerMetrics,
   getEmployerRisk,
-  computeSrsStats,
 } from "@/lib/data/srs";
+import type { SrsOverviewStats } from "@/lib/data/srs";
+import {
+  loadEmployerSearch,
+  loadSrsOverview,
+  loadEmployerShard,
+  extractSrsFromShard,
+  extractMonthlyMetrics,
+  type EmployerSearchEntry,
+} from "@/lib/data/employer-shard";
 import type {
   SponsorReliabilityScore,
   SponsorReliabilityScoreML,
@@ -43,11 +47,11 @@ import { analytics } from "@/lib/analytics";
 
 export default function SrsDashboardPage() {
   // Data state
-  const [scores, setScores] = useState<SponsorReliabilityScore[]>([]);
+  const [searchEntries, setSearchEntries] = useState<EmployerSearchEntry[]>([]);
   const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
   const [mlScores, setMlScores] = useState<SponsorReliabilityScoreML[]>([]);
-  const [monthlyMetrics, setMonthlyMetrics] = useState<EmployerMonthlyMetric[]>([]);
   const [riskFeatures, setRiskFeatures] = useState<EmployerRiskFeature[]>([]);
+  const [stats, setStats] = useState<SrsOverviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,23 +61,36 @@ export default function SrsDashboardPage() {
   >(null);
   const [selectedMetrics, setSelectedMetrics] = useState<EmployerMonthlyMetric[]>([]);
   const [selectedRisk, setSelectedRisk] = useState<EmployerRiskFeature | undefined>();
+  const [shardLoading, setShardLoading] = useState(false);
 
-  // Load data on mount
+  // Load lightweight data on mount (~14 MB search index + small files)
   useEffect(() => {
     async function load() {
       try {
-        const [scoresData, mlData, metricsData, risksData] = await Promise.all([
-          loadSrsScores(),
+        const [entries, mlData, risksData, overview] = await Promise.all([
+          loadEmployerSearch(),
           loadSrsScoresML(),
-          loadEmployerMonthlyMetrics(),
           loadEmployerRiskFeatures(),
+          loadSrsOverview(),
         ]);
 
-        setScores(scoresData);
-        setOverallScores(filterOverallScores(scoresData));
+        setSearchEntries(entries);
+        // Build lightweight SponsorReliabilityScore[] for EmployerSearch component
+        const asScores: SponsorReliabilityScore[] = entries
+          .filter((e) => e.srs_score != null || e.total_filings > 0)
+          .map((e) => ({
+            employer_name: e.employer_name,
+            employer_id: e.employer_id,
+            scope: "overall",
+            srs: e.srs_score,
+            srs_tier: e.srs_tier,
+          } as SponsorReliabilityScore));
+        setOverallScores(asScores);
         setMlScores(mlData);
-        setMonthlyMetrics(metricsData);
         setRiskFeatures(risksData);
+        // Add WARN count to overview
+        overview.warnFlaggedCount = risksData.filter((r) => r.is_warn_flagged).length;
+        setStats(overview);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load SRS data"
@@ -86,32 +103,57 @@ export default function SrsDashboardPage() {
     load();
   }, []);
 
-  // Handle employer selection
+  // Handle employer selection — load individual shard
   const handleSelect = useCallback(
-    (employer: SponsorReliabilityScore) => {
-      // Merge ML score if available
-      const mlMatch = mlScores.find(
-        (m) => m.employer_id === employer.employer_id
-      );
-      const merged = {
-        ...employer,
-        srs_ml: mlMatch?.srs_ml,
-      };
-
-      setSelectedEmployer(merged);
-      setSelectedMetrics(
-        getEmployerMetrics(monthlyMetrics, employer.employer_id)
-      );
-      setSelectedRisk(
-        getEmployerRisk(riskFeatures, employer.employer_id)
-      );
+    async (employer: SponsorReliabilityScore) => {
+      setShardLoading(true);
+      try {
+        const shard = await loadEmployerShard(employer.employer_id);
+        if (shard) {
+          const fullSrs = extractSrsFromShard(shard);
+          const mlMatch = mlScores.find(
+            (m) => m.employer_id === employer.employer_id
+          );
+          const merged = {
+            ...(fullSrs ?? employer),
+            srs_ml: mlMatch?.srs_ml,
+          };
+          setSelectedEmployer(merged);
+          setSelectedMetrics(extractMonthlyMetrics(shard));
+          setSelectedRisk(
+            getEmployerRisk(riskFeatures, employer.employer_id)
+          );
+        } else {
+          // Fallback: use search entry data
+          const mlMatch = mlScores.find(
+            (m) => m.employer_id === employer.employer_id
+          );
+          setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
+          setSelectedMetrics([]);
+          setSelectedRisk(
+            getEmployerRisk(riskFeatures, employer.employer_id)
+          );
+        }
+      } catch {
+        // Fallback: use search entry data
+        const mlMatch = mlScores.find(
+          (m) => m.employer_id === employer.employer_id
+        );
+        setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
+        setSelectedMetrics([]);
+        setSelectedRisk(
+          getEmployerRisk(riskFeatures, employer.employer_id)
+        );
+      } finally {
+        setShardLoading(false);
+      }
       analytics.employerSelected({
         tier: employer.srs_tier ?? "Unrated",
         score: employer.srs ?? null,
-        hasMLScore: !!mlMatch?.srs_ml,
+        hasMLScore: !!mlScores.find((m) => m.employer_id === employer.employer_id)?.srs_ml,
       });
     },
-    [mlScores, monthlyMetrics, riskFeatures]
+    [mlScores, riskFeatures]
   );
 
   // Loading state
@@ -144,7 +186,12 @@ export default function SrsDashboardPage() {
     );
   }
 
-  const stats = computeSrsStats(scores, riskFeatures);
+  const displayStats = stats ?? {
+    totalEmployers: 0, ratedEmployers: 0,
+    excellentCount: 0, goodCount: 0, moderateCount: 0,
+    belowAverageCount: 0, poorCount: 0, unratedCount: 0,
+    avgScore: 0, medianScore: 0, warnFlaggedCount: 0,
+  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -166,7 +213,7 @@ export default function SrsDashboardPage() {
       </FadeIn>
 
       {/* Overview Stats */}
-      <SrsOverview stats={stats} />
+      <SrsOverview stats={displayStats} />
 
       {/* Search Section — z-10 ensures the autocomplete dropdown stacks above
            the employer detail section below (sibling motion.div stacking contexts

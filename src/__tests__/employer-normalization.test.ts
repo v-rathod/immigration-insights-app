@@ -62,48 +62,50 @@ function isDirtyAllCaps(name: string): boolean {
   return longestWord > 2; // "GOOGLE INC" has "GOOGLE" (6 chars) → dirty
 }
 
-// ─── employer_salary_trend.json ──────────────────────────────────────────────
+// ─── _search.json (employer search index) ────────────────────────────────────
 
-describe("public/data/dashboards/wage/employer_salary_trend.json", () => {
-  const data = loadJson("dashboards/wage/employer_salary_trend.json") as Array<{
-    employer_name?: string;
+describe("public/data/employers/_search.json", () => {
+  const data = loadJson("employers/_search.json") as Array<{
+    n?: string; id?: string; f?: number; ss?: number; st?: string;
   }>;
 
-  it("has data (sync has been run)", () => {
-    expect(data.length).toBeGreaterThan(0);
+  it("has data (consolidation has been run)", () => {
+    expect(data.length).toBeGreaterThan(1000);
+  });
+
+  it("uses compact keys (n, id, f, sc, ms, y, ss, st)", () => {
+    if (data.length === 0) return;
+    const first = data[0];
+    expect(first).toHaveProperty("n");
+    expect(first).toHaveProperty("id");
   });
 
   it("does not contain raw Google variants", () => {
     const googleEntries = data
-      .map((r) => r.employer_name ?? "")
+      .map((r) => r.n ?? "")
       .filter((n) => n.toLowerCase().includes("google"));
     const rawVariants = googleEntries.filter((n) => RAW_GOOGLE_VARIANTS.has(n));
     expect(rawVariants).toStrictEqual([]);
   });
 
-  it("contains the canonical 'Google' entry", () => {
-    const names = data.map((r) => r.employer_name ?? "");
-    const hasGoogle = names.includes("Google");
-    // Only assert if any google entry exists at all
-    if (names.some((n) => n.toLowerCase().includes("google"))) {
-      expect(hasGoogle).toBe(true);
-    }
+  it("no dirty all-caps names in first 500 entries", () => {
+    const dirtyNames = data
+      .slice(0, 500)
+      .map((r) => r.n ?? "")
+      .filter(isDirtyAllCaps);
+    expect(dirtyNames).toStrictEqual([]);
   });
 
-  it("top 50 employers by filings are not ALL-CAPS", () => {
-    // Group by employer_name and find the top 50
-    const counts: Record<string, number> = {};
-    for (const row of data) {
-      const name = row.employer_name ?? "";
-      counts[name] = (counts[name] ?? 0) + 1;
+  it("employer IDs are strings (empty for SRS-only entries without shards)", () => {
+    const sample = data.slice(0, 200);
+    const badType = sample.filter((r) => typeof r.id !== "string" && r.id !== undefined);
+    expect(badType).toHaveLength(0);
+    // Entries WITH an id should have a valid hex hash
+    const withId = sample.filter((r) => r.id && r.id.length > 0);
+    expect(withId.length).toBeGreaterThan(0);
+    for (const r of withId) {
+      expect(r.id).toMatch(/^[0-9a-f]{40}$/);
     }
-    const top50 = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 50)
-      .map(([name]) => name);
-
-    const allCapsNames = top50.filter(isAllCaps);
-    expect(allCapsNames).toStrictEqual([]);
   });
 });
 
@@ -135,132 +137,118 @@ describe("public/data/dashboards/wage/employer_wage_rankings.json", () => {
   });
 });
 
-// ─── dim_employer.json ───────────────────────────────────────────────────────
+// ─── srs_overview.json ───────────────────────────────────────────────────────
 
-describe("public/data/dims/dim_employer.json", () => {
-  const data = loadJson(
-    "dims/dim_employer.json"
-  ) as Array<{ employer_name?: string; employer_id?: string }>;
+describe("public/data/dashboards/employer/srs_overview.json", () => {
+  const raw = (() => {
+    try {
+      return JSON.parse(readFileSync(join(PUBLIC_DATA, "dashboards/employer/srs_overview.json"), "utf-8"));
+    } catch {
+      return null;
+    }
+  })();
 
   it("has data", () => {
-    // dim_employer is large (240K+ entries) — just verify it loaded
-    expect(data.length).toBeGreaterThan(100);
+    expect(raw).not.toBeNull();
   });
 
-  it("contains canonical Google entry", () => {
-    const names = data.map((r) => r.employer_name ?? "");
-    expect(names).toContain("Google");
+  it("has expected fields", () => {
+    if (!raw) return;
+    expect(raw).toHaveProperty("totalEmployers");
+    expect(raw).toHaveProperty("ratedEmployers");
+    expect(raw).toHaveProperty("avgScore");
+    expect(raw).toHaveProperty("tierDistribution");
   });
 
-  it("sample of first 200 names are not ALL-CAPS", () => {
-    const sample = data.slice(0, 200).map((r) => r.employer_name ?? "");
-    const allCapsNames = sample.filter(isAllCaps);
-    expect(allCapsNames).toStrictEqual([]);
-  });
-
-  it("employer_id values are unique strings", () => {
-    const ids = data.map((r) => r.employer_id ?? "");
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(data.length);
+  it("tier distribution has valid keys", () => {
+    if (!raw?.tierDistribution) return;
+    const validTiers = new Set(["Excellent", "Good", "Moderate", "Below Average", "Poor", "Unrated"]);
+    for (const key of Object.keys(raw.tierDistribution)) {
+      expect(validTiers.has(key)).toBe(true);
+    }
   });
 });
 
-// ─── Canonical name contract: no known raw variants in any wage file ─────────
+// ─── Canonical name contract: search index + wage rankings ───────────────────
 
 describe("Cross-file canonical employer name contract", () => {
-  const salaryTrend = loadJson(
-    "dashboards/wage/employer_salary_trend.json"
-  ) as Array<{ employer_name?: string }>;
+  const searchIndex = loadJson(
+    "employers/_search.json"
+  ) as Array<{ n?: string }>;
   const wageRankings = loadJson(
     "dashboards/wage/employer_wage_rankings.json"
   ) as Array<{ employer_name?: string }>;
-  // employer_features.json removed — not consumed by any P3 component
-  const monthly = loadJson(
-    "dashboards/employer/employer_monthly_metrics.json"
-  ) as Array<{ employer_name?: string }>;
 
-  /** Returns all employer names across all provided datasets. */
-  function allNames(
-    datasets: Array<Array<{ employer_name?: string }>>
-  ): string[] {
-    return datasets.flatMap((d) => d.map((r) => r.employer_name ?? ""));
+  /** Returns all employer names across search index and wage rankings. */
+  function allNames(): string[] {
+    const searchNames = searchIndex.map((r) => r.n ?? "");
+    const rankingNames = wageRankings.map((r) => r.employer_name ?? "");
+    return [...searchNames, ...rankingNames];
   }
 
   it("no dataset contains 'INFOSYS LIMITED' — should be 'Infosys'", () => {
-    const names = allNames([salaryTrend, wageRankings, monthly]);
-    expect(names).not.toContain("INFOSYS LIMITED");
+    expect(allNames()).not.toContain("INFOSYS LIMITED");
   });
 
   it("no dataset contains 'TATA CONSULTANCY SERVICES LIMITED'", () => {
-    const names = allNames([salaryTrend, wageRankings, monthly]);
-    expect(names).not.toContain("TATA CONSULTANCY SERVICES LIMITED");
+    expect(allNames()).not.toContain("TATA CONSULTANCY SERVICES LIMITED");
   });
 
   it("no dataset contains 'COGNIZANT TECHNOLOGY SOLUTIONS'", () => {
-    const names = allNames([salaryTrend, wageRankings, monthly]);
-    const allCapsVariant = names.filter(
+    const allCapsVariant = allNames().filter(
       (n) => n.toUpperCase() === "COGNIZANT TECHNOLOGY SOLUTIONS"
     );
     expect(allCapsVariant).toStrictEqual([]);
   });
 
   it("no dataset contains 'AMAZON WEB SERVICES INC'", () => {
-    const names = allNames([salaryTrend, wageRankings, monthly]);
-    expect(names).not.toContain("AMAZON WEB SERVICES INC");
+    expect(allNames()).not.toContain("AMAZON WEB SERVICES INC");
   });
 });
 
-// ─── employer_friendliness_scores.json ──────────────────────────────────────
+// ─── Employer shard sample: names normalized ─────────────────────────────────
 
-describe("public/data/dashboards/employer/employer_friendliness_scores.json", () => {
-  const data = loadJson(
-    "dashboards/employer/employer_friendliness_scores.json"
-  ) as Array<{ employer_name?: string; srs?: number }>;
+describe("Employer shard name normalization (sample)", () => {
+  const { readdirSync: rd, readFileSync: rf, existsSync } = require("fs");
+  const empDir = join(PUBLIC_DATA, "employers");
+  const shardFiles = (() => {
+    if (!existsSync(empDir)) return [];
+    return (rd(empDir) as string[]).filter(
+      (f: string) => f.endsWith(".json") && !f.startsWith("_")
+    );
+  })();
 
-  it("has data (sync has been run)", () => {
-    expect(data.length).toBeGreaterThan(0);
+  // Sample 100 shards for speed
+  const SAMPLE_SIZE = 100;
+  const step = Math.max(1, Math.floor(shardFiles.length / SAMPLE_SIZE));
+  const sample: Array<{ employer_name?: string; employer_id?: string }> = [];
+  for (let i = 0; i < shardFiles.length && sample.length < SAMPLE_SIZE; i += step) {
+    try {
+      const raw = rf(join(empDir, shardFiles[i]), "utf-8");
+      const sanitized = raw.replace(/:\s*NaN\b/g, ": null");
+      sample.push(JSON.parse(sanitized));
+    } catch {
+      // skip malformed
+    }
+  }
+
+  it("sampled shards have employer_name", () => {
+    if (sample.length === 0) return;
+    const missing = sample.filter((s) => !s.employer_name);
+    expect(missing).toHaveLength(0);
   });
 
-  it("no dirty all-caps names in first 500 rows", () => {
-    const dirtyNames = data
-      .slice(0, 500)
-      .map((r) => r.employer_name ?? "")
+  it("no dirty all-caps names in sampled shards", () => {
+    const dirtyNames = sample
+      .map((s) => s.employer_name ?? "")
       .filter(isDirtyAllCaps);
     expect(dirtyNames).toStrictEqual([]);
   });
-});
 
-// ─── employer_monthly_metrics.json ──────────────────────────────────────────
-
-describe("public/data/dashboards/employer/employer_monthly_metrics.json", () => {
-  const data = loadJson(
-    "dashboards/employer/employer_monthly_metrics.json"
-  ) as Array<{ employer_name?: string; employer_id?: string }>;
-
-  it("has data (sync has been run)", () => {
-    expect(data.length).toBeGreaterThan(0);
-  });
-
-  it("does not contain raw Google variants", () => {
-    const googleEntries = data
-      .map((r) => r.employer_name ?? "")
-      .filter((n) => n.toLowerCase().includes("google"));
-    const rawVariants = googleEntries.filter((n) => RAW_GOOGLE_VARIANTS.has(n));
-    expect(rawVariants).toStrictEqual([]);
-  });
-
-  it("no dirty all-caps employer names (multi-word, non-abbreviation)", () => {
-    // Previously had 6,965 dirty all-caps names — after dim_employer fix should be ~0
-    const dirtyNames = data
-      .map((r) => r.employer_name ?? "")
-      .filter(isDirtyAllCaps);
-    // Allow a small threshold of residual edge cases but not the thousands we had
-    expect(dirtyNames.length).toBeLessThan(100);
-  });
-
-  it("has employer_id on each row", () => {
-    const missing = data.filter((r) => !r.employer_id).length;
-    expect(missing).toBe(0);
+  it("employer_id values are non-empty strings", () => {
+    if (sample.length === 0) return;
+    const missing = sample.filter((s) => !s.employer_id || typeof s.employer_id !== "string");
+    expect(missing).toHaveLength(0);
   });
 });
 

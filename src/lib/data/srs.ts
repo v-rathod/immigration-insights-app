@@ -53,13 +53,13 @@ export function remapEfsMlToSrs(raw: RawEfsMlRecord[]): SponsorReliabilityScoreM
 // Raw data loaders
 // ---------------------------------------------------------------------------
 
-/** Load rules-based SRS scores (70,206 records) */
+/**
+ * @deprecated Use loadEmployerSearch() from employer-shard.ts for search,
+ * then loadEmployerShard() + extractSrsFromShard() for full details.
+ * Monolithic file removed — this now returns an empty array.
+ */
 export async function loadSrsScores(): Promise<SponsorReliabilityScore[]> {
-  const raw = await loadDashboardData<RawEfsRecord>(
-    "employer",
-    "employer_friendliness_scores"
-  );
-  return remapEfsToSrs(raw);
+  return [];
 }
 
 /** Load ML SRS scores for high-volume employers (1,695 records) */
@@ -71,14 +71,14 @@ export async function loadSrsScoresML(): Promise<SponsorReliabilityScoreML[]> {
   return remapEfsMlToSrs(raw);
 }
 
-/** Load employer monthly metrics time series (224,114 records) */
+/**
+ * @deprecated Use loadEmployerShard() + extractMonthlyMetrics() from employer-shard.ts.
+ * Monolithic file removed — this now returns an empty array.
+ */
 export async function loadEmployerMonthlyMetrics(): Promise<
   EmployerMonthlyMetric[]
 > {
-  return loadDashboardData<EmployerMonthlyMetric>(
-    "employer",
-    "employer_monthly_metrics"
-  );
+  return [];
 }
 
 /** Load WARN Act risk features (668 flagged employers) */
@@ -99,9 +99,12 @@ export async function loadEmployerFeatures(): Promise<EmployerFeatures[]> {
   );
 }
 
-/** Load employer dimension for name lookup (243,134 records) */
+/**
+ * @deprecated dim_employer.json removed (was 52 MB, never used by any component).
+ * This function now returns an empty array.
+ */
 export async function loadEmployerDimension(): Promise<DimEmployer[]> {
-  return loadDimension<DimEmployer>("dim_employer");
+  return [];
 }
 
 // ---------------------------------------------------------------------------

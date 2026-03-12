@@ -2,7 +2,7 @@
 
 > **Project:** immigration-insights-app  
 > **Role:** User experience layer — the public-facing web application  
-> **Last Updated:** March 5, 2026
+> **Last Updated:** March 11, 2026
 
 ---
 
@@ -25,9 +25,10 @@ Before working on this project, read these documents in order:
 │  P2 Meridian artifacts/     sync_p2_data.py      public/data/          │
 │  ┌──────────────────┐      ┌──────────────┐     ┌──────────────────┐  │
 │  │ Parquet tables    │─────▶│ Convert to   │────▶│ Optimized JSON   │  │
-│  │ Model JSON        │      │ JSON slices  │     │ slices           │  │
-│  │ RAG chunks        │      │ Apply filters│     │ (~85 MB total)   │  │
-│  └──────────────────┘      └──────────────┘     └────────┬─────────┘  │
+│  │ Model JSON        │      │ JSON slices  │     │ slices + 94K     │  │
+│  │ RAG chunks        │      │ Apply filters│     │ employer shards  │  │
+│  └──────────────────┘      │ Consolidate  │     │ (~28 MB + shards)│  │
+│                             │ into shards  │     └────────┬─────────┘  │
 │                                                           │            │
 │                                                           ▼            │
 │                                                  ┌──────────────────┐  │
@@ -116,6 +117,7 @@ src/
 ├── lib/
 │   ├── data/                     # Data loaders (one per dashboard topic)
 │   │   ├── loader.ts             # Generic JSON fetcher
+│   │   ├── employer-shard.ts     # Unified shard loader + extractors
 │   │   ├── srs.ts                # SRS data loading + efs→srs remap
 │   │   ├── pdi.ts                # PD forecast loading + computation
 │   │   ├── wage.ts               # Wage data loading + helpers
@@ -162,6 +164,62 @@ Every dashboard follows the same pattern:
 
 All data files are served statically from `public/data/`. The browser fetches them like any other static asset. CloudFront caches and gzip-compresses them at the edge.
 
+### Employer Shard Architecture
+
+Employer-specific data (SRS scores, wage trends, LCA filings, H-1B petitions, monthly metrics) is consolidated into **94,843 per-employer JSON shard files** rather than served as monolithic JSONs. This ensures every file stays under CloudFront's 20MB auto-compression limit.
+
+```
+public/data/employers/
+├── _index.json          # employer_name → SHA-1 hash mapping (6 MB)
+├── _search.json         # Compact search index (14 MB, <20 MB limit)
+│                        # Keys: n(name), id, f(filings), sc(soc_codes),
+│                        #        ms(median_salary), y(year), ss(srs_score), st(tier)
+├── {sha1_hash}.json     # Per-employer shard (avg 13.6 KB, max ~1 MB)
+│   ├── employer_name
+│   ├── employer_id
+│   ├── lca[]            # LCA filing records
+│   ├── h1b_petitions[]  # H-1B petition years
+│   ├── wage_roles[]     # Top roles by filings
+│   ├── wage_trend[]     # Annual salary trend
+│   ├── wage_role_trends[]  # Per-role percentile data
+│   ├── srs{}            # SRS scores + subscores (efs→srs remapped on read)
+│   └── srs_monthly[]    # Monthly filing metrics
+└── ... (94,843 shards total)
+```
+
+**Loading pattern** (implemented in `src/lib/data/employer-shard.ts`):
+
+```
+1. Page mounts → loadEmployerSearch()       # 14 MB search index (cached)
+2. User selects employer → loadEmployerShard(id)  # 3-50 KB single shard
+3. Extractors parse shard sections:
+   - extractSrsFromShard()     → SponsorReliabilityScore (remaps efs→srs)
+   - extractMonthlyMetrics()   → EmployerMonthlyMetric[]
+   - extractWageTrend()        → EmployerSalaryTrend[]
+   - extractWageRoles()        → LcaFiling[]
+   - extractWageRoleTrends()   → EmployerRoleTrend[]
+```
+
+Pre-computed aggregates avoid loading shards for overview stats:
+- `dashboards/employer/srs_overview.json` (214 bytes) — total/rated counts, avg score, tier distribution
+- `_freshness.json` (49 bytes) — last sync timestamp
+
+---
+
+## Data Loader Modules
+
+| Module | Small files (synced JSONs) | Shard-based (per-employer) |
+|--------|--------------------------|---------------------------|
+| `employer-shard.ts` | `_search.json`, `srs_overview.json`, `_freshness.json` | Individual shard files |
+| `srs.ts` | `employer_friendliness_scores_ml.json`, `employer_risk_features.json` | — (delegated to employer-shard) |
+| `wage.ts` | `salary_benchmarks_*.json`, `soc_salary_market.json`, `employer_wage_rankings.json` | — (delegated to employer-shard) |
+| `pdi.ts` | `pd_forecasts.json`, `fact_cutoff_trends.json` | — |
+| `eb-category.ts` | `category_movement_metrics.json` | — |
+| `geographic.ts` | `worksite_geo_metrics.json` | — |
+| `soc-demand.ts` | `soc_demand_metrics.json` | — |
+| `processing.ts` | `processing_times_trends.json`, `fact_uscis_approvals.json` | — |
+| `backlog.ts` | `backlog_estimates.json`, `queue_depth_estimates.json` | — |
+
 ---
 
 ## Design System — "Aurora"
@@ -198,7 +256,7 @@ Never render a widget that would only show "please provide input". Hide input-ga
 ## Testing Strategy
 
 - **Framework**: Vitest 4.x + React Testing Library + happy-dom
-- **Location**: `src/__tests__/` (24 files, 545+ tests)
+- **Location**: `src/__tests__/` (26 files, 601+ tests)
 - **Run**: `npm test` (single run), `npm run test:watch` (dev)
 - **Mocking**: framer-motion, next/navigation, next/link, localStorage, fetch
 - **Coverage**: Components, utilities, data loaders, security module

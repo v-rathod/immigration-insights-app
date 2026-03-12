@@ -155,22 +155,39 @@ vi.mock("../lib/data/wage", async () => {
       }
       return Promise.resolve(baseRankings);
     }),
-    loadEmployerSalaryTrend: vi.fn().mockResolvedValue([
-      { employer_name: "Google LLC", fiscal_year: 2020, visa_type: "H-1B", mean_salary: 160000, median_salary: 155000 },
-      { employer_name: "Google LLC", fiscal_year: 2025, visa_type: "H-1B", mean_salary: 190000, median_salary: 185000 },
-    ]),
-    loadEmployerSearchIndex: vi.fn().mockResolvedValue([
-      { employer_name: "Google LLC", total_filings: 50000, n_soc_codes: 5, latest_median_salary: 185000, latest_year: 2025 },
-      { employer_name: "Microsoft Corp", total_filings: 40000, n_soc_codes: 4, latest_median_salary: 175000, latest_year: 2025 },
-    ]),
-    loadEmployerRoleProfiles: vi.fn().mockResolvedValue([
-      { soc_code: "15-1252", soc_title: "Software Developers", employer_name: "Google LLC", fiscal_year: 2025, n_filings: 1200, mean_salary: 190000, median_salary: 185000, p25_salary: 165000, p75_salary: 210000, prevailing_wage_median: 140000, wage_premium_pct: 32.1, wage_vs_pw_pct: 28.5, oews_national_median: 126000, visa_type: "H-1B", job_title_top: "Software Engineer", worksite_state_top: "CA" },
-    ]),
-    loadEmployerRoleTrends: vi.fn().mockResolvedValue([]),
     loadEmployerFilings: vi.fn().mockResolvedValue(null),
     resolveEmployerHash: vi.fn().mockResolvedValue(null),
   };
 });
+
+vi.mock("../lib/data/employer-shard", () => ({
+  loadEmployerSearch: vi.fn().mockResolvedValue([
+    { employer_name: "Google LLC", employer_id: "abc123", total_filings: 50000, n_soc_codes: 5, latest_median_salary: 185000, latest_year: 2025, srs_score: 82, srs_tier: "Good" },
+    { employer_name: "Microsoft Corp", employer_id: "def456", total_filings: 40000, n_soc_codes: 4, latest_median_salary: 175000, latest_year: 2025, srs_score: 85, srs_tier: "Good" },
+  ]),
+  loadEmployerShard: vi.fn().mockResolvedValue({
+    employer_name: "Google LLC",
+    employer_id: "abc123",
+    lca: [],
+    wage_trend: [
+      { fiscal_year: 2020, visa_type: "H-1B", mean_salary: 160000, median_salary: 155000 },
+      { fiscal_year: 2025, visa_type: "H-1B", mean_salary: 190000, median_salary: 185000 },
+    ],
+    wage_roles: [
+      { soc_code: "15-1252", soc_title: "Software Developers", fiscal_year: 2025, n_filings: 1200, mean_salary: 190000, median_salary: 185000, p25_salary: 165000, p75_salary: 210000, prevailing_wage_median: 140000, wage_premium_pct: 32.1, wage_vs_pw_pct: 28.5, oews_national_median: 126000, visa_type: "H-1B", job_title_top: "Software Engineer", worksite_state_top: "CA" },
+    ],
+    wage_role_trends: [],
+  }),
+  extractWageTrend: vi.fn().mockImplementation((shard: { employer_name: string; wage_trend?: Record<string, unknown>[] }) =>
+    (shard.wage_trend ?? []).map((r: Record<string, unknown>) => ({ ...r, employer_name: shard.employer_name }))
+  ),
+  extractWageRoles: vi.fn().mockImplementation((shard: { employer_name: string; wage_roles?: Record<string, unknown>[] }) =>
+    (shard.wage_roles ?? []).map((r: Record<string, unknown>) => ({ ...r, employer_name: shard.employer_name }))
+  ),
+  extractWageRoleTrends: vi.fn().mockImplementation((shard: { employer_name: string; wage_role_trends?: Record<string, unknown>[] }) =>
+    (shard.wage_role_trends ?? []).map((r: Record<string, unknown>) => ({ ...r, employer_name: shard.employer_name }))
+  ),
+}));
 
 // ── Wage data helper tests ────────────────────────────────────────────────
 

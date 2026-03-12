@@ -174,23 +174,19 @@ export async function loadEmployerWageRankings(): Promise<EmployerWageRanking[]>
 }
 
 /**
- * Employer-centric role breakdown: all H-1B employers with ≥5 filings × their
- * top 25 roles by filing count. Use this for EmployerProfile's "Top Roles"
- * section instead of loadEmployerWageRankings() which is SOC-centric.
+ * @deprecated Use loadEmployerShard() + extractWageRoles() from employer-shard.ts.
+ * Monolithic file removed — this now returns an empty array.
  */
 export async function loadEmployerRoleProfiles(): Promise<EmployerWageRanking[]> {
-  const raw = await loadDashboardData('wage', 'employer_role_profiles') as EmployerWageRanking[];
-  return Array.isArray(raw) ? raw : [];
+  return [];
 }
 
 /**
- * Load multi-year percentile trend data for employer × role drill-down.
- * Source: employer_role_trends.json — top 5,000 employers × roles × last 5 fiscal years.
- * Fields: p10, p25, median, p75, p90 salary at employer×role×year grain.
+ * @deprecated Use loadEmployerShard() + extractWageRoleTrends() from employer-shard.ts.
+ * Monolithic file removed — this now returns an empty array.
  */
 export async function loadEmployerRoleTrends(): Promise<EmployerRoleTrend[]> {
-  const raw = await loadDashboardData('wage', 'employer_role_trends') as EmployerRoleTrend[];
-  return Array.isArray(raw) ? raw : [];
+  return [];
 }
 
 /**
@@ -256,15 +252,20 @@ export function getEmployerRoleTrendSeries(
     .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
+/**
+ * @deprecated Use loadEmployerShard() + extractWageTrend() from employer-shard.ts.
+ * Monolithic file removed — this now returns an empty array.
+ */
 export async function loadEmployerSalaryTrend(): Promise<EmployerSalaryTrend[]> {
-  const raw = await loadDashboardData('wage', 'employer_salary_trend') as EmployerSalaryTrend[];
-  return Array.isArray(raw) ? raw : [];
+  return [];
 }
 
-/** Load ALL employers with ≥5 total H-1B filings for full-text search. */
+/**
+ * @deprecated Use loadEmployerSearch() from employer-shard.ts.
+ * Monolithic file removed — this now returns an empty array.
+ */
 export async function loadEmployerSearchIndex(): Promise<EmployerSearchIndex[]> {
-  const raw = await loadDashboardData('wage', 'employer_search_index') as EmployerSearchIndex[];
-  return Array.isArray(raw) ? raw : [];
+  return [];
 }
 
 // ---------------------------------------------------------------------------
