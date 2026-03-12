@@ -175,7 +175,7 @@ function CategoryTooltip({ active, payload }: { active?: boolean; payload?: Arra
   if (!row) return null;
   return (
     <div className="rounded-xl border border-white/[0.08] bg-[rgba(9,9,11,0.95)] px-4 py-3 shadow-2xl">
-      <p className="text-sm font-bold text-white mb-2">{row.label}</p>
+      <p className="text-sm font-bold text-white mb-2">{row.visa_category}</p>
       <div className="space-y-1 text-xs">
         <div className="flex justify-between gap-6">
           <span className="text-emerald-400">Approved</span>

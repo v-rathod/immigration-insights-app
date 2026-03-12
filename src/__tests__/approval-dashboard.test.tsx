@@ -580,7 +580,7 @@ describe("Approval/Denial JSON Data Integrity", () => {
     expect(fy2025).toBeDefined();
     for (const d of data.data_points) {
       if (d.fiscal_year !== 2025 && d.fiscal_year !== 2026) {
-        expect((fy2025 as Record<string, unknown>).approval_rate).toBeGreaterThanOrEqual((d as Record<string, unknown>).approval_rate);
+        expect((fy2025 as Record<string, unknown>).approval_rate as number).toBeGreaterThanOrEqual((d as Record<string, unknown>).approval_rate as number);
       }
     }
   });
