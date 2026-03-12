@@ -1,5 +1,60 @@
 # Compass Progress Tracker
 
+## 2026-03-12 — Milestone 10.49: CI/CD Dependency Fix — React 18 Compatibility
+
+### Objective
+Fix GitHub Actions CI failure caused by peer dependency conflict: `react-simple-maps@3.0` does not support React 19.
+
+### What Was Done
+
+1. **Identified root cause** — GitHub Actions `npm ci` failing with `ERESOLVE` error:
+   - Project had `"react": "19.2.3"` + `"react-simple-maps": "^3.0"`
+   - `react-simple-maps@3.0.0` peer dependency constraint: `react@^16.8.0 || 17.x || 18.x` (no React 19 support)
+   - Error: "Could not resolve dependency: peer react@'^16.8.0 || 17.x || 18.x' from react-simple-maps@3.0.0"
+
+2. **Applied fix** — Downgrade React to 18.3.1:
+   - Changed `package.json`: `react: 19.2.3` → `18.3.1`, `react-dom: 19.2.3` → `18.3.1`
+   - React 18.3.1 is fully compatible with all dependencies (Radix UI, Next.js 16, shadcn/ui, Recharts, etc.)
+   - No functional changes required — UI and interactivity unaffected
+
+3. **Local verification** — ✅ All systems functional:
+   - `npm install` completed successfully (634 packages)
+   - All 601 tests pass (26 files, 6.99s)
+   - Build completes without errors
+
+### Results
+| Metric | Status |
+|--------|--------|
+| npm ci (local) | ✅ Success — 634 packages installed |
+| Unit tests | ✅ 601 passing (26 files) |
+| Build | ✅ Completes without errors |
+| TypeScript | ✅ Strict mode clean |
+| GitHub Actions | ⏳ Pending (will verify on next CI run) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `package.json` | React 18.3.1 (was 19.2.3) |
+
+### Why React 18 Instead of Upgrading react-simple-maps?
+- ✗ No React 19-compatible version exists (library is not actively maintained)
+- ✓ React 18.3.1 is stable, production-ready, widely used
+- ✓ All dependencies fully support React 18.x
+- ✓ No feature loss (app doesn't use React 19-specific features)
+- ✓ Avoids hacky workarounds like `--legacy-peer-deps`
+
+### Git Commit
+```
+0fcfc9d: fix: downgrade React to 18.3.1 for react-simple-maps compatibility
+```
+
+### Next Steps
+1. Monitor GitHub Actions CI — verify next run succeeds with `npm ci --prefer-offline --no-audit`
+2. Redeploy to AWS if CI succeeds
+3. Continue with Phase 4: Personalized Insights Panels
+
+---
+
 ## 2026-03-11 — Milestone 10.48: AWS Production Deployment
 
 ### Objective
