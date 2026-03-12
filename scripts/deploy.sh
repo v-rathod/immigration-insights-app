@@ -53,11 +53,22 @@ OUT_DIR="$PROJECT_DIR/out"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 log()   { echo -e "${GREEN}[deploy]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[deploy]${NC} $*"; }
 error() { echo -e "${RED}[deploy]${NC} $*" >&2; }
+
+# Timing helpers
+DEPLOY_START=0
+BUILD_START=0; BUILD_DURATION=0
+MAIN_SYNC_START=0; MAIN_SYNC_DURATION=0
+SHARD_SYNC_START=0; SHARD_SYNC_DURATION=0
+SMOKE_START=0; SMOKE_DURATION=0
+
+_elapsed() { echo $(( SECONDS - $1 )); }
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────
 
@@ -123,38 +134,46 @@ preflight() {
 # ── Build ──────────────────────────────────────────────────────────────────
 
 do_build() {
+  BUILD_START=$SECONDS
   log "Building static site..."
   cd "$PROJECT_DIR"
   rm -rf out .next
   npx next build
-  log "Build complete. $(find "$OUT_DIR" -name '*.html' | wc -l | tr -d ' ') HTML files generated."
+  BUILD_DURATION=$(_elapsed $BUILD_START)
+  local pages
+  pages=$(find "$OUT_DIR" -name '*.html' | wc -l | tr -d ' ')
+  log "Build complete: ${pages} HTML pages in ${BUILD_DURATION}s ✓"
 }
 
 # ── Deploy main site ───────────────────────────────────────────────────────
 
 deploy_main() {
+  MAIN_SYNC_START=$SECONDS
   log "Deploying main site to S3 (excluding employer shards)..."
-  aws s3 sync "$OUT_DIR/" "s3://$BUCKET" \
+  local upload_count
+  upload_count=$(aws s3 sync "$OUT_DIR/" "s3://$BUCKET" \
     --delete \
     --exclude "data/employers/*" \
     --region "$REGION" \
-    2>&1 | grep -c "upload:" | xargs -I{} echo "  {} files uploaded"
-  log "Main site deployed ✓"
+    2>&1 | grep -c "upload:" || true)
+  MAIN_SYNC_DURATION=$(_elapsed $MAIN_SYNC_START)
+  log "Main site deployed: ${upload_count} files uploaded in ${MAIN_SYNC_DURATION}s ✓"
 }
 
 # ── Deploy employer shards ─────────────────────────────────────────────────
 
 deploy_shards() {
+  SHARD_SYNC_START=$SECONDS
   log "Deploying employer shards to S3..."
-  local shard_count
+  local shard_count upload_count
   shard_count=$(find "$OUT_DIR/data/employers" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
   log "  Local shards: $shard_count files"
-
-  aws s3 sync "$OUT_DIR/data/employers/" "s3://$BUCKET/data/employers/" \
+  upload_count=$(aws s3 sync "$OUT_DIR/data/employers/" "s3://$BUCKET/data/employers/" \
     --region "$REGION" \
     --size-only \
-    2>&1 | grep -c "upload:" | xargs -I{} echo "  {} shards uploaded/updated"
-  log "Employer shards deployed ✓"
+    2>&1 | grep -c "upload:" || true)
+  SHARD_SYNC_DURATION=$(_elapsed $SHARD_SYNC_START)
+  log "Employer shards deployed: ${upload_count} updated in ${SHARD_SYNC_DURATION}s ✓"
 }
 
 # ── CloudFront invalidation ───────────────────────────────────────────────
@@ -274,6 +293,7 @@ run_smoke_tests() {
     return 0
   fi
 
+  SMOKE_START=$SECONDS
   log "Waiting 30s for CloudFront invalidation to propagate..."
   sleep 30
 
@@ -282,6 +302,64 @@ run_smoke_tests() {
     error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
     exit 1
   }
+  SMOKE_DURATION=$(_elapsed $SMOKE_START)
+}
+
+# ── Notify GitHub Actions via repository_dispatch ─────────────────────────
+
+notify_github() {
+  if [[ -z "${GH_DEPLOY_TOKEN:-}" ]]; then
+    warn "GH_DEPLOY_TOKEN not set — skipping GitHub Actions notification"
+    return 0
+  fi
+
+  local total_duration=$(( SECONDS - DEPLOY_START ))
+  local commit
+  commit=$(git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+  local repo
+  repo=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "v-rathod/immigration-insights-app")
+
+  log "Notifying GitHub Actions (repository_dispatch → smoke-test workflow)..."
+  local http_status
+  http_status=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST \
+    -H "Authorization: token ${GH_DEPLOY_TOKEN}" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/${repo}/dispatches" \
+    -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"cloudfront_url\":\"https://d10immmzyp7xgr.cloudfront.net\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
+    2>/dev/null || echo "000")
+
+  if [[ "$http_status" == "204" ]]; then
+    log "GitHub Actions smoke test triggered ✓ (check Actions tab)"
+  else
+    warn "GitHub dispatch returned HTTP $http_status — workflow may not have triggered"
+  fi
+}
+
+# ── Print timing summary ───────────────────────────────────────────────────
+
+print_timing_summary() {
+  local total_duration=$(( SECONDS - DEPLOY_START ))
+  echo ""
+  echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${BOLD}${CYAN}  Compass Deploy Timing Summary${NC}"
+  echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  if (( BUILD_DURATION > 0 )); then
+    printf "  %-28s %s\n" "Build (next build):" "${BUILD_DURATION}s"
+  fi
+  if (( MAIN_SYNC_DURATION > 0 )); then
+    printf "  %-28s %s\n" "S3 main sync:" "${MAIN_SYNC_DURATION}s"
+  fi
+  if (( SHARD_SYNC_DURATION > 0 )); then
+    printf "  %-28s %s\n" "S3 shard sync:" "${SHARD_SYNC_DURATION}s"
+  fi
+  if (( SMOKE_DURATION > 0 )); then
+    printf "  %-28s %s\n" "Smoke tests (+30s wait):" "${SMOKE_DURATION}s"
+  fi
+  echo -e "${BOLD}${CYAN}  ─────────────────────────────────────────────────────────${NC}"
+  printf "  ${BOLD}%-28s %s${NC}\n" "Total:" "${total_duration}s ($(( total_duration / 60 ))m $(( total_duration % 60 ))s)"
+  echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
 }
 
 # ── Main ───────────────────────────────────────────────────────────────────
@@ -305,6 +383,7 @@ main() {
   done
 
   cd "$PROJECT_DIR"
+  DEPLOY_START=$SECONDS
   echo ""
   log "═══════════════════════════════════════════════════════"
   log "  Compass Deploy — $(date '+%Y-%m-%d %H:%M:%S')"
@@ -329,7 +408,9 @@ main() {
     run_smoke_tests
   fi
 
-  echo ""
+  print_timing_summary
+  notify_github
+
   log "Deploy complete! 🚀"
 }
 

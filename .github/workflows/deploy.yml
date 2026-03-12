@@ -1,0 +1,224 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# deploy.yml — Deploy Compass (P3) to AWS S3 + CloudFront
+#
+# This workflow provides GitHub Actions visibility into deployments.
+# It uses GitHub OIDC → AWS IAM role (no static credentials stored anywhere).
+#
+# SETUP REQUIRED (one-time):
+#   1. AWS OIDC provider + IAM role must be created (see terraform/ or README)
+#   2. Add GitHub Secret: AWS_ROLE_ARN  (the IAM role ARN to assume)
+#   3. For triggering smoke tests from local deploys: 
+#      Add GitHub Secret GH_DEPLOY_TOKEN (PAT with repo scope)
+#
+# CONSTRAINT — Build requires P2 data (~1.3 GB not in git):
+#   The `next build` step requires public/data/ (P2 Meridian artifacts).
+#   These files are gitignored and too large for GitHub Actions hosted runners.
+#
+#   Options:
+#   a) [RECOMMENDED] Register dev machine as a self-hosted runner:
+#      → Full build + deploy in GitHub Actions
+#      → See: https://docs.github.com/en/actions/hosting-your-own-runners
+#   b) [MANUAL] Build locally → run this workflow with skip_build: true
+#      → Workflow syncs to S3 and invalidates CloudFront
+#   c) [FUTURE] Upload out/ as artifact or store P2 data in S3
+#
+# Triggers:
+#   - Manual (workflow_dispatch): full control, optional skip_build flag
+#   - On push to main: runs on self-hosted runner (if registered)
+#
+# Where to see results:
+#   GitHub repo → Actions tab → "Deploy to AWS" workflow
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Deploy to AWS
+
+on:
+  # Manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: 'Skip npm run build (use when out/ already exists on runner)'
+        type: boolean
+        required: false
+        default: false
+      environment:
+        description: 'Deployment environment'
+        type: choice
+        required: false
+        default: production
+        options:
+          - production
+
+# Least-privilege permissions for OIDC token
+permissions:
+  id-token: write   # Required for OIDC → AWS
+  contents: read    # Required for checkout
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: compass-immigration-insights-883107059193
+  CF_DIST_ID: E1LPLTVZ0035Q5
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    name: Build + Deploy + Verify
+    runs-on: ubuntu-latest   # Change to [self-hosted] when runner is registered
+
+    steps:
+      # ── Setup ──────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: |
+          echo "## ☁️ AWS Identity" >> $GITHUB_STEP_SUMMARY
+          CALLER=$(aws sts get-caller-identity --output json)
+          ACCOUNT=$(echo "$CALLER" | jq -r '.Account')
+          ARN=$(echo "$CALLER"    | jq -r '.Arn')
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Account | \`$ACCOUNT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Role ARN | \`$ARN\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          rm -f package-lock.json
+          npm install --no-audit
+        timeout-minutes: 15
+
+      - name: Build static site
+        if: ${{ !inputs.skip_build }}
+        id: build
+        run: |
+          BUILD_START=$SECONDS
+          echo "## 🔨 Build" >> $GITHUB_STEP_SUMMARY
+          echo "Build started at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # NOTE: This step requires public/data/ (P2 Meridian artifacts).
+          # It will only succeed on a self-hosted runner that has the data.
+          # On a GitHub-hosted runner this will fail — please register the dev
+          # machine as a self-hosted runner or use skip_build: true.
+          npx next build
+
+          BUILD_DURATION=$((SECONDS - BUILD_START))
+          HTML_COUNT=$(find out -name "*.html" | wc -l | tr -d ' ')
+          echo "build_duration_s=${BUILD_DURATION}" >> "$GITHUB_OUTPUT"
+          echo "| ⏱ Build time | ${BUILD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📄 Pages generated | ${HTML_COUNT} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify out/ directory
+        run: |
+          if [[ ! -f out/index.html ]]; then
+            echo "❌ out/index.html not found — build missing or skip_build used without prior build"
+            exit 1
+          fi
+          HTML_COUNT=$(find out -name "*.html" | wc -l | tr -d ' ')
+          echo "✅ out/ has ${HTML_COUNT} HTML files"
+
+      # ── Deploy ─────────────────────────────────────────────────────────────
+      - name: Deploy main site to S3
+        id: s3_main
+        run: |
+          DEPLOY_START=$SECONDS
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🪣 S3 Deployment" >> $GITHUB_STEP_SUMMARY
+
+          UPLOADED=$(aws s3 sync out/ "s3://$S3_BUCKET" \
+            --delete \
+            --exclude "data/employers/*" \
+            --region "$AWS_REGION" \
+            2>&1 | grep -c "upload:" || true)
+
+          DEPLOY_DURATION=$((SECONDS - DEPLOY_START))
+          echo "main_deploy_s=${DEPLOY_DURATION}" >> "$GITHUB_OUTPUT"
+          echo "| Main site files uploaded | ${UPLOADED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏱ Main sync time | ${DEPLOY_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy employer shards to S3
+        id: s3_shards
+        run: |
+          SHARD_START=$SECONDS
+          SHARD_COUNT=$(find out/data/employers -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
+
+          UPLOADED=$(aws s3 sync out/data/employers/ "s3://$S3_BUCKET/data/employers/" \
+            --region "$AWS_REGION" \
+            --size-only \
+            2>&1 | grep -c "upload:" || true)
+
+          SHARD_DURATION=$((SECONDS - SHARD_START))
+          echo "shard_deploy_s=${SHARD_DURATION}" >> "$GITHUB_OUTPUT"
+          echo "| Employer shards total | ${SHARD_COUNT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| New shards uploaded | ${UPLOADED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏱ Shard sync time | ${SHARD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+
+      # ── CloudFront invalidation ────────────────────────────────────────────
+      - name: Invalidate CloudFront cache
+        id: cf_invalidation
+        run: |
+          CF_START=$SECONDS
+          INV_ID=$(aws cloudfront create-invalidation \
+            --distribution-id "$CF_DIST_ID" \
+            --paths "/*" \
+            --region "$AWS_REGION" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔄 CloudFront Invalidation" >> $GITHUB_STEP_SUMMARY
+          echo "| Invalidation ID | \`$INV_ID\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⏱ Invalidation created in | $((SECONDS - CF_START))s |" >> $GITHUB_STEP_SUMMARY
+          echo "inv_id=${INV_ID}" >> "$GITHUB_OUTPUT"
+
+      # ── Total deploy time ──────────────────────────────────────────────────
+      - name: Report deploy timing
+        run: |
+          BUILD_S="${{ steps.build.outputs.build_duration_s }}"
+          MAIN_S="${{ steps.s3_main.outputs.main_deploy_s }}"
+          SHARD_S="${{ steps.s3_shards.outputs.shard_deploy_s }}"
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ⏱ Total Timing" >> $GITHUB_STEP_SUMMARY
+          echo "| Phase | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|----------|" >> $GITHUB_STEP_SUMMARY
+          [[ -n "$BUILD_S"  ]] && echo "| Build | ${BUILD_S}s |"  >> $GITHUB_STEP_SUMMARY
+          [[ -n "$MAIN_S"   ]] && echo "| S3 main sync | ${MAIN_S}s |"   >> $GITHUB_STEP_SUMMARY
+          [[ -n "$SHARD_S"  ]] && echo "| S3 shard sync | ${SHARD_S}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| CloudFront URL | https://d10immmzyp7xgr.cloudfront.net |" >> $GITHUB_STEP_SUMMARY
+
+      # ── Post-deploy verification ───────────────────────────────────────────
+      - name: Wait for CloudFront propagation
+        run: sleep 45
+
+      - name: Run smoke tests
+        env:
+          SMOKE_TEST_URL: https://d10immmzyp7xgr.cloudfront.net
+        run: |
+          SMOKE_START=$SECONDS
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Smoke Tests (E2E)" >> $GITHUB_STEP_SUMMARY
+
+          node scripts/smoke-test.mjs --url "$SMOKE_TEST_URL" 2>&1 | tee /tmp/smoke.txt
+          EXIT=$?
+
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/smoke.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "⏱ Tests completed in $((SECONDS - SMOKE_START))s" >> $GITHUB_STEP_SUMMARY
+          exit $EXIT

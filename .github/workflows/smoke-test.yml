@@ -1,0 +1,130 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# smoke-test.yml — E2E / Live-Site Smoke Tests for Compass (P3)
+#
+# Runs HTTP checks against the live CloudFront deployment.
+# Verifies all 15 pages return HTTP 200 and all critical data files are
+# accessible after a deployment (or on-demand).
+#
+# Triggers:
+#   1. repository_dispatch type=deploy-completed  — auto-fired by deploy.sh after
+#      every successful local deploy (gives "deployment details" in GitHub Actions)
+#   2. workflow_dispatch                           — run manually from the GitHub
+#      Actions UI anytime you want to verify the live site
+#   3. After CI passes on main (workflow_run)      — daily health-check gate
+#
+# Where to see results:
+#   GitHub repo → Actions tab → "Smoke Tests / E2E" workflow
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Smoke Tests / E2E
+
+on:
+  # Auto-triggered by deploy.sh after a successful local deploy
+  repository_dispatch:
+    types: [deploy-completed]
+
+  # Run manually from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'CloudFront URL to test (leave blank for production)'
+        required: false
+        default: 'https://d10immmzyp7xgr.cloudfront.net'
+
+  # Also run after every successful CI pass on main (health check)
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  smoke-tests:
+    name: Live Site E2E Checks
+    runs-on: ubuntu-latest
+    # For workflow_run: only run if CI passed
+    if: >
+      github.event_name == 'repository_dispatch' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── Resolve target URL ─────────────────────────────────────────────────
+      - name: Resolve target URL
+        id: url
+        run: |
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            URL="${{ github.event.client_payload.cloudfront_url }}"
+            COMMIT="${{ github.event.client_payload.commit }}"
+            BUILD_DURATION="${{ github.event.client_payload.build_duration_s }}"
+            DEPLOY_DURATION="${{ github.event.client_payload.deploy_duration_s }}"
+            echo "url=${URL:-https://d10immmzyp7xgr.cloudfront.net}" >> "$GITHUB_OUTPUT"
+            echo "commit=${COMMIT:-unknown}" >> "$GITHUB_OUTPUT"
+            echo "build_s=${BUILD_DURATION:-}" >> "$GITHUB_OUTPUT"
+            echo "deploy_s=${DEPLOY_DURATION:-}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "url=${{ github.event.inputs.target_url }}" >> "$GITHUB_OUTPUT"
+            echo "commit=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://d10immmzyp7xgr.cloudfront.net" >> "$GITHUB_OUTPUT"
+            echo "commit=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Print deployment summary ───────────────────────────────────────────
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Info" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Target URL | ${{ steps.url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.url.outputs.commit }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ -n "${{ steps.url.outputs.build_s }}" ]]; then
+            echo "| ⏱ Build time | ${{ steps.url.outputs.build_s }}s |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [[ -n "${{ steps.url.outputs.deploy_s }}" ]]; then
+            echo "| ⏱ Deploy time | ${{ steps.url.outputs.deploy_s }}s |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      # ── Wait for CloudFront propagation (only after fresh deploys) ──────────
+      - name: Wait for CloudFront propagation
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo "Waiting 45s for CloudFront cache invalidation to propagate..."
+          sleep 45
+          echo "✓ Wait complete"
+
+      # ── Run smoke tests ────────────────────────────────────────────────────
+      - name: Run smoke tests
+        id: smoke
+        env:
+          SMOKE_TEST_URL: ${{ steps.url.outputs.url }}
+        run: |
+          START=$SECONDS
+          node scripts/smoke-test.mjs --url "$SMOKE_TEST_URL" 2>&1 | tee /tmp/smoke-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          DURATION=$((SECONDS - START))
+          echo "duration_s=${DURATION}" >> "$GITHUB_OUTPUT"
+          exit $EXIT_CODE
+
+      # ── Write results to job summary ───────────────────────────────────────
+      - name: Write smoke test summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/smoke-output.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⏱ Smoke tests completed in ${{ steps.smoke.outputs.duration_s }}s" >> $GITHUB_STEP_SUMMARY
