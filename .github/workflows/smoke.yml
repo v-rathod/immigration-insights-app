@@ -1,0 +1,69 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Smoke Tests — Compass (P3)
+#
+# Verifies the live site is healthy after a deployment by making real HTTP
+# requests to every page and every critical data file.
+#
+# Trigger options:
+#   1. Manual (workflow_dispatch) — run after any deployment from your terminal.
+#      In GitHub UI: Actions → Smoke Tests → Run workflow.
+#      With a custom URL for staging: pass the `url` input.
+#
+#   2. Scheduled (cron) — runs every 6 hours automatically.
+#      Acts as synthetic monitoring: catches if the site goes down between deploys.
+#      Alerts via the normal GitHub Actions notification system (email on failure).
+#
+# Required secrets: none. Smoke tests only make outbound HTTP GET/HEAD requests.
+#
+# Checks performed (see scripts/smoke-test.mjs for full list):
+#   - All 15 page routes return HTTP 200
+#   - Employer search index (_search.json) present and ≥ 10 MB
+#   - All 20+ dashboard data files return HTTP 200 at expected sizes
+#   - _freshness.json validates (has synced_at field)
+#   - SRS overview validates (total_employers > 0)
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Smoke Tests
+
+on:
+  # Manual trigger — run after any deployment
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to test against (leave blank for prod)'
+        required: false
+        default: 'https://d10immmzyp7xgr.cloudfront.net'
+
+  # Scheduled: every 6 hours — synthetic monitoring
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  smoke:
+    name: Live Site Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        env:
+          # Manual run: use provided URL. Scheduled run: use prod.
+          SMOKE_TEST_URL: ${{ github.event.inputs.url || 'https://d10immmzyp7xgr.cloudfront.net' }}
+        run: node scripts/smoke-test.mjs
+
+      - name: Report failure summary
+        if: failure()
+        run: |
+          echo "::error::Smoke tests failed. Check the step output above for which pages or data files returned errors."
+          echo "::notice::If this was triggered by the schedule, the live site may be degraded. Check CloudFront and S3."

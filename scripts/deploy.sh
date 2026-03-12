@@ -208,12 +208,29 @@ verify_deployment() {
     warn "  ⚠ Optum shard not yet in S3 (may still be syncing)"
   fi
 
-  # 4. Verify data manifest
-  if aws s3api head-object --bucket "$BUCKET" --key "data/_manifest.json" --region "$REGION" &>/dev/null; then
-    log "  ✓ data/_manifest.json exists in S3"
+  # 4. Verify data freshness marker
+  if aws s3api head-object --bucket "$BUCKET" --key "data/_freshness.json" --region "$REGION" &>/dev/null; then
+    log "  ✓ data/_freshness.json exists in S3"
     (( PASS++ ))
   else
-    error "  ✗ data/_manifest.json NOT found in S3"
+    error "  ✗ data/_freshness.json NOT found in S3"
+    (( FAIL++ ))
+  fi
+
+  # 5. Verify employer search index (critical — absence causes "failed to load page")
+  if aws s3api head-object --bucket "$BUCKET" --key "data/employers/_search.json" --region "$REGION" &>/dev/null; then
+    local SEARCH_SIZE
+    SEARCH_SIZE=$(aws s3api head-object --bucket "$BUCKET" --key "data/employers/_search.json" --region "$REGION" \
+      --query 'ContentLength' --output text 2>/dev/null || echo "0")
+    if [[ "${SEARCH_SIZE:-0}" -lt 1000000 ]]; then
+      error "  ✗ data/employers/_search.json is too small (${SEARCH_SIZE} bytes) — deploy may be corrupt"
+      (( FAIL++ ))
+    else
+      log "  ✓ data/employers/_search.json exists in S3 (${SEARCH_SIZE} bytes)"
+      (( PASS++ ))
+    fi
+  else
+    error "  ✗ data/employers/_search.json NOT found in S3 — employer/wage/insights pages will fail!"
     (( FAIL++ ))
   fi
 
@@ -240,8 +257,31 @@ verify_deployment() {
     error "Verification: $PASS passed, $FAIL failed"
     exit 1
   else
-    log "Verification: $PASS/$PASS checks passed ✓"
+    log "Verification: $PASS/$PASS S3 checks passed ✓"
   fi
+}
+
+# ── Post-deploy smoke tests ──────────────────────────────────────────────────
+
+run_smoke_tests() {
+  if ! command -v node &>/dev/null; then
+    warn "Node.js not found — skipping HTTP smoke tests"
+    return 0
+  fi
+
+  if [[ ! -f "$PROJECT_DIR/scripts/smoke-test.mjs" ]]; then
+    warn "smoke-test.mjs not found — skipping HTTP smoke tests"
+    return 0
+  fi
+
+  log "Waiting 30s for CloudFront invalidation to propagate..."
+  sleep 30
+
+  log "Running HTTP smoke tests against CloudFront..."
+  node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
+    error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
+    exit 1
+  }
 }
 
 # ── Main ───────────────────────────────────────────────────────────────────
@@ -276,6 +316,7 @@ main() {
     deploy_shards
     invalidate_cf
     verify_deployment
+    run_smoke_tests
   else
     if ! $SKIP_BUILD; then
       do_build
@@ -285,6 +326,7 @@ main() {
     deploy_shards
     invalidate_cf
     verify_deployment
+    run_smoke_tests
   fi
 
   echo ""
