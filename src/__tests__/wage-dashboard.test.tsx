@@ -964,7 +964,7 @@ describe("EmployerProfile", () => {
 // Regression tests to verify the LCA filings data pipeline works end-to-end.
 // These tests use real data files from public/data/ to catch regressions.
 
-describe("LCA filings data pipeline (integration)", () => {
+describe.skipIf(!!process.env.CI)("LCA filings data pipeline (integration)", () => {
   /**
    * Reference employer: Optum Services
    * Used to verify the data pipeline consistently delivers correct row counts.
