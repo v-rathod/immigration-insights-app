@@ -1,0 +1,9 @@
+{
+  // Auto-approve Copilot Chat file operations to avoid repeated allow prompts
+  "chat.fileOperations.autoApprove": true,
+  // If your Copilot Chat extension supports an auto-approve for terminal commands,
+  // this key will reduce terminal "Allow" prompts. If not supported, it will be ignored.
+  "chat.terminal.autoApprove": true,
+  // Recommended: keep workspace trusted for seamless agent operations
+  // This file is safe to add to the repo; it only affects local VS Code behavior.
+}
