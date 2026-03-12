@@ -1,5 +1,80 @@
 # Compass Progress Tracker
 
+## 2026-03-12 — Milestone 10.60: AWS Deploy + GitHub Actions CI/CD Visibility
+
+### Objective
+Deploy the CI-clean build to AWS, instrument the deploy pipeline with per-phase timing, add GitHub Actions smoke-test workflow, and wire up repository_dispatch so E2E results are visible in the Actions tab.
+
+### What Was Done
+
+1. **AWS IAM — GitHub Actions OIDC** (completed prior session, verified this session):
+   - Role: `compass-github-actions-deploy` (`arn:aws:iam::883107059193:role/compass-github-actions-deploy`)
+   - Policy `compass-github-actions-deploy-policy` (S3 + CF + STS permissions) attached to role
+   - GitHub secrets set: `AWS_ROLE_ARN`, `GH_DEPLOY_TOKEN`
+
+2. **deploy.sh — per-phase timing + GitHub notify**:
+   - Added `_elapsed()` helper (`SECONDS - $start_ts`)
+   - Each phase (main sync, shard sync, smoke tests) measures and logs its own duration
+   - `print_timing_summary()` — cyan-bordered timing table with total `Xm Ys`
+   - `notify_github()` — POSTs `repository_dispatch` event `deploy-completed` with all timing fields; falls back to `gh auth token` if `GH_DEPLOY_TOKEN` not in env
+
+3. **New GitHub Actions workflows** (`.github/workflows/`):
+   - `deploy.yml` — Manual deploy workflow with OIDC, per-step timing, S3 + CF + smoke test steps
+   - `smoke-test.yml` — E2E smoke test; triggers on `repository_dispatch[deploy-completed]`, `workflow_dispatch`, and `workflow_run` after CI on main
+
+4. **Live deploy executed** (`bash scripts/deploy.sh --skip-build`):
+   - Phase 1 — Preflight: 18 HTML pages confirmed, index.html present ✓
+   - Phase 2 — S3 main sync: 234 files uploaded in 547s (9.1 min); bottleneck was paginating 95K+ S3 objects to implement `--delete`
+   - Phase 3 — S3 shard sync: 11,183 shards updated in 2,137s (35.6 min); 11K shards had changed sizes from partial earlier re-sync
+   - Phase 4 — CF invalidation: `I8ADYS8BIPTBUO5755LYFV311K` created
+   - Phase 5 — Verification: 8/8 S3 key checks passed ✓
+   - Phase 6 — Smoke tests: **ALL 37 CHECKS PASSED** ✓ (15 pages + 22 data files)
+
+5. **GitHub Actions triggered** — Both smoke test runs immediately after CI and after deploy returned **success** ✅
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Deploy total time | 3,393s (56m 33s) |
+| Main site S3 sync | 547s (234 files) |
+| Shard sync | 2,137s (11,183 updated of 95,153) |
+| Smoke tests | 35s (37/37 passed) |
+| CloudFront URL | `https://d10immmzyp7xgr.cloudfront.net` |
+| Live status | ✅ HTTP 200 |
+| GitHub Actions (Smoke Tests / E2E) | ✅ success (run 23023608370) |
+| GitHub Actions (CI) | ✅ success |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/deploy.sh` | Timing vars, `_elapsed()`, `print_timing_summary()`, `notify_github()` with gh-auth fallback |
+| `.github/workflows/deploy.yml` | New file — manual OIDC deploy workflow |
+| `.github/workflows/smoke-test.yml` | New file — E2E on dispatch + workflow_run |
+
+### Git Commits
+```
+2513eb4: feat: add GitHub Actions deploy+smoke-test workflows with per-phase timing
+```
+
+### Where to See Everything
+| What | URL |
+|------|-----|
+| CI (601 unit tests) | https://github.com/v-rathod/immigration-insights-app/actions/workflows/ci.yml |
+| E2E Smoke Tests | https://github.com/v-rathod/immigration-insights-app/actions/workflows/smoke-test.yml |
+| Manual Deploy | https://github.com/v-rathod/immigration-insights-app/actions/workflows/deploy.yml |
+| Live Site | https://d10immmzyp7xgr.cloudfront.net |
+
+### Deploy Timing Analysis
+- **S3 listing bottleneck**: `aws s3 sync --delete` must paginate ALL 95K+ objects to find deletions → 96 API pages × ~5.7s/page = 547s. Shard sync with `--size-only` similarly paginates `data/employers/` prefix.
+- **Future optimization**: Add `--no-progress` + `--quiet` and consider using `aws s3 cp` for main files (skip listing for no-delete uploads); use `--metadata-directive REPLACE` to force-update only changed files.
+
+### Next Steps
+1. Phase 4: Complete personalized insights panels (Green Card Forecast, Employer deep-dive, Job Market)
+2. Custom domain setup (Route 53 + ACM SSL)
+3. Data freshness banner
+
+---
+
 ## 2026-03-12 — Milestone 10.50: CI Pass — Comprehensive Lint & TypeScript Fix
 
 ### Objective

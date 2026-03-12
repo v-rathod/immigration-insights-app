@@ -308,8 +308,13 @@ run_smoke_tests() {
 # ── Notify GitHub Actions via repository_dispatch ─────────────────────────
 
 notify_github() {
-  if [[ -z "${GH_DEPLOY_TOKEN:-}" ]]; then
-    warn "GH_DEPLOY_TOKEN not set — skipping GitHub Actions notification"
+  local token="${GH_DEPLOY_TOKEN:-}"
+  if [[ -z "$token" ]]; then
+    # fall back to local gh CLI session token
+    token=$(gh auth token 2>/dev/null || true)
+  fi
+  if [[ -z "$token" ]]; then
+    warn "No GitHub token available — skipping GitHub Actions notification"
     return 0
   fi
 
@@ -323,7 +328,7 @@ notify_github() {
   local http_status
   http_status=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST \
-    -H "Authorization: token ${GH_DEPLOY_TOKEN}" \
+    -H "Authorization: token ${token}" \
     -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/repos/${repo}/dispatches" \
     -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"cloudfront_url\":\"https://d10immmzyp7xgr.cloudfront.net\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
