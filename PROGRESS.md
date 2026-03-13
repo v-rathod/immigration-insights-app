@@ -1,5 +1,100 @@
 # Compass Progress Tracker
 
+## 2026-03-13 — Milestone 10.63: Fix Employer Data (0 Records on SRS/Wage Pages) + Smoke Test Enhancement
+
+### Objective
+Diagnose and fix 0 records showing on SRS and Wage Intelligence pages; add post-deployment data verification checks that validate Optum Services shard has LCA + wage + SRS records (not just HTTP 200).
+
+### Root Cause
+Employer shards in `public/data/employers/*.json` were generated (LCA + H-1B data only) at 15:45 but the wage/SRS data files were written to `public/data/dashboards/` at 19:26. The `consolidate_employer_shards()` step (which embeds `wage_trend`, `wage_roles`, `srs`, `srs_monthly` into each shard) was never re-run after the new data files were created. Result: all 94,843 employer shards only had LCA filings data. The SRS + Wage pages load data from individual shards (not monolithic files), so they showed 0 records for every employer.
+
+Additionally, `srs_overview.json` had `totalEmployers: 0` because the overview is also computed during consolidation.
+
+CloudFront was serving stale `srs_overview.json` because `deploy.sh`'s `invalidate_cf()` didn't wait for the `/*` invalidation to complete before running smoke tests.
+
+### What Was Done
+
+1. **Root cause diagnosis** — Written diagnostic script `/tmp/check_srs_data.js` to inspect all employer data files; confirmed Optum's shard (78a4...) had 1928 LCA records but was missing `wage_trend`, `wage_roles`, `srs`, `srs_monthly`. Confirmed wage/SRS data files exist in `public/data/dashboards/` but had been generated AFTER the shards.
+
+2. **`scripts/run_consolidation.py`** — New helper script that runs ONLY `consolidate_employer_shards()` from `sync_p2_data.py` without re-generating base shards. Embeds wage + SRS data into 94,843 employer shards. Outputs updated `srs_overview.json` (67,694 employers), updated `_search.json` (144,407 entries), removes 335 MB of monolithic files.
+
+3. **Sync `out/` + deploy** — Ran `rsync --delete` to sync enriched shards + updated dashboard files to `out/`. Ran `aws s3 sync --size-only` for employer shards. Ran targeted CloudFront invalidations for `/data/employers/*` and `/data/dashboards/*`.
+
+4. **`scripts/smoke-test.mjs`: Enhanced Optum check** — Replaced the minimal Optum LCA count check with a comprehensive validation:
+   - LCA: `lca_total >= 1800` + spot-check record[0] has `wage_annual`, `job_title`, `visa_class`
+   - Wage: `wage_trend` (≥ 1 entry, has `median_salary`+`total_filings`) + `wage_roles` (≥ 1 entry) present
+   - SRS: `srs.approval_rate_36m` is numeric + `srs_monthly` has ≥ 10 entries
+   - `minSize: 500_000` (consolidated shard ≈775 KB; base-only shard ≈735 KB — size difference is sentinel)
+
+5. **`scripts/deploy.sh`: Wait for CloudFront invalidation** — Updated `invalidate_cf()` to poll invalidation status every 10s and wait up to 3 minutes for completion before proceeding to smoke tests. Prevents smoke tests from running against stale CloudFront cache.
+
+### Results
+| Metric | Status |
+|--------|--------|
+| Optum shard on S3 | ✅ 775,579 bytes — wage_trend(11), wage_roles(25), srs, srs_monthly(56) |
+| Optum on CloudFront | ✅ Serving enriched shard after targeted invalidation |
+| srs_overview.json | ✅ totalEmployers=67,694, rated=15,324 (was all-zeros) |
+| Smoke tests | ✅ 42/42 PASS (all passing, including new Optum data checks) |
+| Vitest unit tests | ✅ 628/628 pass |
+
+### Lessons Learned
+- Shard consolidation MUST run after any `sync_employer_raw_filings()` call — add to checklist
+- CloudFront `/*` invalidation takes 30–60s; don't run smoke tests before it completes
+- Targeted invalidations by path (`/data/dashboards/*`) are faster and more reliable than `/*`
+
+### Files Modified / Created
+| File | Change |
+|------|--------|
+| `scripts/run_consolidation.py` | NEW — standalone consolidation runner |
+| `scripts/smoke-test.mjs` | Enhanced Optum check: LCA + wage + SRS validation |
+| `scripts/deploy.sh` | `invalidate_cf()` now waits for completion (10s poll, 3min timeout) |
+
+---
+
+## 2026-03-12 — Milestone 10.62: Fix Site Styling (Missing _next/static) + Rendering Smoke Tests
+
+### Objective
+Diagnose and fix broken page styling (CSS/JS not loading on live site); add post-deployment rendering tests that verify CSS actually loads correctly (not just HTTP 200).
+
+### Root Cause
+The `_next/static/` directory (CSS + JS bundles) was missing from both `out/` and S3. This happened because a `--skip-build` deploy ran while `out/` was missing `_next/static/` (from a previous `rm -rf out`), and the `--delete` flag in `aws s3 sync` then deleted `_next/static/` from S3. CloudFront has no S3 object for `/_next/static/chunks/...css`, so it serves the default `index.html` (HTML) instead of CSS — breaking all styling.
+
+### What Was Done
+
+1. **Root cause diagnosis** — Confirmed via `curl -I` that CSS file URL returned `content-type: text/html` (79,497 B = homepage); confirmed `_next/` was missing from both `out/` and S3 entirely.
+
+2. **deploy.sh: `_next/static/` preflight guard** — Added check #7 to `preflight()`:
+   - Fails immediately if `out/_next/static/` directory is absent before any S3 sync
+   - Counts CSS bundles; aborts if zero found
+   - Updated pre-flight success message to include CSS bundle count
+   - Prevents future `--delete` syncs from nuking CSS/JS accidentally
+
+3. **smoke-test.mjs: Rendering checks (new section)** — New `runRenderingChecks()` function that runs after all data checks:
+   - Fetches homepage HTML and extracts all `<link rel="stylesheet">` hrefs
+   - Fetches each CSS URL and verifies `content-type: text/css` (not `text/html`)
+   - DOCTYPE sniff: detects HTML fallback being served instead of CSS
+   - Validates CSS body contains actual rules (`{…:…}` pattern)
+   - Spot-checks one JS bundle for same HTML-fallback failure mode
+   - These checks caught the exact failure before this fix was deployed
+
+4. **Fresh build + full deploy** — `rm -rf out .next && npx next build` → verified `2 CSS files + 40 JS files` in `_next/static/`; deployed via `deploy.sh --skip-build`; preflight passed with new check (`2 CSS bundle(s), _next/static/ present ✓`); 240 files uploaded to S3; CloudFront invalidated.
+
+### Results
+| Metric | Status |
+|--------|--------|
+| Styling live | ✅ `content-type: text/css` confirmed on CloudFront |
+| New rendering checks | ✅ 4/4 passing (was 3 failures before fix) |
+| Total smoke tests | ✅ 41/42 pass (1 pre-existing: srs_overview.json data gap) |
+| deploy.sh preflight | ✅ Would have blocked the bad deploy before it happened |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/deploy.sh` | Added `_next/static/` preflight check (#7) |
+| `scripts/smoke-test.mjs` | Added `runRenderingChecks()` section with CSS/JS content-type validation |
+
+---
+
 ## 2026-03-12 — Milestone 10.61: Smart-Sort Verification, 36m Fix & Sorting Regression Tests
 
 ### Objective

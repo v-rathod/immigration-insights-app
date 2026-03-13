@@ -199,7 +199,7 @@ deploy_shards() {
 
 invalidate_cf() {
   log "Creating CloudFront invalidation..."
-  local inv_id
+  local inv_id status elapsed
   inv_id=$(aws cloudfront create-invalidation \
     --distribution-id "$CF_DIST" \
     --paths "/*" \
@@ -207,6 +207,26 @@ invalidate_cf() {
     --query 'Invalidation.Id' \
     --output text 2>&1)
   log "CloudFront invalidation created: $inv_id"
+
+  # Wait for invalidation to complete so smoke tests see fresh data.
+  # Typical propagation: 10–60s. Time out after 3 minutes.
+  elapsed=0
+  while [[ $elapsed -lt 180 ]]; do
+    sleep 10
+    elapsed=$((elapsed + 10))
+    status=$(aws cloudfront get-invalidation \
+      --distribution-id "$CF_DIST" \
+      --id "$inv_id" \
+      --region "$REGION" \
+      --query 'Invalidation.Status' \
+      --output text 2>/dev/null || echo "Unknown")
+    log "  Invalidation status: $status (${elapsed}s elapsed)"
+    if [[ "$status" == "Completed" ]]; then
+      log "CloudFront invalidation complete ✓"
+      return 0
+    fi
+  done
+  warn "CloudFront invalidation timed out — smoke tests may see stale cache"
 }
 
 # ── Post-deploy verification ──────────────────────────────────────────────

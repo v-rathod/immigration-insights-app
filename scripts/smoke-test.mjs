@@ -101,15 +101,46 @@ const CHECKS = [
     minSize: 1_000_000,   // ~6 MB
   },
   {
-    // Optum Services: one of the largest H-1B filers; must have ≥ 1,800 LCA records.
+    // Optum Services: one of the largest H-1B filers.
+    // Validates the full enriched shard: LCA records + wage trend/roles + SRS data.
     // employer_id: 78a46d3917846d886ef35fe989075cb353f21a1d
+    // If any of these fail, run: python3 scripts/run_consolidation.py
     path: '/data/employers/78a46d3917846d886ef35fe989075cb353f21a1d.json',
-    label: 'Optum Services shard (≥ 1,800 LCA records)',
-    minSize: 50_000,
+    label: 'Optum Services shard — LCA + wage + SRS data',
+    minSize: 500_000,   // consolidated shard is ~775 KB; base shard (LCA only) is ~735 KB
     validate: (d) => {
-      const count = d.lca_total ?? (Array.isArray(d.lca) ? d.lca.length : 0);
-      if (count < 1800)
-        throw new Error(`lca_total = ${count} (need ≥ 1,800) — shard may be empty or truncated`);
+      // ── LCA filings ──────────────────────────────────────────────────────
+      const lcaCount = d.lca_total ?? (Array.isArray(d.lca) ? d.lca.length : 0);
+      if (lcaCount < 1800)
+        throw new Error(`lca_total = ${lcaCount} (need ≥ 1,800) — shard may be empty or truncated`);
+
+      // Spot-check one LCA record has required UI fields
+      if (Array.isArray(d.lca) && d.lca.length > 0) {
+        const rec = d.lca[0];
+        if (!rec.wage_annual || !rec.job_title || !rec.visa_class)
+          throw new Error(`LCA record[0] missing required fields: ${JSON.stringify(Object.keys(rec))}`);
+      }
+
+      // ── Wage data (consolidated by run_consolidation.py) ─────────────────
+      // If wage_trend is missing, the shard was not consolidated after the last
+      // sync_employer_raw_filings() run. Fix: python3 scripts/run_consolidation.py
+      if (!Array.isArray(d.wage_trend) || d.wage_trend.length === 0)
+        throw new Error('wage_trend missing or empty — shard not consolidated (run: python3 scripts/run_consolidation.py)');
+      if (!Array.isArray(d.wage_roles) || d.wage_roles.length === 0)
+        throw new Error('wage_roles missing or empty — shard not consolidated (run: python3 scripts/run_consolidation.py)');
+
+      // Spot-check wage_trend record has key salary fields
+      const wt = d.wage_trend[0];
+      if (!wt.median_salary || !wt.total_filings)
+        throw new Error(`wage_trend[0] missing median_salary or total_filings: ${JSON.stringify(Object.keys(wt))}`);
+
+      // ── SRS data (consolidated by run_consolidation.py) ──────────────────
+      if (!d.srs || typeof d.srs !== 'object')
+        throw new Error('srs field missing — shard not consolidated (run: python3 scripts/run_consolidation.py)');
+      if (typeof d.srs.approval_rate_36m !== 'number')
+        throw new Error(`srs.approval_rate_36m missing or non-numeric: ${JSON.stringify(d.srs)}`);
+      if (!Array.isArray(d.srs_monthly) || d.srs_monthly.length < 10)
+        throw new Error(`srs_monthly has ${Array.isArray(d.srs_monthly) ? d.srs_monthly.length : 'no'} entries (need ≥ 10) — SRS trend chart will be empty`);
     },
   },
 
