@@ -238,6 +238,134 @@ async function runCheck(check) {
   }
 }
 
+// ── CSS / rendering checks ────────────────────────────────────────────────
+//
+// Fetches the homepage HTML, extracts every <link rel="stylesheet"> href, and
+// verifies that each stylesheet URL:
+//   1. Returns HTTP 200
+//   2. Has content-type: text/css  (not text/html — which indicates a CDN
+//      fallback/404 serving the SPA shell instead of the real asset)
+//   3. Contains actual CSS rules (body has "{" and ":" characters)
+//   4. Does NOT start with "<!DOCTYPE" (HTML fallback detection)
+//
+// This catches the failure mode where _next/static/ is missing from S3 after
+// a --delete sync runs against an incomplete build output.
+//
+async function runRenderingChecks() {
+  const results = [];
+
+  // 1. Fetch the homepage HTML
+  let homeHtml;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const res = await fetch(`${BASE_URL}/`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.status !== 200) {
+      return [{ label: 'Homepage HTML (for CSS extraction)', ok: false,
+        reason: `HTTP ${res.status} — cannot extract CSS refs` }];
+    }
+    homeHtml = await res.text();
+  } catch (err) {
+    return [{ label: 'Homepage HTML (for CSS extraction)', ok: false, reason: err.message }];
+  }
+
+  // 2. Extract <link rel="stylesheet" href="..."> values
+  const cssHrefs = [...homeHtml.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi)]
+    .map(m => m[1])
+    .filter(h => h.startsWith('/') || h.startsWith('http'));
+
+  if (cssHrefs.length === 0) {
+    results.push({ label: 'Stylesheet links in homepage HTML', ok: false,
+      reason: 'No <link rel="stylesheet"> tags found — CSS may not be referenced' });
+    return results;
+  }
+
+  results.push({ label: `Stylesheet links in homepage HTML`, ok: true,
+    size: cssHrefs.length, detail: `${cssHrefs.length} stylesheet(s) found` });
+
+  // 3. Validate each stylesheet URL
+  for (const href of cssHrefs) {
+    const cssUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
+    const shortPath = href.replace(/\/_next\/static\/chunks\//, '…/');
+    const label = `CSS bundle: ${shortPath}`;
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const res = await fetch(cssUrl, { signal: controller.signal });
+      clearTimeout(timer);
+
+      if (res.status !== 200) {
+        results.push({ label, ok: false, reason: `HTTP ${res.status} — CSS file not found on CDN` });
+        continue;
+      }
+
+      const contentType = res.headers.get('content-type') ?? '';
+      if (contentType.includes('text/html')) {
+        results.push({ label, ok: false,
+          reason: `content-type is "${contentType}" — CDN is serving HTML fallback instead of CSS. ` +
+                  `This means _next/static/ is missing from S3. Fix: rebuild and redeploy.` });
+        continue;
+      }
+
+      const body = await res.text();
+
+      if (body.trimStart().startsWith('<!DOCTYPE') || body.trimStart().startsWith('<html')) {
+        results.push({ label, ok: false,
+          reason: 'Response body starts with <!DOCTYPE — HTML fallback served instead of CSS. ' +
+                  '_next/static/ is missing from S3.' });
+        continue;
+      }
+
+      // A real CSS file must contain at least one rule (property: value;)
+      const hasCssRules = /[{][^}]*:[^}]*[}]/.test(body);
+      if (!hasCssRules) {
+        results.push({ label, ok: false,
+          reason: `Body is ${body.length} bytes but contains no CSS rules — unexpected content` });
+        continue;
+      }
+
+      results.push({ label, ok: true, size: body.length });
+
+    } catch (err) {
+      results.push({ label, ok: false,
+        reason: err.name === 'AbortError' ? `Timeout after ${TIMEOUT_MS / 1000}s` : err.message });
+    }
+  }
+
+  // 4. JS bundle reachability — pick the first <script src="/_next/..."> from homepage
+  const jsMatches = [...homeHtml.matchAll(/src=["'](\/\_next\/static\/[^"']+\.js)["']/g)];
+  if (jsMatches.length > 0) {
+    const jsHref = jsMatches[0][1];
+    const jsUrl  = `${BASE_URL}${jsHref}`;
+    const shortJs = jsHref.replace(/\/_next\/static\/chunks\//, '…/');
+    const label  = `JS bundle: ${shortJs}`;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const res = await fetch(jsUrl, { signal: controller.signal });
+      clearTimeout(timer);
+
+      const contentType = res.headers.get('content-type') ?? '';
+      if (res.status !== 200 || contentType.includes('text/html')) {
+        results.push({ label, ok: false,
+          reason: res.status !== 200
+            ? `HTTP ${res.status}`
+            : `content-type "${contentType}" — HTML fallback instead of JS. _next/static/ missing from S3.` });
+      } else {
+        const body = await res.text();
+        results.push({ label, ok: true, size: body.length });
+      }
+    } catch (err) {
+      results.push({ label, ok: false,
+        reason: err.name === 'AbortError' ? `Timeout after ${TIMEOUT_MS / 1000}s` : err.message });
+    }
+  }
+
+  return results;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -247,7 +375,7 @@ async function main() {
 
   console.log(`\n${BOLD}Compass Smoke Tests${RESET}`);
   console.log(`${DIM}Target: ${displayUrl}${RESET}`);
-  console.log(`${DIM}Checks: ${pageCount} pages + ${dataCount} data files${RESET}\n`);
+  console.log(`${DIM}Checks: ${pageCount} pages + ${dataCount} data files + rendering${RESET}\n`);
 
   const results = [];
   let passed = 0;
@@ -271,6 +399,20 @@ async function main() {
       results.push({ check, result });
       if (result.ok) passed++; else failed++;
     }
+  }
+
+  // ── Rendering / CSS checks ──────────────────────────────────────────────
+  console.log(`\n${BOLD}Rendering checks${RESET}`);
+  const renderResults = await runRenderingChecks();
+  for (const r of renderResults) {
+    const sizeStr = (r.size && typeof r.size === 'number') ? ` ${DIM}(${r.size.toLocaleString()} B)${RESET}` : '';
+    const detail  = r.detail ? ` ${DIM}[${r.detail}]${RESET}` : '';
+    const icon    = r.ok ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
+    const name    = r.ok ? r.label : `${RED}${r.label}${RESET}`;
+    const reason  = r.ok ? '' : `\n      ${YELLOW}→ ${r.reason}${RESET}`;
+    console.log(`  ${icon}  ${name}${sizeStr}${detail}${reason}`);
+    results.push({ check: { path: r.label }, result: r });
+    if (r.ok) passed++; else failed++;
   }
 
   // Summary

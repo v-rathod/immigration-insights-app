@@ -128,7 +128,26 @@ preflight() {
     exit 1
   fi
 
-  log "Pre-flight passed: $html_count HTML files, index.html present ✓"
+  # 7. CRITICAL: _next/static/ must exist with CSS/JS bundles.
+  #    If missing, deploying with --delete would remove CSS/JS from S3 and break
+  #    page styling and functionality for all users.
+  if [[ ! -d "$OUT_DIR/_next/static" ]]; then
+    error "CRITICAL: $OUT_DIR/_next/static/ not found!"
+    error "CSS and JavaScript bundles are missing from the build output."
+    error "Deploying without them would break page styling for all users on S3."
+    error ""
+    error "Fix: rm -rf out .next && npx next build"
+    exit 1
+  fi
+  local css_count
+  css_count=$(find "$OUT_DIR/_next/static" -name "*.css" | wc -l | tr -d ' ')
+  if (( css_count < 1 )); then
+    error "No CSS files found in $OUT_DIR/_next/static/"
+    error "Build output is missing CSS bundles. Aborting."
+    exit 1
+  fi
+
+  log "Pre-flight passed: $html_count HTML files, ${css_count} CSS bundle(s), _next/static/ present ✓"
 }
 
 # ── Build ──────────────────────────────────────────────────────────────────
