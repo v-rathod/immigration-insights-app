@@ -248,7 +248,7 @@ export function EmployerSearch({
                     {employer.employer_name}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-                    <span>{employer.n_36m} cases (36m)</span>
+                    <span>{(employer.n_36m ?? 0).toLocaleString()} cases</span>
                     {employer.srs != null && !isNaN(employer.srs) && (
                       <>
                         <span className="text-white/10">•</span>

@@ -60,18 +60,57 @@ const CHECKS = [
   { path: '/dashboard/backlog/',       label: 'Backlog dashboard',                minSize: 5_000 },
   { path: '/dashboard/approvals/',     label: 'Approval Trends dashboard',        minSize: 5_000 },
 
-  // ── Employer shard system (HEAD only — files are 6–15 MB) ───────────────────
+  // ── Employer shard system ────────────────────────────────────────────────────
   {
+    // GET (not HEAD) so we can validate content, not just size.
+    // File is ~14–31 MB; CloudFront serves gzip → ~3–4 MB over the wire.
     path: '/data/employers/_search.json',
-    label: 'Employer search index',
-    headOnly: true,
-    minSize: 10_000_000,  // ~14 MB — tiny file = broken deploy
+    label: 'Employer search index — content quality',
+    minSize: 500_000,  // gzip body; raw file is 10–31 MB
+    validate: (d) => {
+      if (!Array.isArray(d) || d.length < 1000)
+        throw new Error(`Only ${Array.isArray(d) ? d.length : 'non-array'} entries (need ≥ 1,000)`);
+      // Accept both compact format (n/id) and full format (employer_name/employer_id)
+      const first = d[0];
+      const name = first.n ?? first.employer_name;
+      if (!name) throw new Error('First entry has no employer name — format mismatch (check compact vs full keys)');
+
+      // Smart-sort data quality: verify entries have numeric volume field (f/total_filings)
+      // so weighted sorting can rank by case volume, not just alphabetically.
+      const sampleSize = Math.min(100, d.length);
+      let withVolume = 0;
+      for (let i = 0; i < sampleSize; i++) {
+        const vol = d[i].f ?? d[i].total_filings;
+        if (typeof vol === 'number' && vol >= 0) withVolume++;
+      }
+      if (withVolume < sampleSize * 0.8)
+        throw new Error(`Only ${withVolume}/${sampleSize} sampled entries have volume data — smart sorting will degrade`);
+
+      // Verify data is NOT purely alphabetical (would indicate broken sort weights)
+      const names = d.slice(0, 50).map(e => e.n ?? e.employer_name);
+      const sorted = [...names].sort((a, b) => a.localeCompare(b));
+      const isAlphabetical = names.every((n, i) => n === sorted[i]);
+      if (isAlphabetical)
+        throw new Error('First 50 entries are alphabetically sorted — search index may lack volume/score data for smart sorting');
+    },
   },
   {
     path: '/data/employers/_index.json',
     label: 'Employer name index',
     headOnly: true,
     minSize: 1_000_000,   // ~6 MB
+  },
+  {
+    // Optum Services: one of the largest H-1B filers; must have ≥ 1,800 LCA records.
+    // employer_id: 78a46d3917846d886ef35fe989075cb353f21a1d
+    path: '/data/employers/78a46d3917846d886ef35fe989075cb353f21a1d.json',
+    label: 'Optum Services shard (≥ 1,800 LCA records)',
+    minSize: 50_000,
+    validate: (d) => {
+      const count = d.lca_total ?? (Array.isArray(d.lca) ? d.lca.length : 0);
+      if (count < 1800)
+        throw new Error(`lca_total = ${count} (need ≥ 1,800) — shard may be empty or truncated`);
+    },
   },
 
   // ── Global metadata ──────────────────────────────────────────────────────────

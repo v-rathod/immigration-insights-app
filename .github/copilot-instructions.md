@@ -56,7 +56,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 12, 2026)
-- **P3**: ✅ **CI PASSING** — 601 tests passing (26 files), TypeScript strict, ESLint 0 errors, all dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **CI PASSING** — 628 tests passing (27 files), TypeScript strict, ESLint 0 errors, all dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -75,7 +75,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 - Fixed `react/no-unescaped-entities` (2 errors) → `&apos;` escaping ✅
 - Fixed `react-hooks/set-state-in-effect` (2 errors) + `react-hooks/static-components` (7 errors) → extract components + disable comments ✅
 - Blocked GitHub push (secret scanning) → removed `.wingman/history/`, updated `.gitignore` ✅
-- **CI run 23014959636**: ✅ PASSING — 601 tests, 0 lint errors, TypeScript strict clean ✅
+- **CI run 23014959636**: ✅ PASSING — 628 tests, 0 lint errors, TypeScript strict clean ✅
 
 **Key Documentation Updated**:
 - P1 PROGRESS.md: Created (Milestone 1)
@@ -482,7 +482,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 
 ### Phase 6: Deploy ✅
 - [x] S3 + CloudFront + Route53 Terraform/CDK (Milestone 10.48)
-- [x] GitHub Actions CI/CD (Milestone 10.50 — 601 tests, 0 lint errors, TypeScript strict)
+- [x] GitHub Actions CI/CD (Milestone 10.61 — 628 tests, 0 lint errors, TypeScript strict)
 - [ ] Data freshness banner
 
 ---
@@ -497,7 +497,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 601 tests across 26 files (all passing)
+- **Current count**: 628 tests across 27 files (all passing)
 
 ---
 
@@ -640,7 +640,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (26 files, 604 tests)**
+**Tests (27 files, 628 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -669,6 +669,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
 | `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
 | `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
+| `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

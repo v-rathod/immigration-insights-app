@@ -1083,23 +1083,22 @@ def consolidate_employer_shards():
                 srs_tier = rec.get("efs_tier", "Unrated") if srs_val is not None else "Unrated"
                 srs_lookup[name] = {"srs_score": srs_val, "srs_tier": srs_tier}
 
+    # Compact key names keep _search.json under the 20 MB CloudFront object limit.
+    # TypeScript loadEmployerSearch() in employer-shard.ts detects format via
+    # the presence of the 'n' key and maps compact → full field names.
     for rec in search_index_raw:
         name = rec["employer_name"]
-        entry = {
-            "employer_name": name,
-            "employer_id": emp_index.get(name, ""),
-            "total_filings": rec.get("total_filings", 0),
-            "n_soc_codes": rec.get("n_soc_codes", 0),
-            "latest_median_salary": rec.get("latest_median_salary", 0),
-            "latest_year": rec.get("latest_year", 0),
-        }
         srs_info = srs_lookup.get(name)
-        if srs_info:
-            entry["srs_score"] = srs_info["srs_score"]
-            entry["srs_tier"] = srs_info["srs_tier"]
-        else:
-            entry["srs_score"] = None
-            entry["srs_tier"] = "Unrated"
+        entry = {
+            "n": name,                                      # employer_name
+            "id": emp_index.get(name, ""),                  # employer_id
+            "f": rec.get("total_filings", 0),              # total_filings
+            "sc": rec.get("n_soc_codes", 0),               # n_soc_codes
+            "ms": rec.get("latest_median_salary", 0),      # latest_median_salary
+            "y": rec.get("latest_year", 0),                # latest_year
+            "ss": srs_info["srs_score"] if srs_info else None,  # srs_score
+            "st": srs_info["srs_tier"] if srs_info else "Unrated",  # srs_tier
+        }
         unified_search.append(entry)
 
     # Also add SRS-only employers not in the wage search index
@@ -1114,14 +1113,14 @@ def consolidate_employer_shards():
             srs_val = efs_val if efs_val is not None and not (isinstance(efs_val, float) and efs_val != efs_val) else None
             srs_tier = rec.get("efs_tier", "Unrated") if srs_val is not None else "Unrated"
             unified_search.append({
-                "employer_name": name,
-                "employer_id": emp_id,
-                "total_filings": 0,
-                "n_soc_codes": 0,
-                "latest_median_salary": 0,
-                "latest_year": 0,
-                "srs_score": srs_val,
-                "srs_tier": srs_tier,
+                "n": name,          # employer_name
+                "id": emp_id,       # employer_id
+                "f": 0,             # total_filings
+                "sc": 0,            # n_soc_codes
+                "ms": 0,            # latest_median_salary
+                "y": 0,             # latest_year
+                "ss": srs_val,      # srs_score
+                "st": srs_tier,     # srs_tier
             })
 
     # Sort by filing count desc

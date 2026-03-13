@@ -87,24 +87,43 @@ interface SrsOverviewJson {
 
 /**
  * Load the unified employer search index (~14 MB, <20 MB CloudFront limit).
- * Expands compact keys to full field names for use with Fuse.js.
+ * Handles both compact key format (n/id/f/…) written by current sync script
+ * and full key format (employer_name/employer_id/…) from older deploys.
  */
 export async function loadEmployerSearch(): Promise<EmployerSearchEntry[]> {
   const res = await fetch("/data/employers/_search.json");
   if (!res.ok) return [];
   const raw = await res.text();
   const sanitized = raw.replace(/\bNaN\b|-?\bInfinity\b/g, "null");
-  const data: CompactSearchEntry[] = JSON.parse(sanitized);
-  return data.map((e) => ({
-    employer_name: e.n,
-    employer_id: e.id,
-    total_filings: e.f ?? 0,
-    n_soc_codes: e.sc ?? 0,
-    latest_median_salary: e.ms ?? 0,
-    latest_year: e.y ?? 0,
-    srs_score: e.ss ?? null,
-    srs_tier: e.st ?? "Unrated",
-  }));
+  const data: Array<Record<string, unknown>> = JSON.parse(sanitized);
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  // Detect format by inspecting the first entry's keys
+  const isCompact = "n" in data[0];
+
+  return data.map((e) =>
+    isCompact
+      ? {
+          employer_name: e.n as string,
+          employer_id: e.id as string,
+          total_filings: (e.f as number) ?? 0,
+          n_soc_codes: (e.sc as number) ?? 0,
+          latest_median_salary: (e.ms as number) ?? 0,
+          latest_year: (e.y as number) ?? 0,
+          srs_score: (e.ss as number) ?? null,
+          srs_tier: (e.st as string) ?? "Unrated",
+        }
+      : {
+          employer_name: e.employer_name as string,
+          employer_id: e.employer_id as string,
+          total_filings: (e.total_filings as number) ?? 0,
+          n_soc_codes: (e.n_soc_codes as number) ?? 0,
+          latest_median_salary: (e.latest_median_salary as number) ?? 0,
+          latest_year: (e.latest_year as number) ?? 0,
+          srs_score: (e.srs_score as number) ?? null,
+          srs_tier: (e.srs_tier as string) ?? "Unrated",
+        }
+  );
 }
 
 /**

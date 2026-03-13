@@ -1,5 +1,45 @@
 # Compass Progress Tracker
 
+## 2026-03-12 — Milestone 10.61: Smart-Sort Verification, 36m Fix & Sorting Regression Tests
+
+### Objective
+Verify that the smart/weighted search sorting (4 composite-score functions) was not broken by the compact-key `_search.json` migration; fix redundant "(36m)" label in employer search results; add comprehensive sorting regression tests; enhance post-deploy smoke tests with sorting validation.
+
+### What Was Done
+
+1. **Sorting investigation** — Audited all 4 sort functions in `src/lib/search/smart-sort.ts` and their call sites in `employer-search.tsx` and `WageIntelligenceHub.tsx`. Confirmed all sorting is **intact** — no code changes needed. Functions: `sortEmployerResults` (40% text + 30% name + 20% volume + 10% SRS), `sortSocResults` (50% text + 35% demand + 15% salary), `sortWageEmployerResults` (45% text + 40% volume + 15% salary), `sortRagResults` (50% type + 40% relevance + 10% topic).
+
+2. **Fixed "36m" display** — Removed static "(36m)" label from employer search results in `employer-search.tsx`. Changed `{employer.n_36m} cases (36m)` → `{(employer.n_36m ?? 0).toLocaleString()} cases` with null-safe formatting.
+
+3. **Added 27 smart-sort regression tests** — New `src/__tests__/smart-sort.test.ts` with 5 describe blocks covering all 4 sort functions + cross-cutting non-alphabetical guarantees. Tests verify: exact/prefix/word name match ranking, volume boost, SRS tiebreaker, demand ranking, salary tiebreaker, QA-vs-chunk priority, topic bonus, null/NaN handling, item count preservation.
+
+4. **Enhanced smoke tests with sorting validation** — Added 2 sorting checks to `scripts/smoke-test.mjs` in the `_search.json` validation:
+   - Volume data check: ≥80% of first 100 entries must have numeric `f` (total_filings) field
+   - Non-alphabetical check: first 50 entries must NOT be alphabetically sorted (confirms volume-weighted sort is active)
+
+### Results
+| Metric | Status |
+|--------|--------|
+| Smart-sort functions | ✅ All 4 intact, no changes needed |
+| 36m display fix | ✅ Null-safe formatting, no static label |
+| New tests | ✅ 27/27 passing |
+| Full test suite | ✅ **628 passing** (27 files) |
+| Smoke test sorting | ✅ Validated locally (100/100 entries have volume, non-alphabetical) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/components/srs/employer-search.tsx` | Removed "(36m)" label; null-safe `toLocaleString()` formatting |
+| `src/__tests__/smart-sort.test.ts` | **New file** — 27 regression tests across 5 describe blocks |
+| `scripts/smoke-test.mjs` | Added sorting validation: volume data check + non-alphabetical check |
+
+### Next Steps
+1. Commit, push, and deploy to AWS
+2. Phase 4: Complete personalized insights panels
+3. Custom domain setup (Route 53 + ACM SSL)
+
+---
+
 ## 2026-03-12 — Milestone 10.60: AWS Deploy + GitHub Actions CI/CD Visibility
 
 ### Objective
@@ -3206,7 +3246,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.47 — 2026-03-11)
+## Quick Reference (Current State as of Milestone 10.61 — 2026-03-12)
 
 | Metric | Value |
 |--------|-------|
@@ -3216,7 +3256,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **601 passing** across 26 test files |
+| Tests | **628 passing** across 27 test files |
 | P2 data synced | ✅ 21 dashboard JSONs + 94,843 employer shards + search/overview/freshness files via `sync_p2_data.py` |
 | **public/data/ payload** | **~28 MB** dashboards + ~14 MB search index + 94,843 employer shards (avg 13.6KB) |
 | **Data architecture** | Unified per-employer shards (wage + SRS + LCA + H1B consolidated); monolithic files eliminated |
