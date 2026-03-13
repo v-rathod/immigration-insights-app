@@ -98,6 +98,48 @@ describe("sortEmployerResults", () => {
     expect(sorted[0].employer_name).toBe("Rated Corp");
   });
 
+  // ── Named real-world scenario: searching "Optum" ──────────────────────────
+  // This mirrors the actual SRS search page behavior. Optum Services is the
+  // largest Optum entity by H-1B case volume and must rank #1.
+
+  it("searching 'Optum' ranks 'Optum Services' first (volume + prefix match)", () => {
+    // All three start with "optum" so they all get the same prefix-match bonus (0.7).
+    // Volume (n_36m) is the main tiebreaker — Optum Services has the most filings.
+    // Uses Fuse score 0.05 for all (same text quality), isolating the volume signal.
+    const results = [
+      fuseResult(employer("Optum Technology Solutions", 200, 70, "Good"), 0.05),
+      fuseResult(employer("Optum Services", 5000, 85, "Good"), 0.05),
+      fuseResult(employer("Optum Health", 50, null, "Unrated"), 0.05),
+    ];
+    const sorted = sortEmployerResults(results, "Optum");
+    expect(sorted[0].employer_name).toBe("Optum Services");
+  });
+
+  it("searching 'Optum' — full expected ranking order (Services > Technology > Health)", () => {
+    const results = [
+      fuseResult(employer("Optum Technology Solutions", 200, 70, "Good"), 0.05),
+      fuseResult(employer("Optum Services", 5000, 85, "Good"), 0.05),
+      fuseResult(employer("Optum Health", 50, null, "Unrated"), 0.05),
+    ];
+    const sorted = sortEmployerResults(results, "Optum");
+    // Expected: Optum Services (5000 cases) > Optum Technology (200) > Optum Health (50)
+    expect(sorted[0].employer_name).toBe("Optum Services");
+    expect(sorted[1].employer_name).toBe("Optum Technology Solutions");
+    expect(sorted[2].employer_name).toBe("Optum Health");
+  });
+
+  it("searching 'Optum Ser' ranks 'Optum Services' first (stronger prefix match)", () => {
+    // When query more closely matches 'Optum Services', the name-match bonus (0.7
+    // for prefix) further amplifies its lead over other Optum variants.
+    const results = [
+      fuseResult(employer("Optum Services", 5000, 85, "Good"), 0.02),
+      fuseResult(employer("Optum Technology Solutions", 200, 70, "Good"), 0.4),
+      fuseResult(employer("Optum Health", 50, null, "Unrated"), 0.5),
+    ];
+    const sorted = sortEmployerResults(results, "Optum Ser");
+    expect(sorted[0].employer_name).toBe("Optum Services");
+  });
+
   it("returns all items (no filtering, only reordering)", () => {
     const results = [
       fuseResult(employer("A", 10, 20), 0.4),

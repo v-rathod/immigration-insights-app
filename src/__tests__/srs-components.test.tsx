@@ -278,6 +278,93 @@ describe("EmployerSearch", () => {
 
     expect(input.value).toBe("");
   });
+
+  // ── Case count display ────────────────────────────────────────────────────
+
+  it("shows correct case count from n_36m when populated", async () => {
+    // This verifies the fix: SRS page must map total_filings → n_36m when building
+    // asScores, otherwise the search shows "0 cases" for every employer.
+    const employers = [
+      makeSrs({ employer_name: "Optum Services", employer_id: "optum1", n_36m: 1928 }),
+    ];
+    render(<EmployerSearch employers={employers} onSelect={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: "Optum" } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/1,928 cases/)).toBeDefined();
+    });
+  });
+
+  it("shows 0 cases when n_36m is zero (not populated)", async () => {
+    const employers = [
+      makeSrs({ employer_name: "Small Tech", employer_id: "small1", n_36m: 0 }),
+    ];
+    render(<EmployerSearch employers={employers} onSelect={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: "Small" } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/0 cases/)).toBeDefined();
+    });
+  });
+
+  it("formats large case counts with thousand separators", async () => {
+    const employers = [
+      makeSrs({ employer_name: "Cognizant Technology", employer_id: "cog1", n_36m: 15000 }),
+    ];
+    render(<EmployerSearch employers={employers} onSelect={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: "Cognizant" } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/15,000 cases/)).toBeDefined();
+    });
+  });
+
+  // ── Smart sort — volume ranking ───────────────────────────────────────────
+
+  it("smart sort ranks higher-volume employer above lower-volume", async () => {
+    // Both have equal Fuse text score (mock returns 0.1 for all).
+    // "Optum Services" has n_36m=1928; "Optum Technology" has n_36m=10.
+    // sortEmployerResults composite: volume accounts for 20%, pushing
+    // Optum Services ahead despite identical text match quality.
+    const employers = [
+      makeSrs({ employer_name: "Optum Services",   employer_id: "optum1", n_36m: 1928, srs: 85 }),
+      makeSrs({ employer_name: "Optum Technology", employer_id: "optum2", n_36m: 10,   srs: 90 }),
+    ];
+    render(<EmployerSearch employers={employers} onSelect={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: "Optum" } });
+
+    await waitFor(() => {
+      const options = screen.getAllByRole("option");
+      // Higher-volume employer must appear first in the list
+      expect(options[0].textContent).toContain("Optum Services");
+    });
+  });
+
+  it("smart sort falls back gracefully when all n_36m are zero", async () => {
+    // Without the SRS page fix all employers would have n_36m=0.
+    // Sort should still return results (not throw) — just text-only ranking.
+    const employers = [
+      makeSrs({ employer_name: "Alpha Inc",  employer_id: "a1", n_36m: 0 }),
+      makeSrs({ employer_name: "Beta Corp",  employer_id: "b1", n_36m: 0 }),
+    ];
+    render(<EmployerSearch employers={employers} onSelect={vi.fn()} />);
+    const input = screen.getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: "Alpha" } });
+
+    await waitFor(() => {
+      // At minimum, the matched employer appears
+      expect(screen.getByText("Alpha Inc")).toBeDefined();
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

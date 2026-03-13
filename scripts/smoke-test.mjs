@@ -92,6 +92,26 @@ const CHECKS = [
       const isAlphabetical = names.every((n, i) => n === sorted[i]);
       if (isAlphabetical)
         throw new Error('First 50 entries are alphabetically sorted — search index may lack volume/score data for smart sorting');
+
+      // Optum Services must be present with 500+ filings so the SRS search
+      // shows real case counts and smart-sort can rank it by volume.
+      const optumEntry = d.find(e => (e.n ?? e.employer_name ?? '').toLowerCase() === 'optum services');
+      if (!optumEntry)
+        throw new Error('Optum Services not found in _search.json — employer normalization may have failed');
+      const optumFilings = optumEntry.f ?? optumEntry.total_filings ?? 0;
+      if (optumFilings < 500)
+        throw new Error(`Optum Services has ${optumFilings} total_filings in _search.json (need ≥ 500) — case count will show 0 in SRS search`);
+
+      // Smart-sort ranking: searching "Optum" must surface "Optum Services" first.
+      // All optum variants share the same prefix-match bonus (0.7), so the highest
+      // total_filings (f) wins the volume tiebreaker. Verify here so we catch any
+      // future data sync that demotes Optum Services below smaller Optum entities.
+      const optumVariants = d.filter(e => (e.n ?? e.employer_name ?? '').toLowerCase().startsWith('optum'));
+      if (optumVariants.length > 1) {
+        const maxFilings = Math.max(...optumVariants.map(e => e.f ?? e.total_filings ?? 0));
+        if (optumFilings < maxFilings)
+          throw new Error(`Optum Services (${optumFilings} filings) is NOT the largest Optum entity in _search.json — smart sort will not rank it first when searching "Optum"`);
+      }
     },
   },
   {
@@ -139,6 +159,9 @@ const CHECKS = [
         throw new Error('srs field missing — shard not consolidated (run: python3 scripts/run_consolidation.py)');
       if (typeof d.srs.approval_rate_36m !== 'number')
         throw new Error(`srs.approval_rate_36m missing or non-numeric: ${JSON.stringify(d.srs)}`);
+      // n_36m = H-1B adjudications in past 36 months; must be 500+ for Optum
+      if (typeof d.srs.n_36m !== 'number' || d.srs.n_36m < 500)
+        throw new Error(`srs.n_36m = ${d.srs.n_36m} (need ≥ 500) — SRS case count will show incorrectly in search results`);
       if (!Array.isArray(d.srs_monthly) || d.srs_monthly.length < 10)
         throw new Error(`srs_monthly has ${Array.isArray(d.srs_monthly) ? d.srs_monthly.length : 'no'} entries (need ≥ 10) — SRS trend chart will be empty`);
     },

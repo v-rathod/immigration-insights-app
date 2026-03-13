@@ -195,6 +195,137 @@ describe("Optum Services (78a46d3917846d886ef35fe989075cb353f21a1d) — Live-Dat
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SRS DATA IN ENRICHED SHARD
+// Validates the srs object embedded by run_consolidation.py.
+// If the shard was not consolidated (only has LCA data),
+// these tests will fail — fix: python3 scripts/run_consolidation.py
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("Optum Services — SRS data in enriched shard", () => {
+  const optumShard = loadOptumShard();
+  const srsData = optumShard.srs as Record<string, unknown> | undefined;
+
+  it("shard has srs object (consolidated, not LCA-only)", () => {
+    expect(srsData).toBeDefined();
+    expect(typeof srsData).toBe("object");
+    expect(srsData).not.toBeNull();
+  });
+
+  it("Optum Services has 500+ H-1B cases in past 36 months (n_36m)", () => {
+    // n_36m = number of H-1B petition adjudications over the most recent 36 months.
+    // Optum is a ~35,000+ employee healthcare tech firm and one of the largest
+    // H-1B users. 500 is a conservative lower-bound; actual value is typically
+    // several thousand.
+    const n36m = srsData?.n_36m as number | undefined;
+    expect(typeof n36m).toBe("number");
+    expect(n36m).toBeGreaterThanOrEqual(500);
+  });
+
+  it("srs.approval_rate_36m is a valid rate (0–1)", () => {
+    const rate = srsData?.approval_rate_36m as number | undefined;
+    expect(typeof rate).toBe("number");
+    expect(rate).toBeGreaterThanOrEqual(0);
+    expect(rate).toBeLessThanOrEqual(1);
+  });
+
+  it("srs.denial_rate_36m is a valid rate (0–1)", () => {
+    const rate = srsData?.denial_rate_36m as number | undefined;
+    expect(typeof rate).toBe("number");
+    expect(rate).toBeGreaterThanOrEqual(0);
+    expect(rate).toBeLessThanOrEqual(1);
+  });
+
+  it("srs has required wage ratio field", () => {
+    // wage_ratio_med confirms LCA wage vs prevailing wage comparison is present
+    const wage = srsData?.wage_ratio_med as number | undefined;
+    expect(typeof wage).toBe("number");
+  });
+
+  it("srs has a valid efs/srs score (Optum is typically rated)", () => {
+    // Optum is a large, frequent filer and should have a computed SRS score.
+    // efs is P2's raw field name; extractSrsFromShard remaps it to srs.
+    const efs = srsData?.efs as number | null | undefined;
+    // Allow for null (unrated is valid), but if present must be in range
+    if (efs != null) {
+      expect(typeof efs).toBe("number");
+      expect(efs).toBeGreaterThan(0);
+      expect(efs).toBeLessThanOrEqual(100);
+    }
+    // Just ensure the field is defined (even null is a valid "unrated" signal)
+    expect("efs" in (srsData ?? {})).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OPTUM IN SEARCH INDEX (_search.json)
+// Validates that Optum Services appears in the employer search index with
+// non-zero case volumes so: (a) it shows up in autocomplete, and
+// (b) smart-sort can rank it by volume rather than alphabetically.
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface SearchEntry {
+  n?: string;           // compact: employer_name
+  employer_name?: string; // full format
+  f?: number;           // compact: total_filings
+  total_filings?: number; // full format
+  ss?: number | null;   // srs_score
+  st?: string;          // srs_tier
+}
+
+function loadSearchIndex(): SearchEntry[] {
+  const indexPath = join(PUBLIC_DATA, "employers", "_search.json");
+  try {
+    const raw = readFileSync(indexPath, "utf-8");
+    const sanitized = raw.replace(/\bNaN\b|-?\bInfinity\b/g, "null");
+    return JSON.parse(sanitized) as SearchEntry[];
+  } catch {
+    return [];
+  }
+}
+
+describe("Optum Services — employer search index (_search.json)", () => {
+  const searchIndex = loadSearchIndex();
+
+  it("search index loaded (not empty)", () => {
+    expect(searchIndex.length).toBeGreaterThan(0);
+  });
+
+  it("Optum Services appears in _search.json", () => {
+    const optumEntry = searchIndex.find((e) => {
+      const name = (e.n ?? e.employer_name ?? "").toLowerCase();
+      return name === "optum services";
+    });
+    expect(optumEntry).toBeDefined();
+  });
+
+  it("Optum Services has 500+ total filings in search index", () => {
+    // total_filings (field 'f' in compact format) is used as the case-count
+    // proxy for smart-sort volume ranking and for the '_ cases' display in
+    // employer-search.tsx. If this is 0 or missing, every employer shows
+    // "0 cases" and sort degrades to alphabetical order.
+    const optumEntry = searchIndex.find((e) => {
+      const name = (e.n ?? e.employer_name ?? "").toLowerCase();
+      return name === "optum services";
+    });
+    const filings = optumEntry?.f ?? optumEntry?.total_filings ?? 0;
+    expect(typeof filings).toBe("number");
+    expect(filings).toBeGreaterThanOrEqual(500);
+  });
+
+  it("Optum Services entry has employer_id (non-empty)", () => {
+    const optumEntry = searchIndex.find((e) => {
+      const name = (e.n ?? e.employer_name ?? "").toLowerCase();
+      return name === "optum services";
+    });
+    // compact format uses short key 'id', full format 'employer_id'
+    const idField = (optumEntry as Record<string, unknown>)?.id
+      ?? (optumEntry as Record<string, unknown>)?.employer_id;
+    expect(typeof idField).toBe("string");
+    expect((idField as string).length).toBeGreaterThan(0);
+  });
+});
+
 function isNormalized(name: string): boolean {
   if (!name || name.length <= 3) return true;
   if (name !== name.toUpperCase()) return true;
