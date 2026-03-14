@@ -307,29 +307,36 @@ describe("EB Category Dashboard", () => {
     expect(screen.getAllByText("China").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders chart type toggle", async () => {
+  it("renders both DFF and FAD section labels", async () => {
     render(<EBCategoryPage />);
     await waitFor(() => {
-      expect(screen.getByText("Dates for Filing")).toBeTruthy();
+      // DFF section header (label prop in SummaryRow)
+      expect(screen.getAllByText("Dates for Filing").length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.getByText("Final Action")).toBeTruthy();
+    // FAD section header
+    expect(screen.getAllByText("Final Action Dates").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("displays EB1/EB2/EB3 summary cards", async () => {
+  it("displays EB1/EB2/EB3 summary cards (DFF + FAD rows, so 2 of each)", async () => {
     render(<EBCategoryPage />);
     await waitFor(() => {
-      expect(screen.getByText("EB1")).toBeTruthy();
+      // Both DFF and FAD rows rendered → 2 EB1 cards
+      expect(screen.getAllByText("EB1").length).toBeGreaterThanOrEqual(2);
     });
-    expect(screen.getByText("EB2")).toBeTruthy();
-    expect(screen.getByText("EB3")).toBeTruthy();
+    expect(screen.getAllByText("EB2").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("EB3").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("renders velocity chart section", async () => {
+  it("renders velocity chart section with both DFF and FAD charts", async () => {
     render(<EBCategoryPage />);
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     });
-    expect(screen.getByText("Priority Date Velocity (12-Month Rolling Avg)")).toBeTruthy();
+    // New combined chart title
+    expect(screen.getByText("Velocity Charts \u2014 EB1 / EB2 / EB3")).toBeTruthy();
+    // Sub-labels for each chart panel
+    expect(screen.getAllByText("Dates for Filing (DFF)").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Final Action Dates (FAD)").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders methodology section", async () => {

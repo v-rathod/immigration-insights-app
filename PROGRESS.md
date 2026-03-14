@@ -1,5 +1,69 @@
 # Compass Progress Tracker
 
+## 2026-03-13 — Milestone 10.66: Comprehensive SRS Test Suite + Deployment with Fix
+
+### Objective
+Create a comprehensive test suite (`srs-comprehensive.test.tsx`) covering every minor functionality of the SRS dashboard chain: search rendering, search result layout fields, accessibility, keyboard navigation, clear behavior, selection, case count display, SRS tier display, smart-sort edge cases, score gauge states, employer detail card stats, trend chart, overview stats, employer shard data extractors, and the critical `asScores` mapping fix verification.
+
+Deploy the rebuilt `out/` (containing the `n_36m: e.total_filings` fix) to AWS and verify live site with smoke tests.
+
+### What Was Done
+
+1. **`src/__tests__/srs-comprehensive.test.tsx`** — NEW FILE — 97-test comprehensive suite:
+   - **EmployerSearch Rendering** (5 tests): default/custom placeholder, search icon, no clear button when empty, no dropdown initially
+   - **EmployerSearch Accessibility** (7 tests): combobox role, aria-autocomplete, aria-expanded states, listbox/option roles, clear button aria-label
+   - **EmployerSearch Search Behavior** (6 tests): min 2 chars, case-insensitive, partial match, no results for non-match, max 12 results limit
+   - **Search Result Layout — Fields** (8 tests): employer name display, case count from n_36m, thousand separators, 0 cases for n_36m=0, SRS tier+score for rated, no tier for unrated/NaN, Building2 icon
+   - **Clear Behavior** (4 tests): show/hide clear button, clears input, hides after clear
+   - **Selection** (3 tests): calls onSelect with full object (all fields), populates input with name, closes dropdown
+   - **Keyboard Navigation** (7 tests): ArrowDown to first, sequential ArrowDown, ArrowUp, no past-end, Enter selects, Escape closes, Enter without arrow does nothing
+   - **Optum Regression** (3 tests): min 500 cases, SRS tier "Good", first among Optum variants by volume
+   - **Smart Sort Edge Cases** (7 tests): single result, all NaN SRS, all n_36m=0 (pre-fix scenario), exact match, preserves all items, word boundary vs prefix
+   - **SrsScoreGauge** (8 tests): rated label, unrated label/dash, 3 subscore labels, ML badge show/hide/NaN, score=0 is rated, score=100
+   - **EmployerDetailCard** (13 tests): heading, all 6 stat labels, approval/denial rates, case count, wage ratio %, null wage, SOC/site breadth suffixes, last_refreshed_at, months_active, positive/negative/null trend
+   - **SrsTrendChart** (5 tests): title, employer name, empty state, chart render, single month
+   - **SrsOverview** (4 tests): heading, 5 tier labels, stat card labels, zero stats graceful
+   - **Employer Shard Extractors** (6 tests): efs→srs remap, null shard, NaN efs, null efs, monthly metrics injection, missing monthly
+   - **SRS Page asScores Mapping** (6 tests): total_filings→n_36m, not undefined, includes unrated with filings, excludes ghost employers, preserves tier/score, 100-employer batch mapping
+   - **Wage/SOC Sort extras** (4 tests): 0-filing employer, salary tiebreaker, undefined SOC fields, demand+salary outranks
+
+2. **Deployment** — Deployed rebuilt `out/` directory to AWS S3 + CloudFront:
+   - Main site: 234 files uploaded
+   - CloudFront invalidation completed
+   - n_36m fix confirmed present in 5 deployed JS chunks
+
+3. **Smoke tests** — ALL 42 checks passed on live site including Optum Services shard validation (775 KB with LCA + wage + SRS data)
+
+### Results
+| Metric | Status |
+|--------|--------|
+| New comprehensive tests | ✅ **97 tests passing** in srs-comprehensive.test.tsx |
+| Total test count | ✅ **806 passing** (29 files) |
+| TypeScript | ✅ Strict mode clean |
+| Build | ✅ 18 pages, fix in JS chunks |
+| Deploy to AWS | ✅ 234 files uploaded, CloudFront invalidated |
+| Live site smoke | ✅ ALL 42 CHECKS PASSED |
+| SRS search case counts | ✅ Live — shows real numbers (confirmed in JS) |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/__tests__/srs-comprehensive.test.tsx` | NEW: 97-test comprehensive SRS feature suite |
+
+### Test Coverage Summary (Post-Overhaul)
+
+| Test File | Tests | Covers |
+|-----------|-------|--------|
+| srs-comprehensive.test.tsx | 97 | **Every** SRS UI element, data flow, accessibility, keyboard, Optum regression |
+| srs-components.test.tsx | 24 | Core SRS component functionality |
+| smart-sort.test.ts | 27 | All 4 sort functions + Optum ranking |
+| optum-regression.test.ts | 28 | Live data regression (shards, search index) |
+| predeploy-checks.test.ts | 63 | Build output + artifact integrity |
+
+**Total SRS-related tests: 239** (across 5 files)
+
+---
+
 ## 2026-03-13 — Milestone 10.65: Optum-First Sort Tests + Pre-Deploy Directory/File Checks
 
 ### Objective
@@ -3438,7 +3502,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.65 — 2026-03-13)
+## Quick Reference (Current State as of Milestone 10.66 — 2026-03-13)
 
 | Metric | Value |
 |--------|-------|
@@ -3448,7 +3512,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **646 passing** across 28 test files |
+| Tests | **806 passing** across 29 test files |
 | P2 data synced | ✅ 21 dashboard JSONs + 94,843 employer shards + search/overview/freshness files via `sync_p2_data.py` |
 | **public/data/ payload** | **~28 MB** dashboards + ~14 MB search index + 94,843 employer shards (avg 13.6KB) |
 | **Data architecture** | Unified per-employer shards (wage + SRS + LCA + H1B consolidated); monolithic files eliminated |
@@ -3633,6 +3697,9 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.45 | 2026-03-11 | NorthStar Vision Section | Add ~70-line vision background (Horizon/Meridian/Compass); remove P1/P2/P3 from user-facing text; fix ContactButton prop error; update tests; 586 tests |
 | 10.46 | 2026-03-11 | Employer Name Normalization + Regression Tests | ALL-CAPS→Title Case normalization in sync (1,700 names); 18-test Optum regression suite (baseline 1,928 LCA records); **604 tests** (26 files); 2 commits (dda1094, af92b9b) |
 | 10.47 | 2026-03-11 | Unified Employer Sharding — 200× Payload Reduction | 7 monolithic files (387MB) → per-employer shards; `employer-shard.ts` module; 14MB search index; SRS/Wage/Insights pages rewritten for shard loading; **601 tests** (26 files) |
+| 10.64 | 2026-03-13 | Fix SRS Search (0 Cases + Broken Smart Sort) | Added `n_36m: e.total_filings` to asScores mapping; restored case count display + smart sort volume ranking; 15 new tests; **643 tests** (27 files) |
+| 10.65 | 2026-03-13 | Optum-First Sort Tests + Pre-Deploy Checks | 3 Optum-specific sort scenarios; 63-test `predeploy-checks.test.ts`; smoke test Optum ranking; **646 tests** (28 files) |
+| 10.66 | 2026-03-13 | Comprehensive SRS Test Suite + Deploy | 97-test `srs-comprehensive.test.tsx` covering ALL SRS features; deployed fix to AWS; ALL 42 smoke checks passed; **806 tests** (29 files) |
 
 ---
 

@@ -497,7 +497,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 628 tests across 27 files (all passing)
+- **Current count**: 806 tests across 29 files (all passing)
 
 ---
 
@@ -640,7 +640,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (27 files, 628 tests)**
+**Tests (29 files, 806 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -670,6 +670,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
 | `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
 | `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |
+| `src/__tests__/srs-comprehensive.test.tsx` | 97 | **Comprehensive SRS feature suite**: search rendering (5), accessibility (7), search behavior (6), result layout fields (8), clear (4), selection (3), keyboard nav (7), Optum regression (3), smart-sort edge cases (7), score gauge (8), detail card (13), trend chart (5), overview (4), shard extractors (6), asScores mapping (6), wage/SOC sort extras (4) |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |
