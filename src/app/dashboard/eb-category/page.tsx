@@ -13,7 +13,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Legend,
 } from "recharts";
-import { TrendingUp, AlertTriangle, Activity, ArrowUpRight, ArrowDownRight, Minus, History } from "lucide-react";
+import { TrendingUp, AlertTriangle, Activity, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui";
 import { GlassCard } from "@/components/ui";
 import {
@@ -183,19 +183,19 @@ function SummaryRow({
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-[var(--muted-foreground)]">12m avg velocity</p>
+                  <p className="text-[var(--muted-foreground)]">12m avg</p>
                   <p className="font-mono text-sm text-[var(--foreground)]">
                     {s.avgAdvancement !== null ? `${formatNumber(s.avgAdvancement, 1)} d/mo` : "—"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[var(--muted-foreground)]">Retrogressions (12m)</p>
-                  <p className={`font-mono text-sm ${s.retrogressions > 0 ? "text-rose-400" : "text-emerald-400"}`}>
-                    {s.retrogressions > 0 ? `${s.retrogressions} mo` : "None"}
+                  <p className="text-[var(--muted-foreground)]">10yr avg</p>
+                  <p className="font-mono text-sm text-[var(--foreground)]">
+                    {s.netVelocity !== null ? `${formatNumber(s.netVelocity, 1)} d/mo` : "—"}
                   </p>
                 </div>
               </div>
-              <div className="text-xs flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
+              <div className="text-xs flex items-center gap-2 pt-1 border-t border-white/[0.06]">
                 <span className="text-[var(--muted-foreground)]">Trend:</span>
                 <span className={
                   s.prediction === "Advancing" ? "text-emerald-400"
@@ -204,6 +204,9 @@ function SummaryRow({
                 }>
                   {s.prediction}
                 </span>
+                {s.retrogressions > 0 && (
+                  <span className="ml-auto text-rose-400">{s.retrogressions} retrogression{s.retrogressions > 1 ? "s" : ""}</span>
+                )}
               </div>
             </GlassCard>
           </StaggerItem>
@@ -222,9 +225,6 @@ export default function EbCategoryDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState("IND");
-  // Default to last 36 months so the chart shows current momentum,
-  // not the 2016–2018 retrogression era where EB2 India was temporarily slower.
-  const [showFullHistory, setShowFullHistory] = useState(false);
 
   useEffect(() => {
     loadCategoryMovement()
@@ -250,14 +250,14 @@ export default function EbCategoryDashboardPage() {
     [data, selectedCountry]
   );
 
-  const historyN = showFullHistory ? undefined : 36;
+  // Always show full 10-year window (data is already filtered to 10yr in P2)
   const dffChartData = useMemo(
-    () => buildVelocityTimeline(data, selectedCountry, "DFF", historyN),
-    [data, selectedCountry, historyN]
+    () => buildVelocityTimeline(data, selectedCountry, "DFF"),
+    [data, selectedCountry]
   );
   const fadChartData = useMemo(
-    () => buildVelocityTimeline(data, selectedCountry, "FAD", historyN),
-    [data, selectedCountry, historyN]
+    () => buildVelocityTimeline(data, selectedCountry, "FAD"),
+    [data, selectedCountry]
   );
 
   if (loading) {
@@ -339,42 +339,19 @@ export default function EbCategoryDashboardPage() {
         {/* Velocity Charts — DFF and FAD side by side */}
         <FadeIn>
           <GlassCard className="p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-400" />
-                <h2 className="text-base font-semibold text-[var(--foreground)]">
-                  Velocity Charts — EB1 / EB2 / EB3
-                </h2>
-              </div>
-              {/* History window toggle */}
-              <div className="flex items-center gap-1">
-                <History className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                <span className="text-xs text-[var(--muted-foreground)] mr-1">Window:</span>
-                <div className="flex gap-1">
-                  {[
-                    { label: "Recent 3yr", full: false },
-                    { label: "Full History", full: true },
-                  ].map(({ label, full }) => (
-                    <button
-                      key={label}
-                      onClick={() => setShowFullHistory(full)}
-                      className={`px-2.5 py-1 text-[11px] rounded-full transition-all ${
-                        showFullHistory === full
-                          ? "bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/40"
-                          : "bg-white/5 text-[var(--muted-foreground)] hover:bg-white/10"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-400" />
+              <h2 className="text-base font-semibold text-[var(--foreground)]">
+                Velocity Charts — EB1 / EB2 / EB3
+              </h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--muted-foreground)] border border-white/[0.08]">
+                10-year window
+              </span>
             </div>
 
             <p className="text-xs text-[var(--muted-foreground)]">
-              Trailing 12-month rolling average of calendar days advanced per bulletin month.
-              Country: <strong className="text-[var(--foreground)]">{COUNTRY_LABELS[selectedCountry] ?? selectedCountry}</strong>.{" "}
-              {!showFullHistory && "Showing last 3 years — use \"Full History\" to see all data since 2016."}
+              Trailing 12-month rolling average of calendar days advanced per bulletin month — last 10 years.
+              Country: <strong className="text-[var(--foreground)]">{COUNTRY_LABELS[selectedCountry] ?? selectedCountry}</strong>.
             </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -416,16 +393,21 @@ export default function EbCategoryDashboardPage() {
                   cards and charts — it reflects current momentum, not all-time averages.
                 </p>
                 <p>
-                  <strong className="text-[var(--foreground)]">Why EB2 &gt; EB3 now</strong>{" "}
-                  (despite appearing slower in some historical charts): EB2 India experienced
-                  significant retrogressions in 2016–2018, dragging its multi-year average down.
-                  Since 2022, EB2 India has been advancing faster than EB3 on a trailing 12-month
-                  basis. The &quot;Recent 3yr&quot; view shows this clearly.
+                  <strong className="text-[var(--foreground)]">10yr avg velocity:</strong>{" "}
+                  Net calendar days the cutoff advanced per month, measured over the 10-year data
+                  window (always sliding — last 10 years from the current build date). This reflects
+                  the long-run rate including retrogression periods.
+                </p>
+                <p>
+                  <strong className="text-[var(--foreground)]">12m avg velocity:</strong>{" "}
+                  Trailing 12-month rolling average — reflects current momentum rather than
+                  the full-decade average. Often diverges from the 10yr avg after sustained
+                  acceleration or retrogression periods.
                 </p>
                 <p>
                   <strong className="text-[var(--foreground)]">Retrogressions:</strong>{" "}
                   Count of bulletin months in the last 12 where the cutoff date moved backward.
-                  A value of 0 means the category advanced or stayed flat every month.
+                  Shown in the card footer when non-zero.
                 </p>
                 <p className="pt-2 border-t border-white/[0.06]">
                   Source: Department of State Visa Bulletin, processed by P2 Meridian
