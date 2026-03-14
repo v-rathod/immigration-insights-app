@@ -722,3 +722,97 @@ describe("backlog data", () => {
     expect(BACKLOG_COUNTRIES).toEqual(["IND", "CHN", "ROW"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// EB Category — Live-data regression (loads real JSON, no mocks)
+//
+// DEFECT GUARD: EB3 India appeared faster than EB2 India in the summary cards
+// because the blended_velocity metric is biased by the 2015-2020 EB3 historical
+// catch-up period. The fix: show avg_monthly_advancement_days (12-month rolling
+// avg) as "Recent (12m avg)". This test guards that the RECENT metric correctly
+// shows EB2 India DFF faster than EB3 India DFF.
+// ---------------------------------------------------------------------------
+import { readFileSync } from "fs";
+import { join } from "path";
+import type { CategoryMovementMetric as CMMetric } from "@/types/p2-artifacts";
+
+describe("EB Category live-data regression", () => {
+  const rawPath = join(
+    process.cwd(),
+    "public",
+    "data",
+    "dashboards",
+    "eb-category",
+    "category_movement_metrics.json"
+  );
+  const allData: CMMetric[] = JSON.parse(readFileSync(rawPath, "utf-8"));
+
+  /** Get latest row for a given category/country/chart */
+  function latestFor(cat: string, country: string, chart: string): CMMetric | undefined {
+    return allData
+      .filter((r) => r.category === cat && r.country === country && r.chart === chart)
+      .sort((a, b) => a.bulletin_year * 100 + a.bulletin_month - (b.bulletin_year * 100 + b.bulletin_month))
+      .at(-1);
+  }
+
+  it("loads non-empty data (sanity)", () => {
+    expect(allData.length).toBeGreaterThan(1000);
+  });
+
+  it("data spans at least 8 years", () => {
+    const years = new Set(allData.map((r) => r.bulletin_year));
+    expect(years.size).toBeGreaterThanOrEqual(8);
+  });
+
+  it("all 3 EB categories present for India DFF", () => {
+    for (const cat of ["EB1", "EB2", "EB3"]) {
+      const found = allData.some(
+        (r) => r.category === cat && r.country === "IND" && r.chart === "DFF"
+      );
+      expect(found, `${cat} IND DFF missing`).toBe(true);
+    }
+  });
+
+  // ── DEFECT GUARD ──────────────────────────────────────────────────────────
+  // India DFF: recent 12m avg should show EB2 >= EB3
+  // (historically EB3 appeared faster due to catch-up; recent signals the opposite)
+  it("India DFF: EB2 recent velocity (12m avg) >= EB3 recent velocity", () => {
+    const eb2 = latestFor("EB2", "IND", "DFF");
+    const eb3 = latestFor("EB3", "IND", "DFF");
+    expect(eb2, "EB2 IND DFF not found").toBeDefined();
+    expect(eb3, "EB3 IND DFF not found").toBeDefined();
+    const eb2Avg = eb2!.avg_monthly_advancement_days ?? 0;
+    const eb3Avg = eb3!.avg_monthly_advancement_days ?? 0;
+    expect(eb2Avg).toBeGreaterThanOrEqual(eb3Avg);
+  });
+
+  it("India FAD: EB2 recent velocity (12m avg) >= EB3 recent velocity", () => {
+    const eb2 = latestFor("EB2", "IND", "FAD");
+    const eb3 = latestFor("EB3", "IND", "FAD");
+    expect(eb2, "EB2 IND FAD not found").toBeDefined();
+    expect(eb3, "EB3 IND FAD not found").toBeDefined();
+    const eb2Avg = eb2!.avg_monthly_advancement_days ?? 0;
+    const eb3Avg = eb3!.avg_monthly_advancement_days ?? 0;
+    expect(eb2Avg).toBeGreaterThanOrEqual(eb3Avg);
+  });
+
+  // ── blended_velocity is always non-negative (code clamps to max(b, 0)) ────
+  it("blended_velocity is non-negative for all IND rows (clamp enforced)", () => {
+    const indRows = allData.filter((r) => r.country === "IND");
+    for (const r of indRows) {
+      if (r.blended_velocity != null) {
+        expect(r.blended_velocity).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  // avg_monthly_advancement_days CAN be negative (retrogression months move
+  // the cutoff backward). Just verify it's always a finite number when present.
+  it("avg_monthly_advancement_days is a finite number when present (retrogressions allowed to be negative)", () => {
+    for (const r of allData) {
+      if (r.avg_monthly_advancement_days != null) {
+        expect(Number.isFinite(r.avg_monthly_advancement_days)).toBe(true);
+      }
+    }
+  });
+});

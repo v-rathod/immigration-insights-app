@@ -211,7 +211,49 @@ const CHECKS = [
   { path: '/data/dashboards/visa-bulletin/fact_cutoffs_all.json',   label: 'All visa cutoffs (historical)', headOnly: true, minSize: 10_000 },
 
   // ── EB Category dashboard data ───────────────────────────────────────────────
-  { path: '/data/dashboards/eb-category/category_movement_metrics.json', label: 'EB category movement metrics', headOnly: true, minSize: 10_000 },
+  // DEFECT GUARD: validate EB2/EB3 India velocity data is sane.
+  // Previously blended_velocity made EB3 appear faster than EB2 (historical bias).
+  // Fix: display avg_monthly_advancement_days (12m rolling avg) as "Recent" metric.
+  {
+    path: '/data/dashboards/eb-category/category_movement_metrics.json',
+    label: 'EB category movement metrics — data quality',
+    minSize: 10_000,
+    validate: (d) => {
+      if (!Array.isArray(d) || d.length < 1000)
+        throw new Error(`Only ${Array.isArray(d) ? d.length : 'non-array'} rows (need ≥ 1,000)`);
+
+      // All 3 EB categories must be present for India DFF
+      for (const cat of ['EB1', 'EB2', 'EB3']) {
+        const found = d.some(r => r.category === cat && r.country === 'IND' && r.chart === 'DFF');
+        if (!found) throw new Error(`Missing ${cat} IND DFF rows`);
+      }
+
+      // Get latest row per category for India DFF
+      function latestFor(cat, country, chart) {
+        return d
+          .filter(r => r.category === cat && r.country === country && r.chart === chart)
+          .sort((a, b) => a.bulletin_year * 100 + a.bulletin_month - (b.bulletin_year * 100 + b.bulletin_month))
+          .at(-1);
+      }
+
+      // DEFECT GUARD: EB2 India recent velocity must be >= EB3 India
+      const eb2Dff = latestFor('EB2', 'IND', 'DFF');
+      const eb3Dff = latestFor('EB3', 'IND', 'DFF');
+      if (!eb2Dff || !eb3Dff) throw new Error('Missing EB2 or EB3 IND DFF latest row');
+      const eb2Avg = eb2Dff.avg_monthly_advancement_days ?? 0;
+      const eb3Avg = eb3Dff.avg_monthly_advancement_days ?? 0;
+      if (eb2Avg < eb3Avg) {
+        throw new Error(
+          `DEFECT: EB2 India DFF recent velocity (${eb2Avg.toFixed(1)}) < EB3 (${eb3Avg.toFixed(1)}). ` +
+          `Check blended_velocity bias or data regression.`
+        );
+      }
+
+      // avg_monthly_advancement_days must be non-negative
+      const negAdv = d.filter(r => r.avg_monthly_advancement_days != null && r.avg_monthly_advancement_days < 0);
+      if (negAdv.length > 0) throw new Error(`${negAdv.length} rows with negative avg_monthly_advancement_days`);
+    },
+  },
 
   // ── Geographic dashboard data ────────────────────────────────────────────────
   { path: '/data/dashboards/geographic/worksite_geo_metrics.json', label: 'Geographic worksite metrics', headOnly: true, minSize: 30_000 },

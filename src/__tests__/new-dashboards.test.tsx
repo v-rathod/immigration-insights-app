@@ -329,7 +329,7 @@ describe("EB Category Dashboard", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     });
-    expect(screen.getByText("Blended Priority Date Velocity")).toBeTruthy();
+    expect(screen.getByText("Priority Date Velocity (12-Month Rolling Avg)")).toBeTruthy();
   });
 
   it("renders methodology section", async () => {

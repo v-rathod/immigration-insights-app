@@ -77,7 +77,9 @@ export default function EbCategoryDashboardPage() {
     [data, selectedCountry, selectedChart]
   );
 
-  // Build time-series for the velocity comparison chart
+  // Build time-series for the velocity comparison chart using 12m rolling avg
+  // (avg_monthly_advancement_days). This shows current momentum per category,
+  // not the full-history blended metric which is biased by historical catch-up.
   const velocityChartData = useMemo(() => {
     if (!data.length) return [];
     const seriesMap = new Map<string, CategoryMovementMetric[]>();
@@ -91,7 +93,7 @@ export default function EbCategoryDashboardPage() {
       for (const r of series) {
         const key = `${r.bulletin_year}-${String(r.bulletin_month).padStart(2, "0")}`;
         const existing = timeline.get(key) ?? { date: key };
-        existing[cat] = r.blended_velocity ?? r.avg_monthly_advancement_days;
+        existing[cat] = r.avg_monthly_advancement_days ?? null;
         timeline.set(key, existing);
       }
     }
@@ -205,18 +207,18 @@ export default function EbCategoryDashboardPage() {
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-[var(--muted-foreground)]">Velocity</p>
+                    <p className="text-[var(--muted-foreground)]">Recent (12m avg)</p>
                     <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.blendedVelocity !== null
-                        ? `${formatNumber(s.blendedVelocity, 1)} days/mo`
+                      {s.avgAdvancement !== null
+                        ? `${formatNumber(s.avgAdvancement, 1)} days/mo`
                         : "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[var(--muted-foreground)]">Net Velocity</p>
+                    <p className="text-[var(--muted-foreground)]">Blended Avg</p>
                     <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.netVelocity !== null
-                        ? `${formatNumber(s.netVelocity, 1)} days/mo`
+                      {s.blendedVelocity !== null
+                        ? `${formatNumber(s.blendedVelocity, 1)} days/mo`
                         : "—"}
                     </p>
                   </div>
@@ -247,12 +249,13 @@ export default function EbCategoryDashboardPage() {
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-5 w-5 text-purple-400" />
               <h2 className="text-lg font-semibold text-[var(--foreground)]">
-                Blended Priority Date Velocity
+                Priority Date Velocity (12-Month Rolling Avg)
               </h2>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] mb-5">
-              Blended velocity (50% full-history net + 25% capped rolling-24m + 25% capped rolling-12m)
-              per EB category: {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
+              Trailing 12-month average calendar days advanced per bulletin month per EB category.
+              Reflects current momentum, not long-term averages.
+              Country: {COUNTRY_LABELS[selectedCountry] ?? selectedCountry},{" "}
               {selectedChart === "DFF" ? "Dates for Filing" : "Final Action Dates"}
             </p>
 
@@ -357,15 +360,18 @@ export default function EbCategoryDashboardPage() {
                   consistent across all NorthStar artifacts.
                 </p>
                 <p>
-                  <strong>Blended Velocity:</strong> Weighted combination of
-                  50% full-history net velocity + 25% capped rolling-24m mean +
-                  25% capped rolling-12m mean. This smooths out burst
-                  advancement spikes while reflecting long-term trends.
+                  <strong>Recent (12m avg):</strong> Trailing 12-month rolling
+                  average of calendar days the cutoff date advanced per bulletin
+                  month. This is the primary metric for comparing which category
+                  is advancing faster right now.
                 </p>
                 <p>
-                  <strong>Net Velocity:</strong> Full-history average
-                  advancement from the first recorded cutoff date to the
-                  current date, in days per month.
+                  <strong>Blended Avg:</strong> Weighted combination of
+                  50% full-history net + 25% capped rolling-24m + 25% capped
+                  rolling-12m velocity. Useful for long-range wait-time
+                  estimation but can be skewed by historical catch-up patterns
+                  (e.g., India EB3 had faster movement 2015–2020 closing a
+                  larger backlog, which inflates its blended figure).
                 </p>
                 <p>
                   <strong>Prediction:</strong> Based on recent velocity trend
