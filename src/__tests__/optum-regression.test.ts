@@ -153,12 +153,15 @@ describe("Optum Services (78a46d3917846d886ef35fe989075cb353f21a1d) — Live-Dat
     expect(validYears).toBe(true);
   });
 
-  it("wage_annual values are positive numbers (not NaN/null)", () => {
+  it("wage_annual values are non-negative numbers (not NaN/null); 0 means capped outlier", () => {
     const valid = lcaRecords.every((r) => {
       const wage = r.wage_annual ?? 0;
-      return typeof wage === "number" && wage > 0;
+      return typeof wage === "number" && wage >= 0;
     });
     expect(valid).toBe(true);
+    // Majority should still have positive wages
+    const positive = lcaRecords.filter((r) => (r.wage_annual ?? 0) > 0);
+    expect(positive.length / lcaRecords.length).toBeGreaterThan(0.95);
   });
 
   // ───────────────────────────────────────────────────────────────────────

@@ -746,8 +746,19 @@ def sync_employer_raw_filings():
         multiplier = multiplier.where(~unit.str.contains("month"), 12)
         lca["wage_annual"] = (w * multiplier).round(0).astype(int)
 
+        # Cap outlier wages — DOL raw data contains data-entry errors
+        # (e.g. hourly rate filed as annual, producing $1B+ salaries).
+        # Consistent with P2's $5K–$1M bounds; set to 0 so UI shows "—".
+        _outlier_mask = (lca["wage_annual"] < 5_000) | (lca["wage_annual"] > 1_000_000)
+        _n_capped = int(_outlier_mask.sum())
+        if _n_capped:
+            lca.loc[_outlier_mask, "wage_annual"] = 0
+            print(f"    ⚡ Wage outlier cap: nulled {_n_capped:,} records outside [$5K, $1M]")
+
         w_hi = lca["wage_rate_to"].fillna(0)
         lca["wage_annual_high"] = (w_hi * multiplier).round(0).astype("Int64")
+        # Cap high end too
+        lca.loc[lca["wage_annual_high"] > 1_000_000, "wage_annual_high"] = pd.NA
         # Set null where high == 0 or <= wage_annual
         lca.loc[lca["wage_annual_high"] <= 0, "wage_annual_high"] = pd.NA
 
