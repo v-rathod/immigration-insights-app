@@ -1,5 +1,76 @@
 # Compass Progress Tracker
 
+## 2026-03-14 — Milestone 10.67: 10-Year Rolling Window for EB Category Velocity
+
+### Objective
+Investigate EB3 > EB2 velocity display inconsistency. Fix root cause by implementing a 10-year rolling window in P2 data generation and redesigning the EB category dashboard to show both 12-month momentum and 10-year average velocities.
+
+### What Was Done
+
+1. **Root cause diagnosis** — Analysis revealed `blended_velocity` metric (50% full-history net + 25% rolling-24m + 25% rolling-12m) was inflated by historical catch-up dynamics: EB3 India cutoff started at 2005-07-01 (2015 retrospective) vs EB2 India at 2009-07-01, so EB3 had to advance further calendar distance 2015–2020, permanently inflating its historical net velocity in the blended metric. The data was correct; the metric was misleading.
+
+2. **`scripts/make_category_movement_metrics.py` (P2)** — Implemented dynamic 10-year rolling window:
+   - Added filter in `main()` using `datetime.now(timezone.utc) - 10 years`
+   - Window applied BEFORE metric computation — `net_velocity` and `blended_velocity` now computed from 10yr data only
+   - Dynamic: re-running the script auto-slides to the last 10 years from current system date
+   - Regenerated artifact: `category_movement_metrics.parquet` — 6,550 rows (down from ~8,060), spans 2016-03 to 2026-03
+   - Verification: `avg_monthly_advancement_days` (12m rolling avg) correctly shows EB2 ≥ EB3 across all countries/charts
+   - **Commit P2**: `82c38ee` "feat: 10-year rolling window for category_movement_metrics"
+
+3. **P3 Data Sync** — Created targeted sync script (`/tmp/sync_eb_category.py`):
+   - Synced `category_movement_metrics.parquet` → `public/data/dashboards/eb-category/category_movement_metrics.json`
+   - Output: 6,550 records, 2.0 MB JSON
+   - All 54 dashboard-data-loaders tests passing
+   - **Commit P3 data**: `8c16e2c` "data: refresh category_movement_metrics — 10-year rolling window"
+
+4. **UI Redesign** — `src/app/dashboard/eb-category/page.tsx`:
+   - Removed `History` import and DFF/FAD toggle — now show all 6 cards simultaneously (EB1/EB2/EB3 × DFF/FAD)
+   - Removed "Recent 3yr / Full History" window toggle button entirely
+   - Card metrics: Two columns displaying side-by-side:
+     - "12m avg" — `avg_monthly_advancement_days` (current momentum, short-term trend)
+     - "10yr avg" — `net_velocity` (long-run rate, includes retrogression periods like 2016–2018 India EB2)
+   - Retrogressions: Moved to card footer line, shown in red only when > 0
+   - Chart: Always displays full 10-year window (2016-03 to 2026-03); added "10-year window" badge to title
+   - Updated methodology text explaining both velocity metrics
+   - Removed `showFullHistory` useState — no longer needed
+   - **Commit P3 UI**: `30c0509` "feat: show 10yr avg velocity on EB category cards, always display full 10yr chart"
+
+5. **Testing** — All regression tests passing:
+   - EB category dashboard tests: 34 passing
+   - Full test suite: **863 tests passing** (30 files)
+   - No regressions introduced
+
+### Results
+| Metric | Status |
+|--------|--------|
+| Root cause (EB3 > EB2) | ✅ Identified: blended_velocity inflated by historical catch-up |
+| P2 10-year filter | ✅ Dynamic window: `now - 10 years` to `now` |
+| P2 artifact regenerated | ✅ 6,550 rows (2016-03 to 2026-03, 113 unique bulletins) |
+| P3 data synced | ✅ JSON refreshed from P2 |
+| P3 UI redesigned | ✅ 6 cards, 2 velocity metrics displayed, no toggle |
+| All tests passing | ✅ **863/863** (30 files) |
+| GitHub commits | ✅ P2: `82c38ee`, P3 data: `8c16e2c`, P3 UI: `30c0509` |
+| AWS deployment | ⏳ Not deployed (per user standing instruction) |
+
+### Key Technical Insights
+- **`avg_monthly_advancement_days`**: 12-month trailing rolling average — primary display, shows current momentum
+- **`net_velocity`**: Now represents 10-year average (with retrogression periods) — long-run rate visible on cards as "10yr avg"
+- **`blended_velocity`**: 50% full-hist net + 25% r24 + 25% r12 — no longer displayed (was misleading due to historical bias)
+- **Data window**: Dynamic in P2 (re-runnable), fixed at build time in P3 (2016-03 to 2026-03)
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/make_category_movement_metrics.py` (P2) | Added 10-year rolling window filter before metric computation |
+| `public/data/dashboards/eb-category/category_movement_metrics.json` (P3) | Synced from P2 (6,550 records, 2.0 MB) |
+| `src/app/dashboard/eb-category/page.tsx` (P3) | Removed toggle, show 6 cards + 2 velocity metrics, always 10yr chart |
+| `src/__tests__/new-dashboards.test.tsx` (P3) | Updated 3 test assertions (card layout, chart title) |
+
+### User Standing Instruction
+Do NOT push changes to AWS unless explicitly requested. User will decide when to deploy.
+
+---
+
 ## 2026-03-13 — Milestone 10.66: Comprehensive SRS Test Suite + Deployment with Fix
 
 ### Objective

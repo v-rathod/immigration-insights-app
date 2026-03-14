@@ -55,9 +55,9 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 12, 2026)
-- **P3**: ✅ **CI PASSING** — 628 tests passing (27 files), TypeScript strict, ESLint 0 errors, all dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
-- **P2**: 562 tests passing, data pipeline clean & stable, all 46 data artifacts + 341 RAG chunks export successfully
+### Current Project Status (as of Mar 14, 2026)
+- **P3**: ✅ **863 TESTS PASSING** (30 files), TypeScript strict, ESLint 0 errors, EB category velocity redesigned with 10-year rolling window, all 9 dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
+- **P2**: Latest artifact with 10-year rolling window applied to category_movement_metrics (6,550 rows, 2016-03 to 2026-03), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
 
@@ -67,21 +67,22 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
-### Recent Session Notes (Mar 12, 2026)
-**Milestone 10.50 Complete**: CI Pass — Comprehensive Lint & TypeScript Fix
-- Discovered & fixed 26 ESLint errors across 8 files (pre-existing, exposed after React 18 downgrade) ✅
-- Fixed `@typescript-eslint/no-require-imports` (7 errors) → ES module imports ✅
-- Fixed `@typescript-eslint/no-explicit-any` (8 errors) → typed React components ✅
-- Fixed `react/no-unescaped-entities` (2 errors) → `&apos;` escaping ✅
-- Fixed `react-hooks/set-state-in-effect` (2 errors) + `react-hooks/static-components` (7 errors) → extract components + disable comments ✅
-- Blocked GitHub push (secret scanning) → removed `.wingman/history/`, updated `.gitignore` ✅
-- **CI run 23014959636**: ✅ PASSING — 628 tests, 0 lint errors, TypeScript strict clean ✅
+### Recent Session Notes (Mar 14, 2026)
+**Milestone 10.67 Complete**: 10-Year Rolling Window for EB Category Velocity
+- **Bug Investigation**: EB3 velocity > EB2 velocity (India DFF: 30.7 vs 19.0) — root cause identified as `blended_velocity` metric inflated by historical catch-up (EB3 2005 cutoff vs EB2 2009 cutoff) ✅
+- **P2 Fix**: Implemented dynamic 10-year rolling window in `scripts/make_category_movement_metrics.py` — window applied before metric computation, re-runnable, regenerated artifact: 6,550 rows (2016-03 to 2026-03) ✅
+- **P3 Data Sync**: Synced P2 artifact to JSON — 2.0 MB, 6,550 records ✅
+- **P3 UI Redesign**: Removed DFF/FAD toggle, show 6 cards (EB1/2/3 × DFF/FAD), display both 12m avg + 10yr avg velocities side-by-side, always show full 10yr chart ✅
+- **Testing**: All 863 tests passing (30 files), no regressions ✅
+- **Commits**: P2 `82c38ee`, P3 data `8c16e2c`, P3 UI `30c0509` ✅
+- **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 
-**Key Documentation Updated**:
-- P1 PROGRESS.md: Created (Milestone 1)
-- P2 PROGRESS.md: Added Milestone 22
-- P3 PROGRESS.md: Added Milestone 10.41
-- All copilot-instructions.md: Updated with Mar 10 status
+**Key Metrics**:
+- 12m rolling avg (current momentum) vs 10yr avg (long-run rate) both visible on cards
+- Data window dynamic in P2 (always last 10 years), fixed at build in P3
+- EB2 ≥ EB3 now holds correctly across all countries/charts in 10yr window
+
+**Standing Instruction**: Do NOT deploy to AWS without explicit user request
 
 ---
 
