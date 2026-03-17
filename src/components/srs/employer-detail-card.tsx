@@ -125,12 +125,12 @@ export function EmployerDetailCard({
       tooltip: "Median offered wage as a percentage of OEWS prevailing wage for this occupation and location",
     },
     {
-      label: "SOC Breadth",
+      label: "Job Category Breadth",
       value: formatNumber(employer.soc_breadth_24m),
       icon: Briefcase,
       color: "text-purple-400",
-      suffix: "occupations",
-      tooltip: "Distinct occupation codes (SOC) sponsored in the last 24 months",
+      suffix: "categories",
+      tooltip: "Number of distinct job categories sponsored in the last 24 months",
     },
     {
       label: "Site Breadth",

@@ -207,7 +207,7 @@ A grid of six metric cards:
 - **Denial Rate (24m):** What % were denied
 - **Total Cases (36m):** How many cases were filed in the last 36 months (higher = more experience)
 - **Wage Ratio:** Your employer's median offered wage compared to the prevailing wage (higher = better)
-- **SOC Breadth:** How many different job categories your employer has sponsored (higher = diverse sponsorship)
+- **Job Category Breadth:** How many different job categories your employer has sponsored (higher = diverse sponsorship)
 - **Site Breadth:** How many different work locations your employer has sponsored applicants from
 
 ---
@@ -366,7 +366,7 @@ An 8-cell metrics grid showing PERM and H-1B signal data side-by-side:
 | **H-1B Filings (36m)** | Total number of H-1B (LCA) applications filed with the Department of Labor in the past 36 months. Reflects temporary visa sponsorship volume. |
 | **H-1B per GC Filing** | Ratio of H-1B LCA filings to PERM (GC) filings. **≤3× = GC-committed (green)**, 3–10× = typical (amber), 10×+ = H-1B-heavy (red). A lower ratio indicates an employer that actively sponsors workers for green cards, not just extending H-1B status. |
 | **Wage Ratio (Median)** | Employer's median offered wage ÷ prevailing wage for the same role; above 100% is above prevailing wage. Shows competitiveness. |
-| **SOC Breadth** | Number of distinct job categories (SOC codes) sponsored — indicates how broadly the employer sponsors diverse roles. |
+| **Job Category Breadth** | Number of distinct job categories sponsored — indicates how broadly the employer sponsors diverse roles. |
 | **Site Breadth** | Number of distinct work locations (states) sponsored — indicates geographic spread of hiring. |
 
 **Interpretation tips:**

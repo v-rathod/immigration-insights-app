@@ -1110,7 +1110,7 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("H-1B Filings (36m)")).toBeDefined();
     expect(screen.getByText("H-1B per GC Filing")).toBeDefined();
     expect(screen.getByText("Wage Ratio (Median)")).toBeDefined();
-    expect(screen.getByText("SOC Breadth")).toBeDefined();
+    expect(screen.getByText("Job Category Breadth")).toBeDefined();
     expect(screen.getByText("Site Breadth")).toBeDefined();
   });
 
@@ -1187,12 +1187,12 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("—")).toBeDefined();
   });
 
-  it("displays SOC breadth with 'occupations' suffix", () => {
+  it("displays Job Category breadth with 'categories' suffix", () => {
     render(
       <EmployerDetailCard employer={makeSrs({ soc_breadth_24m: 15 })} />
     );
     expect(screen.getByText("15")).toBeDefined();
-    expect(screen.getByText("occupations")).toBeDefined();
+    expect(screen.getByText("categories")).toBeDefined();
   });
 
   it("displays site breadth with 'locations' suffix", () => {
