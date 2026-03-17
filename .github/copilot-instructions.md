@@ -55,8 +55,8 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 14, 2026)
-- **P3**: ✅ **863 TESTS PASSING** (30 files), TypeScript strict, ESLint 0 errors, EB category velocity redesigned with 10-year rolling window, all 9 dashboards live with interactive tech stack, 95K+ employer shards with FY2023 data + employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
+### Current Project Status (as of Mar 17, 2026)
+- **P3**: ✅ **867 TESTS PASSING** (30 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: Latest artifact with 10-year rolling window applied to category_movement_metrics (6,550 rows, 2016-03 to 2026-03), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: Data collection pipeline (reference; not active in this session)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -67,14 +67,13 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
-### Recent Session Notes (Mar 14, 2026)
-**Milestone 10.67 Complete**: 10-Year Rolling Window for EB Category Velocity
-- **Bug Investigation**: EB3 velocity > EB2 velocity (India DFF: 30.7 vs 19.0) — root cause identified as `blended_velocity` metric inflated by historical catch-up (EB3 2005 cutoff vs EB2 2009 cutoff) ✅
-- **P2 Fix**: Implemented dynamic 10-year rolling window in `scripts/make_category_movement_metrics.py` — window applied before metric computation, re-runnable, regenerated artifact: 6,550 rows (2016-03 to 2026-03) ✅
-- **P3 Data Sync**: Synced P2 artifact to JSON — 2.0 MB, 6,550 records ✅
-- **P3 UI Redesign**: Removed DFF/FAD toggle, show 6 cards (EB1/2/3 × DFF/FAD), display both 12m avg + 10yr avg velocities side-by-side, always show full 10yr chart ✅
-- **Testing**: All 863 tests passing (30 files), no regressions ✅
-- **Commits**: P2 `82c38ee`, P3 data `8c16e2c`, P3 UI `30c0509` ✅
+### Recent Session Notes (Mar 17, 2026)
+**Milestone 10.70 Complete**: Green Card Sponsorship Transparency in SRS Dashboard
+- **Investigation**: Found P2 employer ID system uses identical SHA-1 canonical IDs across LCA and PERM datasets ✅
+- **UI Enhancement**: EmployerDetailCard expanded from 6 to 8 stats, added "H-1B per GC Filing" ratio with color-coded GC commitment signal (≤3×/emerald, 3-10×/amber, 10×+/rose) ✅
+- **Data**: Already in shards (no P2 rebuild needed) — `lca_to_perm_ratio` + `lca_filings_36m` + renamed PERM labels for clarity ✅
+- **Testing**: 4 new test cases, all 867 tests passing (30 files), no regressions ✅
+- **Commits**: P3 Petition History `900f2a4` pushed, SRS UI `a931462`, docs `53cbb14` (local) ✅
 - **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 
 **Key Metrics**:
@@ -498,7 +497,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 806 tests across 29 files (all passing)
+- **Current count**: 867 tests across 30 files (all passing)
 
 ---
 
@@ -538,7 +537,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-### Current File Inventory (as of Milestone 10.43)
+### Current File Inventory (as of Milestone 10.70)
 
 ### Source Files (75+ files)
 
@@ -641,7 +640,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (29 files, 806 tests)**
+**Tests (30 files, 867 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |

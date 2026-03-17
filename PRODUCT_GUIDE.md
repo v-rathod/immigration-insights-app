@@ -356,15 +356,23 @@ Below the gauge, five labeled horizontal bars show which factors drive the overa
 
 ### Employer Detail Card
 
-A 6-cell metrics grid:
+An 8-cell metrics grid showing PERM and H-1B signal data side-by-side:
+
 | Metric | Definition |
 |--------|-----------|
-| **Approval Rate (24m)** | Percentage of PERM applications approved in the past 24 months |
-| **Denial Rate (24m)** | Percentage of PERM applications denied in the past 24 months |
-| **Cases (36m)** | Total number of PERM and LCA cases filed in the past 36 months |
-| **Wage Ratio (Median)** | Employer's median offered wage ÷ prevailing wage for the same role; above 1.0 is above prevailing wage |
-| **SOC Breadth** | Number of distinct job categories (SOC codes) sponsored — indicates how broadly the employer sponsors |
-| **Site Breadth** | Number of distinct work locations sponsored — indicates geographic spread of hiring |
+| **PERM Approval (36m)** | Percentage of green card (PERM) applications approved by the Department of Labor in the past 36 months. Higher is better. |
+| **PERM Denial (36m)** | Percentage of PERM applications denied in the past 36 months. Lower is better. Watch for trends. |
+| **PERM Filings (36m)** | Total number of green card (PERM) applications filed with the Department of Labor in the past 36 months. Reflects the employer's GC sponsorship volume. |
+| **H-1B Filings (36m)** | Total number of H-1B (LCA) applications filed with the Department of Labor in the past 36 months. Reflects temporary visa sponsorship volume. |
+| **H-1B per GC Filing** | Ratio of H-1B LCA filings to PERM (GC) filings. **≤3× = GC-committed (green)**, 3–10× = typical (amber), 10×+ = H-1B-heavy (red). A lower ratio indicates an employer that actively sponsors workers for green cards, not just extending H-1B status. |
+| **Wage Ratio (Median)** | Employer's median offered wage ÷ prevailing wage for the same role; above 100% is above prevailing wage. Shows competitiveness. |
+| **SOC Breadth** | Number of distinct job categories (SOC codes) sponsored — indicates how broadly the employer sponsors diverse roles. |
+| **Site Breadth** | Number of distinct work locations (states) sponsored — indicates geographic spread of hiring. |
+
+**Interpretation tips:**
+- High PERM approval rate + low H-1B per GC ratio = employer is serious about green cards
+- High denial rate = possible labor market test issues; review carefully
+- High H-1B per GC ratio = employer may use H-1B as long-term strategy rather than stepping stone to GC
 
 ---
 
