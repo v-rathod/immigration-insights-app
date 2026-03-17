@@ -1,5 +1,52 @@
 # Compass Progress Tracker
 
+## 2026-03-17 — Milestone 10.70: Green Card Sponsorship Transparency in SRS Dashboard
+
+### Objective
+Surface green card (PERM) data and H-1B/GC ratio signals directly in the Employer Detail Card on the SRS dashboard. Clarify that the SRS metrics are PERM-based, and give users a quick "GC commitment" signal for each employer.
+
+### What Was Done
+
+**Investigation (Previous Session Continuation):**
+- Completed employer ID architecture investigation across P2 artifacts
+- Confirmed `fact_lca` and `fact_perm` use identical SHA-1 canonical employer IDs — same normalization pipeline (`build_fact_perm.py`, `lca_loader.py`)
+- Confirmed PERM denial/approval rates ARE already the primary SRS signal (`outcome_subscore` = 40% = PERM-based `approval_rate_36m`)
+- Found `lca_to_perm_ratio` and `lca_filings_36m` already in employer shards but not surfaced in UI
+
+**P3 UI Enhancement — `EmployerDetailCard` (8 stats, was 6):**
+- Renamed: "Approval Rate (36m)" → "PERM Approval (36m)" — makes data source explicit
+- Renamed: "Denial Rate (36m)" → "PERM Denial (36m)" — makes data source explicit
+- Renamed: "Cases (36m)" → "PERM Filings (36m)" — "green card applications filed with DOL"
+- **Added: "H-1B Filings (36m)"** from `lca_filings_36m` — shows LCA filing volume alongside PERM
+- **Added: "H-1B per GC Filing"** from `lca_to_perm_ratio` — the GC commitment signal:
+  - ≤3× → emerald, "GC-committed"
+  - 3–10× → amber, "typical"
+  - 10×+ → rose, "H-1B-heavy"
+- Grid: `sm:grid-cols-3` → `sm:grid-cols-4` — 2 clean rows of 4 stats
+- Every stat tile now has a `title` tooltip explaining the metric
+- No P2 rebuild required — data was already in the shard
+
+**Example for Optum Services (India EB3):**
+- PERM Filings (36m): 522
+- PERM Approval: 96.2% | PERM Denial: 2.7%
+- H-1B Filings (36m): 1,787
+- H-1B per GC Filing: 3.4× → "typical"
+
+**Git:**
+- Pushed `900f2a4` (Petition History fix from Milestone 10.68) to GitHub ✅
+- Committed `a931462` (this milestone) — NOT pushed to AWS (standing instruction)
+
+### Test Results
+- **867 tests passing** (30 files), up from 863
+- 4 new test cases: PERM Filings label, H-1B filings, H-1B per GC ratio, GC-committed suffix
+- `srs-comprehensive.test.tsx` updated: 101 tests
+
+### Files Changed
+- `src/components/srs/employer-detail-card.tsx` — 8 stats, 4-col grid, tooltips, GC color logic
+- `src/__tests__/srs-comprehensive.test.tsx` — updated labels + 4 new detail card tests
+
+---
+
 ## 2026-03-16 — Milestone 10.69: Fix All GitHub Actions Workflows — Zero Failures
 
 ### Objective
@@ -259,7 +306,7 @@ Investigate EB3 > EB2 velocity display inconsistency. Fix root cause by implemen
 | P2 artifact regenerated | ✅ 6,550 rows (2016-03 to 2026-03, 113 unique bulletins) |
 | P3 data synced | ✅ JSON refreshed from P2 |
 | P3 UI redesigned | ✅ 6 cards, 2 velocity metrics displayed, no toggle |
-| All tests passing | ✅ **863/863** (30 files) |
+| All tests passing | ✅ **867/867** (30 files) |
 | GitHub commits | ✅ P2: `82c38ee`, P3 data: `8c16e2c`, P3 UI: `30c0509` |
 | AWS deployment | ⏳ Not deployed (per user standing instruction) |
 
@@ -3784,7 +3831,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.66 — 2026-03-13)
+## Quick Reference (Current State as of Milestone 10.70 — 2026-03-17)
 
 | Metric | Value |
 |--------|-------|
