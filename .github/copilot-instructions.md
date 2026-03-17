@@ -57,8 +57,8 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 
 ### Current Project Status (as of Mar 17, 2026)
 - **P3**: ✅ **867 TESTS PASSING** (30 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
-- **P2**: Latest artifact with 10-year rolling window applied to category_movement_metrics (6,550 rows, 2016-03 to 2026-03), all 46 data artifacts + 341 RAG chunks export successfully
-- **P1**: Data collection pipeline (reference; not active in this session)
+- **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
+- **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
 
 ### Common Workflow Patterns
@@ -68,11 +68,13 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
 ### Recent Session Notes (Mar 17, 2026)
-**Milestone 10.70 Complete**: Green Card Sponsorship Transparency in SRS Dashboard
-- **Investigation**: Found P2 employer ID system uses identical SHA-1 canonical IDs across LCA and PERM datasets ✅
-- **UI Enhancement**: EmployerDetailCard expanded from 6 to 8 stats, added "H-1B per GC Filing" ratio with color-coded GC commitment signal (≤3×/emerald, 3-10×/amber, 10×+/rose) ✅
-- **Data**: Already in shards (no P2 rebuild needed) — `lca_to_perm_ratio` + `lca_filings_36m` + renamed PERM labels for clarity ✅
-- **Testing**: 4 new test cases, all 867 tests passing (30 files), no regressions ✅
+**Milestone 10.71 Complete**: April 2026 Visa Bulletin End-to-End Pipeline
+- **P1**: Fetched visabulletin_April2026.pdf (353 KB) from travel.state.gov ✅
+- **P2**: Rebuilt fact_cutoffs (8,115 rows), cutoff_trends, category_movement_metrics (6,605), pd_forecasts (1,320) ✅
+- **P3**: Synced all visa-bulletin/eb-category/forecast data to public/data/ ✅
+- **Key Finding**: EB2/IND FAD jumped +303 days (2013-09-15→2014-07-15), velocity up from 18.4→20.9 d/m
+- **Prediction**: PD 2016-06-15 India EB2 — not current within 24m, ~33m FAD / ~28m DFF estimated ✅
+- **Testing**: 867 tests passing (30 files), no regressions ✅
 - **Commits**: P3 Petition History `900f2a4` pushed, SRS UI `a931462`, docs `53cbb14` (local) ✅
 - **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 

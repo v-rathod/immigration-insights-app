@@ -1,5 +1,112 @@
 # Compass Progress Tracker
 
+## 2026-03-17 — Milestone 10.71: April 2026 Visa Bulletin End-to-End Pipeline
+
+### Objective
+Run the full NorthStar pipeline end-to-end: P1 (Horizon) fetches the newly-released April 2026 Visa Bulletin → P2 (Meridian) ingests, rebuilds trend analytics, velocity metrics, and 24-month forecasts → P3 (Compass) syncs updated JSON artifacts. Verify velocity changes and prediction impact for India EB2.
+
+### What Was Done
+
+**P1 Horizon — Data Acquisition:**
+- Fetched April 2026 Visa Bulletin PDF from travel.state.gov (353,279 bytes)
+- Saved to `downloads/Visa_Bulletin/2026/visabulletin_April2026.pdf`
+- Updated P1 manifest (now 4 PDFs for 2026: Jan, Feb, Mar, Apr)
+
+**P2 Meridian — Ingestion & Artifacts:**
+- `rebuild_fact_cutoffs.py`: Parsed all 169 PDFs → 8,115 rows (was 8,060) → 55 new April 2026 rows
+- Fixed `fact_cutoffs_all.parquet` flat union — April data wasn't propagating to downstream (partitioned data existed but flat file was stale)
+- `make_fact_cutoff_trends.py`: Rebuilt with April — 8,115 rows with velocity/retrogression analytics
+- `make_category_movement_metrics.py`: Rebuilt with April — 6,605 rows (was 6,550) with blended velocity and movement predictions
+- `run_models`: Retrained pd_forecast model — 1,320 forecast rows (55 series × 24 months)
+
+**P3 Compass — Data Sync:**
+- `sync_p2_data.py`: Synced all dashboard data (visa-bulletin, eb-category, wage, geographic, soc-demand, processing, backlog)
+- Manually synced `pd_forecasts.json` (337 KB, 1,320 rows) and `pd_forecast_model.json` (30 KB)
+- Verified: fact_cutoff_trends.json has 55 April 2026 rows, category_movement_metrics.json has 55 April 2026 rows
+
+### April 2026 Cutoff Date Changes (FAD)
+
+| Category/Country | March 2026 | April 2026 | Movement |
+|-----------------|------------|------------|----------|
+| **EB1/IND** | 2023-03-01 | 2023-04-01 | +31 days |
+| **EB1/CHN** | 2023-03-01 | 2023-04-01 | +31 days |
+| EB1/ROW | Current | Current | — |
+| **EB2/IND** | 2013-09-15 | **2014-07-15** | **+303 days** |
+| EB2/CHN | 2021-09-01 | 2021-09-01 | 0 days (no movement) |
+| EB2/ROW | 2024-10-15 | Current | Became current |
+| EB3/IND | 2013-11-15 | 2013-11-15 | 0 days (no movement) |
+| EB3/CHN | 2021-05-01 | 2021-06-15 | +45 days |
+| **EB3/ROW** | 2023-10-01 | **2024-06-01** | **+244 days** |
+
+### Velocity Changes (Blended, days/month)
+
+| Series | March 2026 | April 2026 | Delta | Signal |
+|--------|-----------|-----------|-------|--------|
+| EB1/IND FAD | +39.6 | +38.7 | -1.0 | Slight deceleration |
+| EB1/CHN FAD | +27.0 | +27.4 | +0.4 | Stable |
+| **EB2/IND FAD** | +18.4 | **+20.9** | **+2.5** | **Accelerating** |
+| EB2/CHN FAD | +30.2 | +27.6 | -2.6 | Decelerating |
+| EB3/IND FAD | +26.3 | +24.5 | -1.8 | Slight decel |
+| EB3/CHN FAD | +21.0 | +20.6 | -0.4 | Stable |
+| EB3/ROW FAD | +22.9 | +27.7 | +4.8 | Strong acceleration |
+| EB2/IND DFF | +19.7 | +20.3 | +0.5 | Slightly faster |
+| EB3/IND DFF | +31.5 | +33.7 | +2.2 | Accelerating |
+
+### Prediction Impact — India EB2 (PD: 2016-06-15)
+
+**FAD Forecast (Final Action Dates):**
+- Current cutoff: 2014-07-15 (after the +303 day jump)
+- Blended velocity: 20.9 days/month (was 18.4)
+- +12m projection: 2015-02-12 | +24m: 2015-09-12
+- **PD 2016-06-15 NOT reached within 24 months** (gap: 276 days ≈ 9 months)
+- Estimated ~33 months from now to become current on FAD
+
+**DFF Forecast (Dates for Filing):**
+- Current cutoff: 2015-01-15
+- Blended velocity: 20.3 days/month (was 19.7)
+- +12m projection: 2015-08-25 | +24m: 2016-04-04
+- **PD 2016-06-15 NOT reached within 24 months** (gap: 72 days ≈ 4 months)
+- Estimated ~28 months from now to become current on DFF
+
+### Movement Predictions (April 2026 FAD)
+- EB1/IND: Forward | EB1/CHN: Forward
+- **EB2/IND: Forward** (upgraded from prior momentum)
+- EB2/CHN: Flat | EB3/IND: Flat
+- EB3/CHN: Forward | EB3/ROW: Forward
+
+### Test Results
+- P3 tests: **867 passing (30 files)** — no regressions from data update
+- All tests use mocked data — real data changes don't break unit tests
+- Real-data integration and predeploy tests: structural integrity intact
+
+### Files Changed
+
+**P1 Horizon:**
+- `downloads/Visa_Bulletin/2026/visabulletin_April2026.pdf` (new)
+- `downloads/_manifest.json` (updated)
+
+**P2 Meridian (artifacts rebuilt):**
+- `artifacts/tables/fact_cutoffs/bulletin_year=2026/bulletin_month=04/data.parquet`
+- `artifacts/tables/fact_cutoffs_all.parquet` (8,115 rows)
+- `artifacts/tables/fact_cutoff_trends.parquet` (8,115 rows)
+- `artifacts/tables/category_movement_metrics.parquet` (6,605 rows)
+- `artifacts/tables/pd_forecasts.parquet` (1,320 rows)
+- `artifacts/models/pd_forecast_model.json`
+
+**P3 Compass (synced):**
+- `public/data/dashboards/visa-bulletin/fact_cutoff_trends.json`
+- `public/data/dashboards/visa-bulletin/fact_cutoffs_all.json`
+- `public/data/dashboards/eb-category/category_movement_metrics.json`
+- `public/data/models/pd_forecasts.json`
+- `public/data/models/pd_forecast_model.json`
+
+### Next Steps
+- Push P3 data to git and optionally deploy to AWS
+- Verify frontend rendering at `/dashboard/visa-bulletin` and `/dashboard/eb-category`
+- Consider adding "data freshness" indicator showing latest bulletin month
+
+---
+
 ## 2026-03-17 — Milestone 10.70: Green Card Sponsorship Transparency in SRS Dashboard
 
 ### Objective
