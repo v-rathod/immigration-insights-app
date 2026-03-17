@@ -693,6 +693,30 @@ def sync_employer_raw_filings():
     # fiscal-year-aligned views that match user expectations and dashboard labels.
     print(f"  Loading fact_lca (latest 3 fiscal years)...")
     lca = read_parquet_safe(P2_TABLES / "fact_lca")
+
+    # Build per-employer annual LCA counts for the last 10 fiscal years.
+    # This is computed BEFORE the 36-month filter so the full history is captured.
+    # Shape: {employer_id → [{fiscal_year: int, count: int}, ...]} sorted FY desc.
+    lca_annual_by_emp: dict = {}
+    if not lca.empty and "employer_id" in lca.columns and "fiscal_year" in lca.columns:
+        lca["fiscal_year"] = lca["fiscal_year"].astype(int)
+        max_fy_all = int(lca["fiscal_year"].max())
+        lca_10yr = lca[lca["fiscal_year"] >= max_fy_all - 9]
+        # Only keep the two columns we need for the summary
+        annual_counts = (
+            lca_10yr[["employer_id", "fiscal_year"]]
+            .groupby(["employer_id", "fiscal_year"])
+            .size()
+            .reset_index(name="count")
+        )
+        for emp_id_val, grp in annual_counts.groupby("employer_id"):
+            lca_annual_by_emp[str(emp_id_val)] = (
+                grp[["fiscal_year", "count"]]
+                .sort_values("fiscal_year", ascending=False)
+                .to_dict(orient="records")
+            )
+        print(f"    Built LCA annual summaries for {len(lca_annual_by_emp):,} employers (FY {max_fy_all - 9}–{max_fy_all})")
+
     if not lca.empty:
         if "fiscal_year" in lca.columns:
             lca["fiscal_year"] = lca["fiscal_year"].astype(int)
@@ -886,6 +910,10 @@ def sync_employer_raw_filings():
             # Metadata so the UI can show "5,000 of 18,234 records · FY2021–FY2025"
             "lca_total": lca_total,
             "lca_fy_range": lca_fy_range,
+            # Annual LCA filing counts for the last 10 fiscal years.
+            # Allows the UI to show a year-by-year trend even before/beyond the
+            # 36-month per-case window.  Shape: [{fiscal_year, count}, ...] FY desc.
+            "lca_annual": lca_annual_by_emp.get(emp_id, []),
             "h1b_petitions": petition_rows,
         }
         shard_path = out_dir / f"{emp_id}.json"

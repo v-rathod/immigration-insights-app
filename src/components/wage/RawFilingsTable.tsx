@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/format";
-import type { LcaFiling, H1bPetitionYear } from "@/lib/data/wage";
+import type { LcaFiling, H1bPetitionYear, LcaAnnualCount } from "@/lib/data/wage";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,6 +53,8 @@ interface RawFilingsTableProps {
   lcaTotal?: number;
   /** [minFY, maxFY] fiscal year range in the shard */
   lcaFyRange?: [number, number];
+  /** Annual LCA filing counts for the last 10 fiscal years (FY desc) */
+  lcaAnnual?: LcaAnnualCount[];
 }
 
 // ---------------------------------------------------------------------------
@@ -499,20 +501,48 @@ function LcaFilingsTab({
 }
 
 // ---------------------------------------------------------------------------
-// H-1B Petition History Tab
+// H-1B Petition History Tab — Combined LCA (DOL) + USCIS petition view
 // ---------------------------------------------------------------------------
 
-function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
-  const sorted = useMemo(
-    () => [...petitions].sort((a, b) => b.fiscal_year - a.fiscal_year),
-    [petitions]
-  );
+function PetitionHistoryTab({
+  petitions,
+  lcaAnnual,
+}: {
+  petitions: H1bPetitionYear[];
+  lcaAnnual?: LcaAnnualCount[];
+}) {
+  // Build a unified year→data map spanning both sources
+  const rows = useMemo(() => {
+    const yearMap = new Map<
+      number,
+      { lca_count?: number; uscis?: H1bPetitionYear }
+    >();
 
-  if (!sorted.length) {
+    // Populate LCA annual counts
+    (lcaAnnual ?? []).forEach((r) => {
+      yearMap.set(r.fiscal_year, { lca_count: r.count });
+    });
+
+    // Merge USCIS petition data
+    petitions.forEach((p) => {
+      const existing = yearMap.get(p.fiscal_year) ?? {};
+      yearMap.set(p.fiscal_year, { ...existing, uscis: p });
+    });
+
+    // Sort descending
+    return Array.from(yearMap.entries())
+      .sort(([a], [b]) => b - a)
+      .map(([fy, v]) => ({ fiscal_year: fy, ...v }));
+  }, [petitions, lcaAnnual]);
+
+  const hasLca = rows.some((r) => r.lca_count != null);
+  const hasUscis = rows.some((r) => r.uscis != null);
+
+  if (!hasLca && !hasUscis) {
     return (
       <div className="py-12 text-center text-sm text-[var(--muted-foreground)]/70">
         <Building2 className="h-8 w-8 mx-auto mb-3 opacity-20" />
-        <p>No USCIS petition history available</p>
+        <p>No petition history available</p>
         <p className="text-xs mt-1 text-[var(--muted-foreground)]/50">
           USCIS discontinued per-employer H-1B data releases after FY2023
         </p>
@@ -520,96 +550,152 @@ function PetitionHistoryTab({ petitions }: { petitions: H1bPetitionYear[] }) {
     );
   }
 
+  // Totals
+  const totalLca = rows.reduce((s, r) => s + (r.lca_count ?? 0), 0);
+  const totalUscis = rows.reduce((s, r) => s + (r.uscis?.total_petitions ?? 0), 0);
+  const totalUscisApp = rows.reduce(
+    (s, r) => s + (r.uscis ? r.uscis.initial_approvals + r.uscis.continuing_approvals : 0),
+    0
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-[var(--muted-foreground)]/80">
-        Annual USCIS H-1B petition outcomes · FY2010–FY2023 · Source: USCIS H-1B Employer Data Hub
-      </p>
+      {/* Explainer banner */}
+      <div className="rounded-xl border border-amber-500/[0.18] bg-amber-500/[0.06] px-4 py-3 flex gap-3 items-start">
+        <span className="text-amber-400 text-base shrink-0 mt-0.5">ⓘ</span>
+        <div className="text-xs text-[var(--muted-foreground)]/90 space-y-1">
+          <p>
+            <span className="text-[var(--foreground)]/70 font-semibold">LCA Filings (DOL)</span>
+            {" — "}Department of Labor Labor Condition Applications: one per worker per job, role, or location change.
+            Full 10-year history.
+          </p>
+          <p>
+            <span className="text-[var(--foreground)]/70 font-semibold">USCIS Petitions</span>
+            {" — "}Actual H-1B petitions adjudicated. Discontinued by USCIS after FY2023. Only a subset of LCA filings result in a USCIS petition action.
+          </p>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-[var(--foreground)]/[0.07]">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-[var(--foreground)]/[0.06] bg-[var(--foreground)]/[0.02]">
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Year</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Initial App.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Initial Den.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">Cont. App.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide hidden md:table-cell">Cont. Den.</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Total</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Approval %</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                Year
+              </th>
+              {hasLca && (
+                <th className="px-4 py-3 text-right text-xs font-medium text-blue-400/80 uppercase tracking-wide">
+                  LCA Filings
+                  <span className="block text-[9px] text-[var(--muted-foreground)]/60 normal-case font-normal">DOL · all changes</span>
+                </th>
+              )}
+              {hasUscis && (
+                <>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-400/80 uppercase tracking-wide hidden md:table-cell">
+                    Initial App.
+                    <span className="block text-[9px] text-[var(--muted-foreground)]/60 normal-case font-normal">USCIS new H-1B</span>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-400/80 uppercase tracking-wide hidden md:table-cell">
+                    Cont. App.
+                    <span className="block text-[9px] text-[var(--muted-foreground)]/60 normal-case font-normal">USCIS extensions</span>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-400/80 uppercase tracking-wide">
+                    USCIS Total
+                    <span className="block text-[9px] text-[var(--muted-foreground)]/60 normal-case font-normal">petitions adj.</span>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                    Approval %
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => {
-              const approvalPct = row.approval_rate * 100;
+            {rows.map((row) => {
+              const approvalPct = row.uscis ? row.uscis.approval_rate * 100 : null;
+              const isRecentNoUscis = row.fiscal_year >= 2024 && !row.uscis;
               return (
                 <tr
                   key={row.fiscal_year}
                   className="border-b border-[var(--foreground)]/[0.04] hover:bg-[var(--foreground)]/[0.025] transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-[var(--foreground)]/80">FY{row.fiscal_year}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-emerald-400/80">
-                    {row.initial_approvals.toLocaleString()}
+                  <td className="px-4 py-3 font-medium text-[var(--foreground)]/80">
+                    FY{row.fiscal_year}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-rose-400/70">
-                    {row.initial_denials.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-emerald-400/50 hidden md:table-cell">
-                    {row.continuing_approvals.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-rose-400/40 hidden md:table-cell">
-                    {row.continuing_denials.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[var(--foreground)]/70 font-medium">
-                    {row.total_petitions.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <span
-                      className={cn(
-                        "text-xs font-semibold tabular-nums",
-                        approvalPct >= 95
-                          ? "text-emerald-400"
-                          : approvalPct >= 80
-                          ? "text-amber-400"
-                          : "text-rose-400"
-                      )}
-                    >
-                      {approvalPct.toFixed(1)}%
-                    </span>
-                  </td>
+                  {hasLca && (
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-blue-400/90">
+                      {row.lca_count != null ? row.lca_count.toLocaleString() : "—"}
+                    </td>
+                  )}
+                  {hasUscis && (
+                    <>
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-400/80 hidden md:table-cell">
+                        {row.uscis ? row.uscis.initial_approvals.toLocaleString() : (isRecentNoUscis ? <span className="text-[var(--muted-foreground)]/40 text-xs">discontinued</span> : "—")}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-400/50 hidden md:table-cell">
+                        {row.uscis ? row.uscis.continuing_approvals.toLocaleString() : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-purple-400/80 font-medium">
+                        {row.uscis
+                          ? row.uscis.total_petitions.toLocaleString()
+                          : isRecentNoUscis
+                          ? <span className="text-[var(--muted-foreground)]/40 text-xs italic">n/a</span>
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {approvalPct != null ? (
+                          <span
+                            className={cn(
+                              "text-xs font-semibold tabular-nums",
+                              approvalPct >= 95
+                                ? "text-emerald-400"
+                                : approvalPct >= 80
+                                ? "text-amber-400"
+                                : "text-rose-400"
+                            )}
+                          >
+                            {approvalPct.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-[var(--muted-foreground)]/30 text-xs">—</span>
+                        )}
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
           </tbody>
-          {/* Summary totals */}
-          {sorted.length > 1 && (() => {
-            const totalInit = sorted.reduce((s, r) => s + r.initial_approvals + r.initial_denials, 0);
-            const totalCont = sorted.reduce((s, r) => s + r.continuing_approvals + r.continuing_denials, 0);
-            const totalApp  = sorted.reduce((s, r) => s + r.initial_approvals + r.continuing_approvals, 0);
-            const grandTotal = sorted.reduce((s, r) => s + r.total_petitions, 0);
-            return (
-              <tfoot>
-                <tr className="border-t border-[var(--foreground)]/[0.08] bg-[var(--foreground)]/[0.02]">
-                  <td className="px-4 py-2.5 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">All years</td>
-                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-[var(--muted-foreground)]">
-                    {totalInit.toLocaleString()}
+          {rows.length > 1 && (
+            <tfoot>
+              <tr className="border-t border-[var(--foreground)]/[0.08] bg-[var(--foreground)]/[0.02]">
+                <td className="px-4 py-2.5 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  All years
+                </td>
+                {hasLca && (
+                  <td className="px-4 py-2.5 text-right tabular-nums text-sm font-semibold text-blue-400/80">
+                    {totalLca.toLocaleString()}
                   </td>
-                  <td colSpan={2} className="px-4 py-2.5 text-right tabular-nums text-xs text-[var(--muted-foreground)] hidden md:table-cell">
-                    {totalCont.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-sm font-semibold text-[var(--muted-foreground)]">
-                    {grandTotal.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--muted-foreground)]">
-                    {((totalApp / (grandTotal || 1)) * 100).toFixed(1)}%
-                  </td>
-                </tr>
-              </tfoot>
-            );
-          })()}
+                )}
+                {hasUscis && (
+                  <>
+                    <td colSpan={2} className="hidden md:table-cell" />
+                    <td className="px-4 py-2.5 text-right tabular-nums text-sm font-semibold text-purple-400/70">
+                      {totalUscis.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--muted-foreground)]">
+                      {totalUscis > 0 ? ((totalUscisApp / totalUscis) * 100).toFixed(1) + "%" : "—"}
+                    </td>
+                  </>
+                )}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
       <p className="text-[11px] text-[var(--muted-foreground)]/60">
-        Note: USCIS H-1B employer data hub discontinued after FY2023. FY2024+ petition outcomes are not publicly available at employer level.
+        USCIS H-1B employer data hub was discontinued after FY2023. FY2024+ shows LCA filings only.{" "}
+        LCA counts are typically higher than USCIS petitions because a single USCIS petition can cover multiple LCA filings (role/location/salary amendments).
       </p>
     </div>
   );
@@ -624,6 +710,7 @@ type Tab = "lca" | "petitions";
 export function RawFilingsTable({
   lcaFilings,
   h1bPetitions,
+  lcaAnnual,
   employerName,
   lcaTotal,
   lcaFyRange,
@@ -639,7 +726,8 @@ export function RawFilingsTable({
     {
       id: "petitions",
       label: "Petition History",
-      count: h1bPetitions.length,
+      // Show the max years covered between LCA annual summary and USCIS petitions
+      count: Math.max((lcaAnnual ?? []).length, h1bPetitions.length),
     },
   ];
 
@@ -700,7 +788,7 @@ export function RawFilingsTable({
             {activeTab === "lca" ? (
               <LcaFilingsTab filings={lcaFilings} lcaTotal={lcaTotal} lcaFyRange={lcaFyRange} />
             ) : (
-              <PetitionHistoryTab petitions={h1bPetitions} />
+              <PetitionHistoryTab petitions={h1bPetitions} lcaAnnual={lcaAnnual} />
             )}
           </motion.div>
         </AnimatePresence>

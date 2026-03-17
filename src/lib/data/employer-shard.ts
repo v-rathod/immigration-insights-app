@@ -21,6 +21,7 @@ import type {
   EmployerRoleTrend,
   LcaFiling,
   H1bPetitionYear,
+  LcaAnnualCount,
 } from "@/lib/data/wage";
 import type { SrsOverviewStats } from "@/lib/data/srs";
 
@@ -59,6 +60,8 @@ export interface EmployerShard {
   lca: LcaFiling[];
   lca_total?: number;
   lca_fy_range?: [number, number];
+  /** Annual LCA filing counts for the last 10 fiscal years. [{fiscal_year, count}] FY desc. */
+  lca_annual?: LcaAnnualCount[];
   h1b_petitions?: H1bPetitionYear[];
   /** Role breakdown from employer_role_profiles (employer_name/id stripped). */
   wage_roles?: Record<string, unknown>[];

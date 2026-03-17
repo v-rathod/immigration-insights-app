@@ -120,6 +120,12 @@ export interface H1bPetitionYear {
   approval_rate: number;  // 0-1
 }
 
+/** Annual DOL LCA filing count for one fiscal year (from fact_lca, last 10 years). */
+export interface LcaAnnualCount {
+  fiscal_year: number;
+  count: number;
+}
+
 // ---------------------------------------------------------------------------
 // Data quality thresholds
 // ---------------------------------------------------------------------------
@@ -203,6 +209,8 @@ export async function loadEmployerFilings(employerId: string): Promise<{
   lca_total?: number;
   /** [minFY, maxFY] range of fiscal years actually present in the shard. */
   lca_fy_range?: [number, number];
+  /** Annual LCA filing counts for the last 10 fiscal years (FY desc). */
+  lca_annual?: LcaAnnualCount[];
   h1b_petitions: H1bPetitionYear[];
 } | null> {
   if (!employerId) return null;

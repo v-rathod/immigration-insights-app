@@ -51,6 +51,7 @@ import {
   type EmployerRoleTrend as EmployerRoleTrendType,
   type LcaFiling,
   type H1bPetitionYear,
+  type LcaAnnualCount,
 } from "@/lib/data/wage";
 import { RawFilingsTable } from "@/components/wage/RawFilingsTable";
 
@@ -158,6 +159,7 @@ export function EmployerProfile({
   const [h1bPetitions, setH1bPetitions] = useState<H1bPetitionYear[]>([]);
   const [lcaTotal, setLcaTotal] = useState<number>(0);
   const [lcaFyRange, setLcaFyRange] = useState<[number, number] | null>(null);
+  const [lcaAnnual, setLcaAnnual] = useState<LcaAnnualCount[]>([]);
   const [filingsLoading, setFilingsLoading] = useState(false);
   const [filingsLoaded, setFilingsLoaded] = useState(false);
 
@@ -168,6 +170,7 @@ export function EmployerProfile({
     setH1bPetitions([]);
     setLcaTotal(0);
     setLcaFyRange(null);
+    setLcaAnnual([]);
     setFilingsLoading(false);
     setFilingsLoaded(false);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -189,6 +192,7 @@ export function EmployerProfile({
           setH1bPetitions(data.h1b_petitions || []);
           setLcaTotal(data.lca_total ?? (data.lca?.length ?? 0));
           setLcaFyRange(data.lca_fy_range ?? null);
+          setLcaAnnual(data.lca_annual || []);
         }
         setFilingsLoaded(true);
       })
@@ -640,6 +644,7 @@ export function EmployerProfile({
                   <RawFilingsTable
                     lcaFilings={lcaFilings}
                     h1bPetitions={h1bPetitions}
+                    lcaAnnual={lcaAnnual}
                     employerName={employerName}
                     lcaTotal={lcaTotal}
                     lcaFyRange={lcaFyRange ?? undefined}
