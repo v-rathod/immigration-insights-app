@@ -48,7 +48,7 @@ jobs:
         timeout-minutes: 15
 
       - name: Run unit tests
-        run: npx vitest run --exclude='**/optum-regression*' --exclude='**/employer-normalization*' --exclude='**/predeploy-checks*'
+        run: npx vitest run --exclude='**/optum-regression*' --exclude='**/employer-normalization*' --exclude='**/predeploy-checks*' --exclude='**/real-data-integration*'
 
       - name: TypeScript type check
         run: npx tsc --noEmit

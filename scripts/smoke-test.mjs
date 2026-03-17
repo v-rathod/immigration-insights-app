@@ -249,9 +249,14 @@ const CHECKS = [
         );
       }
 
-      // avg_monthly_advancement_days must be non-negative
+      // avg_monthly_advancement_days CAN be negative — represents retrogression periods
+      // (visa bulletin priority dates moving backward). Common in 2019-2020 (COVID delays).
+      // Validation: ensure not ALL rows are negative (would indicate data corruption).
       const negAdv = d.filter(r => r.avg_monthly_advancement_days != null && r.avg_monthly_advancement_days < 0);
-      if (negAdv.length > 0) throw new Error(`${negAdv.length} rows with negative avg_monthly_advancement_days`);
+      const nonNullAdv = d.filter(r => r.avg_monthly_advancement_days != null);
+      if (nonNullAdv.length > 0 && negAdv.length === nonNullAdv.length) {
+        throw new Error(`ALL ${negAdv.length} non-null rows have negative avg_monthly_advancement_days — likely data corruption`);
+      }
     },
   },
 
