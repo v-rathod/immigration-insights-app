@@ -464,11 +464,11 @@ describe("VisaBulletinPage", () => {
   it("renders country pills", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    await screen.findByText("India");
-    expect(screen.getByText("China (mainland)")).toBeInTheDocument();
-    expect(screen.getByText("Rest of World")).toBeInTheDocument();
-    expect(screen.getByText("Philippines")).toBeInTheDocument();
-    expect(screen.getByText("Mexico")).toBeInTheDocument();
+    await screen.findByRole("button", { name: "India" });
+    expect(screen.getByRole("button", { name: "China (mainland)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rest of World" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Philippines" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mexico" })).toBeInTheDocument();
     expect(screen.getByText("Country")).toBeInTheDocument();
   });
 
@@ -618,7 +618,7 @@ describe("VisaBulletinPage", () => {
     mockLoadPdForecasts.mockResolvedValue(limited);
     render(<VisaBulletinPage />);
     // Switch to Philippines which has no data
-    const phlButton = await screen.findByText("Philippines");
+    const phlButton = await screen.findByRole("button", { name: "Philippines" });
     fireEvent.click(phlButton);
     expect(
       screen.getByText(/No data for EB2/i)

@@ -20,6 +20,9 @@ export const metadata: Metadata = {
       "See where H-1B and green card activity concentrates by state. Compare filings, approval rates, and wages across all 50 states.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/geographic/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/geographic/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

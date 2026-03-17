@@ -52,6 +52,16 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "NorthStar Compass" }],
   creator: "NorthStar Compass",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -60,12 +70,21 @@ export const metadata: Metadata = {
     title: "Compass | Free Immigration Insights & Green Card Tracker",
     description:
       "Free tools for employment-based green card applicants. Track priority dates, research employer sponsorship, benchmark salaries, and forecast your green card timeline with 18.5M+ government data points.",
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass — Free Immigration Insights & Green Card Tracker",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Compass | Free Immigration Insights & Green Card Tracker",
     description:
       "Free tools for EB green card applicants. Priority date forecasts, employer sponsorship history, salary benchmarks. Powered by 18.5M+ government records.",
+    images: [`${SITE_URL}/og-image.png`],
   },
   robots: {
     index: true,

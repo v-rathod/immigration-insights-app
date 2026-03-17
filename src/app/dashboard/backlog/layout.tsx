@@ -21,6 +21,9 @@ export const metadata: Metadata = {
       "See how many years remain in the green card queue by country and category. Backlog estimates for EB1, EB2, EB3.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/backlog/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/backlog/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

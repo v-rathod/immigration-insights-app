@@ -1,8 +1,29 @@
+# Compass — Immigration Insights & Green Card Tracker
+# https://d10immmzyp7xgr.cloudfront.net
+
 User-agent: *
 Allow: /
 
 # Exclude internal/ops pages from indexing
 Disallow: /ops/
+# Exclude raw data files from indexing (served for app, not for crawling)
+Disallow: /data/
 
-# Sitemap
+# Sitemap (auto-generated at build time)
 Sitemap: https://d10immmzyp7xgr.cloudfront.net/sitemap.xml
+
+# Allow AI crawlers and search bots to access all content pages
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /

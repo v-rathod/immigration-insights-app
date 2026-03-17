@@ -19,6 +19,9 @@ export const metadata: Metadata = {
       "Your personalized green card timeline, employer score, and salary benchmark in one place.",
     url: "https://d10immmzyp7xgr.cloudfront.net/insights/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/insights/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

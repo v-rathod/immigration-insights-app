@@ -21,6 +21,9 @@ export const metadata: Metadata = {
       "Rankings of which job types have the highest H-1B and PERM sponsorship demand, approval rates, and median offered wages.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/job-demand/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/job-demand/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

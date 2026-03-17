@@ -21,6 +21,9 @@ export const metadata: Metadata = {
       "Look up any employer's H-1B and PERM sponsorship track record. Approval rates, wage scores, denial trends for 70,000+ employers.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/employer/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/employer/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

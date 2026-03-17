@@ -21,6 +21,9 @@ export const metadata: Metadata = {
       "Track USCIS processing speed and green card backlog. Quarterly throughput, approval rates, and I-140/I-485 trends.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/processing/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/processing/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

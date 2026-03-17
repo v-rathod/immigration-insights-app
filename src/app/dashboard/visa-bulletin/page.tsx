@@ -553,6 +553,50 @@ export default function VisaBulletinPage() {
           </div>
         </details>
       </FadeIn>
+
+      {/* SEO-rich crawlable content — visible to search engines and users */}
+      <FadeIn delay={0.35}>
+        <section className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3 text-xs text-[var(--muted-foreground)]">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">
+            Understanding the Visa Bulletin and Priority Date Movement
+          </h2>
+          <p>
+            The <strong>Visa Bulletin</strong> is published monthly by the
+            U.S. Department of State (DOS) and determines which employment-based
+            (EB) green card applicants can proceed with their applications. Each
+            bulletin lists <strong>priority date cutoff dates</strong> for EB1,
+            EB2, EB3, EB4, and EB5 categories across different countries of
+            chargeability including <strong>India</strong>,{" "}
+            <strong>China (mainland born)</strong>,{" "}
+            <strong>Philippines</strong>, <strong>Mexico</strong>, and{" "}
+            <strong>Rest of World (ROW)</strong>.
+          </p>
+          <p>
+            Compass tracks <strong>priority date movement</strong> since 2011 and
+            uses machine learning to project how cutoff dates will advance over
+            the next 24 months. Our model analyzes movement velocity (days
+            advanced per month), retrogression patterns, and seasonal trends to
+            produce forecasts for both <strong>Final Action Dates</strong> and{" "}
+            <strong>Dates for Filing</strong>.
+          </p>
+          <p>
+            For <strong>EB2 India</strong>, one of the most heavily subscribed
+            categories, wait times can exceed 10 years. The current{" "}
+            <strong>EB2 India priority date</strong> cutoff moves at
+            approximately 15&ndash;25 days per month on average. Similar
+            analysis is available for{" "}
+            <strong>EB3 India</strong>,{" "}
+            <strong>EB2 China</strong>, and all other category/country
+            combinations.
+          </p>
+          <p className="text-[10px] text-[var(--muted-foreground)]/50">
+            Data sourced from the US Department of State Visa Bulletin
+            (travel.state.gov). This tool is not affiliated with USCIS or DOS
+            and does not provide legal advice. Always consult an immigration
+            attorney for decisions about your case.
+          </p>
+        </section>
+      </FadeIn>
     </div>
   );
 }

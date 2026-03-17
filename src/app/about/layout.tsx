@@ -10,6 +10,9 @@ export const metadata: Metadata = {
       "Open-source immigration analytics built by immigrants, for immigrants. 18.5M+ government records, zero data collection, free forever.",
     url: "https://d10immmzyp7xgr.cloudfront.net/about/",
   },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/about/",
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
