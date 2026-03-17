@@ -1102,11 +1102,13 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("Key Metrics")).toBeDefined();
   });
 
-  it("renders all 6 stat card labels", () => {
+  it("renders all 8 stat card labels", () => {
     render(<EmployerDetailCard employer={makeSrs()} />);
-    expect(screen.getByText("Approval Rate (36m)")).toBeDefined();
-    expect(screen.getByText("Denial Rate (36m)")).toBeDefined();
-    expect(screen.getByText("Cases (36m)")).toBeDefined();
+    expect(screen.getByText("PERM Approval (36m)")).toBeDefined();
+    expect(screen.getByText("PERM Denial (36m)")).toBeDefined();
+    expect(screen.getByText("PERM Filings (36m)")).toBeDefined();
+    expect(screen.getByText("H-1B Filings (36m)")).toBeDefined();
+    expect(screen.getByText("H-1B per GC Filing")).toBeDefined();
     expect(screen.getByText("Wage Ratio (Median)")).toBeDefined();
     expect(screen.getByText("SOC Breadth")).toBeDefined();
     expect(screen.getByText("Site Breadth")).toBeDefined();
@@ -1128,11 +1130,44 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("5.0%")).toBeDefined();
   });
 
-  it("displays case count from n_36m", () => {
+  it("displays PERM case count from n_36m", () => {
     render(
       <EmployerDetailCard employer={makeSrs({ n_36m: 1928 })} />
     );
     expect(screen.getByText("1,928")).toBeDefined();
+    expect(screen.getByText("PERM Filings (36m)")).toBeDefined();
+  });
+
+  it("displays H-1B filings from lca_filings_36m", () => {
+    render(
+      <EmployerDetailCard employer={makeSrs({ lca_filings_36m: 1787 })} />
+    );
+    expect(screen.getByText("1,787")).toBeDefined();
+    expect(screen.getByText("H-1B Filings (36m)")).toBeDefined();
+  });
+
+  it("displays H-1B per GC ratio from lca_to_perm_ratio", () => {
+    render(
+      <EmployerDetailCard employer={makeSrs({ lca_to_perm_ratio: 3.42 })} />
+    );
+    expect(screen.getByText("3.4×")).toBeDefined();
+    expect(screen.getByText("H-1B per GC Filing")).toBeDefined();
+  });
+
+  it("shows GC-committed suffix for lca_to_perm_ratio <= 3", () => {
+    render(
+      <EmployerDetailCard employer={makeSrs({ lca_to_perm_ratio: 2.5 })} />
+    );
+    expect(screen.getByText("GC-committed")).toBeDefined();
+  });
+
+  it("shows dash when lca_to_perm_ratio is null", () => {
+    render(
+      <EmployerDetailCard
+        employer={makeSrs({ lca_to_perm_ratio: null })}
+      />
+    );
+    expect(screen.getByText("H-1B per GC Filing")).toBeDefined();
   });
 
   it("displays wage ratio as percentage of market", () => {

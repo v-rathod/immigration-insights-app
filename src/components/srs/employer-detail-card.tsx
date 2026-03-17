@@ -17,6 +17,8 @@ import {
   TrendingDown,
   Minus,
   Calendar,
+  Award,
+  BarChart2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -55,23 +57,58 @@ export function EmployerDetailCard({
 
   const stats = [
     {
-      label: "Approval Rate (36m)",
+      label: "PERM Approval (36m)",
       value: formatPercent(employer.approval_rate_36m),
       icon: CheckCircle,
       color: "text-emerald-400",
+      tooltip: "DOL PERM (green card) certification rate in the last 36 months",
     },
     {
-      label: "Denial Rate (36m)",
+      label: "PERM Denial (36m)",
       value: formatPercent(employer.denial_rate_36m),
       icon: XCircle,
       color:
         employer.denial_rate_36m > 0.1 ? "text-rose-400" : "text-zinc-400",
+      tooltip: "DOL PERM (green card) denial rate in the last 36 months",
     },
     {
-      label: "Cases (36m)",
+      label: "PERM Filings (36m)",
       value: formatNumber(employer.n_36m),
       icon: FileText,
       color: "text-blue-400",
+      tooltip: "Green card (PERM) applications filed with DOL in the last 36 months",
+    },
+    {
+      label: "H-1B Filings (36m)",
+      value: employer.lca_filings_36m != null && !isNaN(employer.lca_filings_36m)
+        ? formatNumber(employer.lca_filings_36m)
+        : "—",
+      icon: BarChart2,
+      color: "text-violet-400",
+      tooltip: "DOL LCA (H-1B) filings in the last 36 months",
+    },
+    {
+      label: "H-1B per GC Filing",
+      value: employer.lca_to_perm_ratio != null && !isNaN(employer.lca_to_perm_ratio)
+        ? `${employer.lca_to_perm_ratio.toFixed(1)}×`
+        : "—",
+      icon: Award,
+      color:
+        employer.lca_to_perm_ratio != null && !isNaN(employer.lca_to_perm_ratio)
+          ? employer.lca_to_perm_ratio <= 3
+            ? "text-emerald-400"
+            : employer.lca_to_perm_ratio <= 10
+              ? "text-amber-400"
+              : "text-rose-400"
+          : "text-zinc-400",
+      tooltip: "H-1B LCA filings per PERM (green card) application. Lower = more GC-committed. ≤3× excellent, 3–10× typical, 10×+ H-1B-heavy.",
+      suffix: employer.lca_to_perm_ratio != null && !isNaN(employer.lca_to_perm_ratio)
+        ? employer.lca_to_perm_ratio <= 3
+          ? "GC-committed"
+          : employer.lca_to_perm_ratio <= 10
+            ? "typical"
+            : "H-1B-heavy"
+        : undefined,
     },
     {
       label: "Wage Ratio (Median)",
@@ -85,6 +122,7 @@ export function EmployerDetailCard({
           ? "text-emerald-400"
           : "text-amber-400",
       suffix: "of market",
+      tooltip: "Median offered wage as a percentage of OEWS prevailing wage for this occupation and location",
     },
     {
       label: "SOC Breadth",
@@ -92,6 +130,7 @@ export function EmployerDetailCard({
       icon: Briefcase,
       color: "text-purple-400",
       suffix: "occupations",
+      tooltip: "Distinct occupation codes (SOC) sponsored in the last 24 months",
     },
     {
       label: "Site Breadth",
@@ -99,6 +138,7 @@ export function EmployerDetailCard({
       icon: MapPin,
       color: "text-cyan-400",
       suffix: "locations",
+      tooltip: "Distinct work site states sponsored in the last 24 months",
     },
   ];
 
@@ -147,7 +187,7 @@ export function EmployerDetailCard({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -159,6 +199,7 @@ export function EmployerDetailCard({
               ease: [0.25, 0.1, 0.25, 1],
             }}
             className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
+            title={stat.tooltip}
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon
