@@ -1,12 +1,24 @@
 # Immigration Insights App — Copilot Context
 
 > **START HERE — Cross-Project Context:**
-> All three NorthStar projects live under `/Users/vrathod1/dev/NorthStar/`.
-> Before starting work, read these shared docs:
-> 1. **`/Users/vrathod1/dev/NorthStar/NORTHSTAR_VISION.md`** — Program vision, architecture, guardrails
-> 2. **`/Users/vrathod1/dev/NorthStar/BEST_PRACTICES.md`** — Engineering conventions, design rules, testing strategy, agent checklist
-> 3. **`ARCHITECTURE.md`** (this repo) — P3 technical design
-> 4. This file — P3 detailed context
+> 
+> **All NorthStar documentation is centralized in the shared repository:**
+> ```
+> /Users/vrathod1/dev/NorthStar/northstar-docs/
+> ├── README.md                    ← Start here (program overview)
+> ├── NORTHSTAR_VISION.md          ← Architecture & vision (shared)
+> ├── BEST_PRACTICES.md            ← Engineering standards (shared)
+> └── SETUP_GUIDE.md               ← Setup instructions
+> ```
+>
+> **Before working on P3 Compass, read:**
+> 1. **`../northstar-docs/README.md`** — Program structure and overview (5 min read)
+> 2. **`../northstar-docs/NORTHSTAR_VISION.md`** — Program vision, architecture, guardrails
+> 3. **`../northstar-docs/BEST_PRACTICES.md`** — Engineering conventions, design rules, testing strategy, agent checklist
+> 4. **`ARCHITECTURE.md`** (this repo) — P3 technical design
+> 5. **This file** — P3 detailed context
+>
+> **ℹ️ NOTE:** If you lose access to this machine, the vision docs are safely backed up in the northstar-docs repository on GitHub (ask the owner for access).
 >
 > **⚡ IMPORTANT: Terminal Commands Enabled**
 > VS Code has been configured to auto-approve terminal commands. You can now:

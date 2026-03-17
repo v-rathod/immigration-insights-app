@@ -1,8 +1,30 @@
+# 🧭 Compass — NorthStar Immigration Insights App
+
+> **Part of the NorthStar Immigration Analytics Program**
+> 
+> **📖 READ FIRST:** [NorthStar Vision & Architecture](../northstar-docs/README.md) — Understanding the full program before diving into this project
+>
+> **Project Role:** User-facing web dashboard for immigration insights, forecasts, and analysis
+
+## 🏗️ NorthStar Program Structure
+
+```
+P1: Horizon               P2: Meridian              P3: Compass (This Project)
+Data Collection      →    Analytics & ML         →    Web Dashboard
+├ Fetch PDFs              ├ Build forecasts         ├ Static Next.js site
+├ Parse tables            ├ Compute scores          ├ 9 interactive dashboards
+└ Store raw data          └ Generate artifacts      └ 929+ regression tests
+```
+
+**Program Overview:** [NORTHSTAR_VISION.md](../northstar-docs/NORTHSTAR_VISION.md) • **Setup Guide:** [SETUP_GUIDE.md](../northstar-docs/SETUP_GUIDE.md) • **Best Practices:** [BEST_PRACTICES.md](../northstar-docs/BEST_PRACTICES.md)
+
+---
+
 # NorthStar · Compass
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-601%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-929%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 [![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
