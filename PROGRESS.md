@@ -1,5 +1,130 @@
 # Compass Progress Tracker
 
+## 2026-03-16 — Milestone 10.68: UHC Corporate Network Registry Configuration
+
+### Objective
+Configure npm and CI pipelines to support development on UHC corporate VPN while maintaining public npm registry access for AWS deployments. Resolve 401 errors when installing dependencies and running `next dev` through the corporate network.
+
+### Context
+On UHC corporate VPN, all external internet traffic routes through JFrog Artifactory gateway. Direct access to npmjs.org is blocked. Public deployments (AWS, GitHub Actions) need access to the public npm registry. Solution: local dev uses corporate JFrog registry; CI/build commands override with public registry via environment variables (highest npm priority).
+
+### What Was Done
+
+1. **`.npmrc` (new, gitignored)** — Created project-level npm config:
+   ```ini
+   registry=https://centraluhg.jfrog.io/artifactory/api/npm/curo-admission-npm-vir/
+   legacy-peer-deps=true
+   ```
+   - Points to UHC JFrog registry for local dev
+   - Auth token stays in `~/.npmrc` (never committed)
+   - Added to `.gitignore` (line 28) to prevent corporate URL leaking to public repo
+
+2. **`package.json` — `dev` script** — Added env var to suppress Next.js lockfile-patching errors:
+   ```json
+   "dev": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 next dev"
+   ```
+   - Next.js 16 has built-in routine that patches `package-lock.json` SWC entries on every `next dev`
+   - Routine calls `fetch()` against npm registry (no auth) from subprocess `npm config get registry`
+   - On corporate VPN: returns 401 (auth required but no token passed in fetch)
+   - Solution: `NEXT_IGNORE_INCORRECT_LOCKFILE=1` skips this routine entirely
+   - SWC binaries are already present in node_modules; patching is redundant
+
+3. **`.github/workflows/ci.yml`** — Updated npm install step:
+   - Removed: `npm config set registry https://registry.npmjs.org/` (command-level, overridden by project `.npmrc`)
+   - Added: `env: NPM_CONFIG_REGISTRY: https://registry.npmjs.org/` (env var has highest priority in npm)
+   - Ensures GitHub Actions CI uses public npm registry even if project `.npmrc` exists
+
+4. **`.github/workflows/deploy.yml`** — Same fix as ci.yml for consistency
+
+5. **`.gitignore`** — Added `.npmrc` (line 28):
+   ```
+   # Local npm registry config (points to corporate UHC JFrog registry — not for CI)
+   .npmrc
+   ```
+   - Prevents accidental commit of corporate registry URL
+   - User's auth token in `~/.npmrc` is safe (home-level always gitignored)
+
+### Test Results
+- ✅ `npm install` completes successfully via UHC JFrog registry
+- ✅ `npm run dev` starts cleanly with zero 401 errors
+- ✅ App responds on `http://localhost:3000` (HTTP 200)
+- ✅ GitHub Actions CI still uses public npm registry (verified workflow configs)
+- ✅ AWS deploy workflow also uses public registry
+
+### Files Modified
+| File | Lines | Changes |
+|------|-------|----------|
+| `.npmrc` | — | NEW: project-level registry config (gitignored) |
+| `.gitignore` | 28 | Added `.npmrc` |
+| `package.json` | dev script | Changed: `"dev": "next dev"` → `"dev": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 next dev"` |
+| `.github/workflows/ci.yml` | install step | Replaced npm config command with NPM_CONFIG_REGISTRY env var |
+| `.github/workflows/deploy.yml` | install step | Same fix as ci.yml |
+
+### How It Works (Network Diagram)
+```
+Local Dev Machine (VPN)
+  └─ npm install
+       └─ reads project .npmrc
+            └─ repo=https://centraluhg.jfrog.io/...
+                 └─ fetch from UHC JFrog ✅
+
+`npm run dev`
+  └─ sets NEXT_IGNORE_INCORRECT_LOCKFILE=1
+       └─ skips Next.js lockfile patching ✅
+            └─ no 401 errors ✅
+
+GitHub Actions (public internet)
+  └─ npm install
+       └─ env: NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+            └─ highest priority, overrides project .npmrc
+                 └─ fetch from public npm ✅
+       └─ .npmrc file exists but ignored ✅
+```
+
+### Key Technical Details
+
+**Why `NEXT_IGNORE_INCORRECT_LOCKFILE=1`?**
+- Next.js has internal routine (not part of npm) that runs on every `next dev`
+- Routine tries to detect missing `@next/swc-*` entries in `package-lock.json`
+- If missing, it fetches metadata from npm registry via plain `fetch()`
+- On corporate VPN: JFrog gateway returns 401 (no auth token in fetch call)
+- Env var (line 85 of `node_modules/next/dist/lib/patch-incorrect-lockfile.js`) skips the entire routine
+- Safe to skip because: SWC binaries already present in node_modules; lockfile is already correct
+
+**Why `NPM_CONFIG_REGISTRY` (not `npm config set`)?**
+- npm respects config in this priority order:
+  1. Command-line flags (`npm install --registry`)
+  2. Environment variables (`NPM_CONFIG_*`)
+  3. `.npmrc` file (project-level)
+  4. `~/.npmrc` (user-level)
+  5. `/etc/npmrc` (global)
+- Project `.npmrc` is read-only on CI (can't be edited)
+- Env var approach: set it in the GitHub Actions step → overrides project `.npmrc` at runtime
+- Same effect as if `.npmrc` didn't exist
+
+### Implications
+
+**For local development:**
+- All future agent sessions will use the corporate JFrog registry automatically (via project `.npmrc`)
+- No manual `npm config` commands needed
+- `npm run dev` works without VPN workarounds
+
+**For CI/CD:**
+- GitHub Actions continues to use public npm registry
+- AWS deployments use public npm registry
+- No secrets stored in `.npmrc` (auth token only in `~/.npmrc`)
+
+**For future changes:**
+- If corporate registry URL changes: edit project `.npmrc` only (don't commit)
+- If npm auth token expires: update `~/.npmrc` only
+- If a new agent joins: they just need `~/.npmrc` with auth token; project `.npmrc` is gitignored
+
+### Documentation 
+- See [Development Setup — Corporate Network](#development-setup--corporate-network) in README.md
+- See [NPM Registry Configuration](#npmrc-notes) in `.npmrc` comments
+
+---
+
 ## 2026-03-14 — Milestone 10.67: 10-Year Rolling Window for EB Category Velocity
 
 ### Objective

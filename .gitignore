@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Local npm registry config (points to corporate UHC JFrog registry — not for CI)
+.npmrc
+
 # debug
 npm-debug.log*
 yarn-debug.log*

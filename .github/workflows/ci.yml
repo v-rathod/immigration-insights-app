@@ -37,10 +37,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Configure npm registry
-        run: npm config set registry https://registry.npmjs.org/
-
       - name: Install dependencies
+        env:
+          # Override any project-level .npmrc (which points to corporate UHC
+          # JFrog registry for local dev). CI must use public npm registry.
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: |
           rm -f package-lock.json
           npm install --no-audit

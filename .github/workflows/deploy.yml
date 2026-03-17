@@ -95,8 +95,11 @@ jobs:
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Install dependencies
+        env:
+          # Override any project-level .npmrc (which points to corporate UHC
+          # JFrog registry for local dev). CI/AWS deploy must use public npm registry.
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: |
-          npm config set registry https://registry.npmjs.org/
           rm -f package-lock.json
           npm install --no-audit
         timeout-minutes: 15

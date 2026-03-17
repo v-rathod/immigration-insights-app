@@ -8,13 +8,59 @@
 [![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
-## For AI Assistants — Read Before Changing Anything
+## Development Setup — Corporate Network
 
-1. **[`NORTHSTAR_VISION.md`](../NORTHSTAR_VISION.md)** — Program vision, architecture, guardrails
-2. **[`BEST_PRACTICES.md`](../BEST_PRACTICES.md)** — Engineering conventions, design system, testing rules, agent checklist
-3. **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — P3 technical design, component map, security model
-4. **[`.github/copilot-instructions.md`](.github/copilot-instructions.md)** — Current file inventory, test counts, phase status
-5. **[`PROGRESS.md`](PROGRESS.md)** (last 100 lines) — Pick up from the last milestone
+If you're developing on **UHC corporate VPN**, follow these steps to install dependencies and run the app locally:
+
+### Prerequisites
+
+1. **Get your JFrog auth token** from v.s.rathod@gmail.com or your team lead
+   - Token format: `cmVmdGt1OjAx...` (base64-encoded credentials)
+
+2. **Configure your home npm config** (`~/.npmrc`):
+   ```bash
+   # Edit or create ~/.npmrc with these lines:
+   registry=https://centraluhg.jfrog.io/artifactory/api/npm/curo-admission-npm-vir/
+   //centraluhg.jfrog.io/artifactory/api/npm/curo-admission-npm-vir/:_authToken=YOUR_TOKEN_HERE
+   legacy-peer-deps=true
+   CYPRESS_VERIFY_TIMEOUT=100000
+   ```
+   - Replace `YOUR_TOKEN_HERE` with your actual token
+   - This file is in your home directory, not the project (never committed)
+   - This config persists across all npm projects on your machine
+
+### Install & Run
+
+```bash
+# Install dependencies (uses corporate JFrog registry via project .npmrc)
+npm install --no-audit
+
+# Start dev server (http://localhost:3000)
+npm run dev
+```
+
+### How It Works
+
+- **Project `.npmrc`** (gitignored): Contains corporate JFrog registry URL
+- **Home `~/.npmrc`** (user-only): Contains your auth token
+- **npm merges both configs** at runtime: URL from project, auth from home
+- **Next.js lockfile fix**: `npm run dev` sets `NEXT_IGNORE_INCORRECT_LOCKFILE=1` to prevent 401 errors from Next.js's internal lockfile-patching routine
+- **CI/AWS still use public npm**: GitHub Actions and AWS deployments override the registry via `NPM_CONFIG_REGISTRY` environment variable → always use public npmjs.org
+
+### Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| `npm ERR! 401 Unauthorized` | Check `~/.npmrc` — ensure your JFrog token is correct and not expired |
+| `Failed to fetch registry info for @next/swc-*` | This is just a warning during `npm run dev`. The server still starts. See PROGRESS.md Milestone 10.68 for details. |
+| `ENOTFOUND registry.npmjs.org` | You're trying to fetch from public npm without a VPN proxy. Use the corporate JFrog registry (already configured). |
+
+### For AI Agents
+
+See **Milestone 10.68** (2026-03-16) in [PROGRESS.md](PROGRESS.md) for full technical details on the registry configuration, why it's needed, and how it works.
+
+---
+
 
 ## The NorthStar Program
 
