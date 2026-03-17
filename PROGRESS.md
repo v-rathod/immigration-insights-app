@@ -1,5 +1,82 @@
 # Compass Progress Tracker
 
+## 2026-03-17 — Milestone 10.72: VB/PD Regression Tests + Comprehensive SEO Overhaul
+
+### Objective
+Solidify the core visa bulletin / priority date movement / prediction pipeline with live-data regression tests. Implement comprehensive SEO to capture Google search traffic for queries like "priority date movement", "visa bulletin", "EB2 India priority date".
+
+### What Was Done
+
+**Test Coverage — 62 New Live-Data Regression Tests:**
+- New `visa-bulletin-regression.test.ts` with 9 describe blocks:
+  - A: `fact_cutoff_trends.json` structure (10 tests) — required fields, date formats, velocity ranges
+  - B: `pd_forecasts.json` structure (11 tests) — series naming, date formats, confidence intervals
+  - C: Cross-artifact consistency (4 tests) — country/category alignment between cutoffs and forecasts
+  - D/E/F: Cutoff continuity for EB2/IND, EB3/IND, EB2/CHN (9 tests) — no retrogressions > 5 years, monotonic check
+  - G: Forecast accuracy bounds (7 tests) — confidence widening, forecast < 10 years, month freshness
+  - H: `computePdi()` on real data (9 tests) — computations match raw forecasts, date projections
+  - I: Data freshness (5 tests) — cutoffs within 90 days, forecasts within 120 days, file accessibility
+  - Plus getHistoricalSeries (4 tests) + getVelocitySummary (2 tests)
+- All tests load actual JSON from `public/data/` via `readFileSync` — NOT mocks
+
+**SEO — Favicon & OG Image:**
+- `scripts/generate-icons.cjs` — Node script using sharp to generate all icon sizes
+- `public/favicon-{16x16,32x32}.png`, `public/apple-touch-icon.png`, `public/icon-{192,512}.png`
+- `public/og-image.png` (1200×630, 74KB) — Compass branding, dark background, feature list
+- `src/app/favicon.ico` — 32×32 ICO format
+- Added `icons`, `openGraph.images`, `twitter.images` to root layout metadata
+
+**SEO — Structured Data (JSON-LD):**
+- `src/app/dashboard/visa-bulletin/layout.tsx`:
+  - FAQPage schema with 5 questions (EB2 India priority date, wait times, FAD vs DFF, bulletin schedule, methodology)
+  - Dataset schema (temporalCoverage: "2011/2026", variableMeasured array)
+  - Keywords expanded from 10 → 19
+- `src/app/dashboard/eb-category/layout.tsx`:
+  - FAQPage schema with 3 questions (fastest category, EB2 vs EB3), keywords 8 → 12
+
+**SEO — Canonical URLs (9 Pages):**
+- Added `alternates.canonical` to: visa-bulletin, eb-category, employer, geographic, job-demand, processing, backlog, insights, about
+
+**SEO — Content & Crawlability:**
+- Added crawlable SEO text section to visa-bulletin page with keyword-rich paragraphs
+- Updated `robots.txt` with AI crawler directives (GPTBot, ClaudeBot, PerplexityBot, etc.)
+- Blocked `/data/` from indexing (raw JSON shouldn't be in search results)
+- Updated `sitemap.xml` dates to 2026-03-17
+
+### Test Results
+- **929 tests passing across 31 files** (+62 new tests, +1 new test file)
+- Build: 16 pages exported, 18 HTML files, 95,399 total output files
+- All SEO assets verified in `out/` directory
+
+### Files Changed
+
+**New:**
+- `src/__tests__/visa-bulletin-regression.test.ts` (62 tests)
+- `scripts/generate-icons.cjs` (icon generator)
+- `public/favicon-16x16.png`, `public/favicon-32x32.png`, `public/apple-touch-icon.png`
+- `public/icon-192.png`, `public/icon-512.png`, `public/og-image.png`
+
+**Modified:**
+- `src/app/layout.tsx` — icons, OG image, canonical
+- `src/app/dashboard/visa-bulletin/layout.tsx` — JSON-LD, 19 keywords
+- `src/app/dashboard/visa-bulletin/page.tsx` — SEO text section
+- `src/app/dashboard/eb-category/layout.tsx` — JSON-LD, 12 keywords
+- 7 layout files — canonical URL added
+- `src/__tests__/visa-bulletin.test.tsx` — getByRole fix
+- `public/robots.txt` — AI bot directives
+- `public/sitemap.xml` — updated dates
+
+### Commit
+- `89f19eb` — feat: 62 VB/PD regression tests + comprehensive SEO overhaul (Milestone 10.72)
+
+### Next Steps
+- Google Search Console: Submit sitemap after deployment
+- Custom domain (vs CloudFront URL) for stronger SEO authority
+- Page-specific OG images for visa-bulletin and other high-traffic dashboards
+- Blog/content pages for long-tail keyword capture
+
+---
+
 ## 2026-03-17 — Milestone 10.71: April 2026 Visa Bulletin End-to-End Pipeline
 
 ### Objective
@@ -3938,7 +4015,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.70 — 2026-03-17)
+## Quick Reference (Current State as of Milestone 10.72 — 2026-03-17)
 
 | Metric | Value |
 |--------|-------|
@@ -3948,7 +4025,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
 | Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **806 passing** across 29 test files |
+| Tests | **929 passing** across 31 test files |
 | P2 data synced | ✅ 21 dashboard JSONs + 94,843 employer shards + search/overview/freshness files via `sync_p2_data.py` |
 | **public/data/ payload** | **~28 MB** dashboards + ~14 MB search index + 94,843 employer shards (avg 13.6KB) |
 | **Data architecture** | Unified per-employer shards (wage + SRS + LCA + H1B consolidated); monolithic files eliminated |
@@ -3967,6 +4044,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Employer name normalization | ✅ ALL-CAPS → Title Case (1,700 names normalized in friendly scores & monthly metrics) |
 | Data regression testing | ✅ 18-test suite for Optum Services shard (baseline 1,928 LCA records) |
 | AWS deploy | Ready — static export clean, 604 tests passing, JSON files valid |
+| **SEO** | Favicon + OG image + canonical URLs (9 pages) + FAQPage/Dataset JSON-LD + AI bot directives |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
 | **Deploy script** | `scripts/deploy.sh` — pre-flight (index.html check) + post-deploy (S3 + CloudFront HTTP 200) |
 
@@ -4136,6 +4214,8 @@ npm run sync-data    # Sync P2 artifacts → public/data/
 | 10.64 | 2026-03-13 | Fix SRS Search (0 Cases + Broken Smart Sort) | Added `n_36m: e.total_filings` to asScores mapping; restored case count display + smart sort volume ranking; 15 new tests; **643 tests** (27 files) |
 | 10.65 | 2026-03-13 | Optum-First Sort Tests + Pre-Deploy Checks | 3 Optum-specific sort scenarios; 63-test `predeploy-checks.test.ts`; smoke test Optum ranking; **646 tests** (28 files) |
 | 10.66 | 2026-03-13 | Comprehensive SRS Test Suite + Deploy | 97-test `srs-comprehensive.test.tsx` covering ALL SRS features; deployed fix to AWS; ALL 42 smoke checks passed; **806 tests** (29 files) |
+| 10.71 | 2026-03-17 | April 2026 Visa Bulletin E2E Pipeline | P1→P2→P3 end-to-end: April 2026 VB fetched, fact_cutoffs 8,115 rows, pd_forecasts 1,320 rows; EB2/IND FAD +303 days; **867 tests** (30 files) |
+| 10.72 | 2026-03-17 | VB/PD Regression Tests + SEO Overhaul | 62 live-data regression tests (visa-bulletin-regression.test.ts); favicon + OG image; canonical URLs (9 pages); FAQPage + Dataset JSON-LD; AI bot directives; crawlable SEO content; **929 tests** (31 files); commit 89f19eb |
 
 ---
 

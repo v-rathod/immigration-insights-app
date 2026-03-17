@@ -56,7 +56,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **867 TESTS PASSING** (30 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum, AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **929 TESTS PASSING** (31 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, SEO (favicon, OG image, JSON-LD, canonical URLs, AI bot directives), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -74,7 +74,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 - **P3**: Synced all visa-bulletin/eb-category/forecast data to public/data/ ✅
 - **Key Finding**: EB2/IND FAD jumped +303 days (2013-09-15→2014-07-15), velocity up from 18.4→20.9 d/m
 - **Prediction**: PD 2016-06-15 India EB2 — not current within 24m, ~33m FAD / ~28m DFF estimated ✅
-- **Testing**: 867 tests passing (30 files), no regressions ✅
+- **Testing**: 929 tests passing (31 files), no regressions ✅
 - **Commits**: P3 Petition History `900f2a4` pushed, SRS UI `a931462`, docs `53cbb14` (local) ✅
 - **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 
@@ -499,7 +499,7 @@ npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 867 tests across 30 files (all passing)
+- **Current count**: 929 tests across 31 files (all passing)
 
 ---
 
@@ -642,7 +642,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (30 files, 867 tests)**
+**Tests (31 files, 929 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -673,6 +673,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
 | `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |
 | `src/__tests__/srs-comprehensive.test.tsx` | 97 | **Comprehensive SRS feature suite**: search rendering (5), accessibility (7), search behavior (6), result layout fields (8), clear (4), selection (3), keyboard nav (7), Optum regression (3), smart-sort edge cases (7), score gauge (8), detail card (13), trend chart (5), overview (4), shard extractors (6), asScores mapping (6), wage/SOC sort extras (4) |
+| `src/__tests__/visa-bulletin-regression.test.ts` | 62 | **Live-data VB/PD regression**: fact_cutoff_trends structure (10), pd_forecasts structure (11), cross-artifact consistency (4), cutoff continuity EB2/IND+EB3/IND+EB2/CHN (9), forecast accuracy bounds (7), computePdi() on real data (9), data freshness (5), getHistoricalSeries (4), getVelocitySummary (2) |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |
