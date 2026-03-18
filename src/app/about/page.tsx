@@ -112,7 +112,12 @@ const TECH_STACK = [
   {
     label: "Prophet",
     detail: "Time-series forecasting (priority dates)",
-    explanation: "Facebook's Prophet fits Meridian's Priority Date Index (PDI) forecasts: extrapolates 14-year Visa Bulletin trends to predict when each EB category becomes current. Handles seasonality and structural breaks.",
+    explanation: "Facebook's Prophet fits Meridian's Priority Date Index (PDI) base forecasts: extrapolates 14-year Visa Bulletin trends to predict when each EB category becomes current. Handles seasonality and structural breaks.",
+  },
+  {
+    label: "Monte Carlo Risk-Adjusted (MCRA)",
+    detail: "Stochastic forecasting with retrograde probability",
+    explanation: "Meridian's MCRA model runs 2,000 simulations of future priority date movement, where each month carries a calibrated retrograde probability from 10 years of Visa Bulletin history. Produces P10/P50/P90 confidence bands instead of single-point estimates, capturing uncertainty from policy changes and queue dynamics.",
   },
   {
     label: "SHAP",
