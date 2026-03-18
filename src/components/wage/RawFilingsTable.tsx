@@ -401,7 +401,7 @@ function LcaFilingsTab({
                     </span>
                     {row.wage_annual_high && row.wage_annual_high > row.wage_annual && (
                       <span className="text-[10px] text-[var(--muted-foreground)]/80 block">
-                        — {formatCurrency(row.wage_annual_high)}
+                        to {formatCurrency(row.wage_annual_high)}
                       </span>
                     )}
                   </td>
@@ -566,12 +566,12 @@ function PetitionHistoryTab({
         <div className="text-xs text-[var(--muted-foreground)]/90 space-y-1">
           <p>
             <span className="text-[var(--foreground)]/70 font-semibold">LCA Filings (DOL)</span>
-            {" — "}Department of Labor Labor Condition Applications: one per worker per job, role, or location change.
+            {" "}Department of Labor Labor Condition Applications: one per worker per job, role, or location change.
             Full 10-year history.
           </p>
           <p>
             <span className="text-[var(--foreground)]/70 font-semibold">USCIS Petitions</span>
-            {" — "}Actual H-1B petitions adjudicated. Discontinued by USCIS after FY2023. Only a subset of LCA filings result in a USCIS petition action.
+            {" "}Actual H-1B petitions adjudicated. Discontinued by USCIS after FY2023. Only a subset of LCA filings result in a USCIS petition action.
           </p>
         </div>
       </div>
@@ -737,7 +737,7 @@ export function RawFilingsTable({
       <div className="flex items-center justify-between px-5 pt-4 pb-0 gap-4 border-b border-[var(--foreground)]/[0.05]">
         <div className="flex items-center gap-2.5">
           <FileText className="h-4 w-4 text-blue-400/70" />
-          <h3 className="text-sm font-semibold text-[var(--foreground)]/80">Filing Records &mdash; Last 36 Months</h3>
+          <h3 className="text-sm font-semibold text-[var(--foreground)]/80">Filing Records: Last 36 Months</h3>
         </div>
 
         {/* Tabs */}

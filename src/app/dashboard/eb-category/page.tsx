@@ -297,8 +297,8 @@ export default function EbCategoryDashboardPage() {
             EB Category Comparison
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] max-w-2xl">
-            Compare priority date velocity across all EB categories — both Dates for Filing (DFF)
-            and Final Action Dates (FAD) — for your chargeability country.
+            Compare priority date velocity across all EB categories, for both Dates for Filing (DFF)
+            and Final Action Dates (FAD), by country.
           </p>
         </div>
 
@@ -342,7 +342,7 @@ export default function EbCategoryDashboardPage() {
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-purple-400" />
               <h2 className="text-base font-semibold text-[var(--foreground)]">
-                Velocity Charts — EB1 / EB2 / EB3
+                Velocity Charts: EB1 / EB2 / EB3
               </h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--muted-foreground)] border border-white/[0.08]">
                 10-year window
@@ -350,7 +350,7 @@ export default function EbCategoryDashboardPage() {
             </div>
 
             <p className="text-xs text-[var(--muted-foreground)]">
-              Trailing 12-month rolling average of calendar days advanced per bulletin month — last 10 years.
+              Trailing 12-month rolling average of calendar days advanced per bulletin month, last 10 years.
               Country: <strong className="text-[var(--foreground)]">{COUNTRY_LABELS[selectedCountry] ?? selectedCountry}</strong>.
             </p>
 
@@ -390,17 +390,17 @@ export default function EbCategoryDashboardPage() {
                   <strong className="text-[var(--foreground)]">12m avg velocity:</strong>{" "}
                   Trailing 12-month rolling average of calendar days the cutoff date
                   advanced per bulletin. This is the primary metric shown in the summary
-                  cards and charts — it reflects current momentum, not all-time averages.
+                  cards and charts; it reflects current momentum, not all-time averages.
                 </p>
                 <p>
                   <strong className="text-[var(--foreground)]">10yr avg velocity:</strong>{" "}
                   Net calendar days the cutoff advanced per month, measured over the 10-year data
-                  window (always sliding — last 10 years from the current build date). This reflects
+                  window (always sliding, last 10 years from the current build date). This reflects
                   the long-run rate including retrogression periods.
                 </p>
                 <p>
                   <strong className="text-[var(--foreground)]">12m avg velocity:</strong>{" "}
-                  Trailing 12-month rolling average — reflects current momentum rather than
+                  Trailing 12-month rolling average; reflects current momentum rather than
                   the full-decade average. Often diverges from the 10yr avg after sustained
                   acceleration or retrogression periods.
                 </p>

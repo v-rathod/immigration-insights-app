@@ -378,7 +378,7 @@ export default function AboutPage() {
                 <div className="space-y-3 mt-4 pl-4 border-l-2 border-[var(--border)]">
                   <div>
                     <h3 className="font-semibold text-[var(--foreground)] text-sm">
-                      Horizon — The Data Collection Layer
+                      Horizon: The Data Collection Layer
                     </h3>
                     <p className="text-xs">
                       Continuously scans the horizon for new immigration data: scraping
@@ -389,7 +389,7 @@ export default function AboutPage() {
 
                   <div>
                     <h3 className="font-semibold text-[var(--foreground)] text-sm">
-                      Meridian — The Analytics Backbone
+                      Meridian: The Analytics Backbone
                     </h3>
                     <p className="text-xs">
                       The measurement layer that curates raw data into intelligence.
@@ -402,13 +402,13 @@ export default function AboutPage() {
 
                   <div>
                     <h3 className="font-semibold text-[var(--foreground)] text-sm">
-                      Compass — The User Experience (This App)
+                      Compass: The User Experience
                     </h3>
                     <p className="text-xs">
                       The tool that guides you. Compass takes Meridian&apos;s intelligence
                       and presents it through interactive, personalized dashboards. It&apos;s
-                      your compass in the immigration journey — helping you navigate with
-                      confidence based on real data.
+                      your compass in this process, helping you make sense of the data
+                      and plan with confidence.
                     </p>
                   </div>
                 </div>

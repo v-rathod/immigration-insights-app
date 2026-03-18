@@ -139,7 +139,7 @@ export function SrsScoreGauge({
           ) : (
             <>
               <span className="text-2xl font-bold text-[var(--muted-foreground)]">
-                —
+                N/A
               </span>
               <span className="mt-1 text-xs text-[var(--muted-foreground)]">
                 Unrated

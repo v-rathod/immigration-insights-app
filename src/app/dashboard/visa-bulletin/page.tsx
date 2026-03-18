@@ -602,22 +602,20 @@ export default function VisaBulletinPage() {
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Optimistic</strong> &mdash; Uses full data-driven velocity
-                from the blended time-series model (50% full-history + 25% 24-month
+                <strong>Optimistic:</strong> Full observed velocity from a
+                blended time-series model (50% full-history + 25% 24-month
                 rolling + 25% 12-month rolling).
               </li>
               <li>
-                <strong>Realistic</strong> &mdash; Applies a 65% velocity dampener
-                to account for general policy uncertainty and bureaucratic friction.
+                <strong>Realistic:</strong> 65% velocity multiplier applied to
+                account for policy uncertainty and bureaucratic friction.
               </li>
               <li>
-                <strong>Risk-Adjusted (MCRA)</strong> &mdash; Monte Carlo
-                Retrograde-Adjusted model. Runs 2,000 stochastic simulations that
-                inject per-calendar-month retrograde probability (derived from 10
-                years of weighted historical patterns, with recency bias toward the
-                last 36 months). Each simulation path applies exponentially-distributed
-                setback severity when a retrograde event triggers. The projected
-                cutoff is the P50 path; confidence bands show P10&ndash;P90.
+                <strong>Risk-Adjusted (MCRA):</strong> Monte Carlo
+                Retrograde-Adjusted model. Runs 2,000 simulations where each
+                month carries a calibrated retrograde probability from 10 years
+                of weighted Visa Bulletin history. The P50 path is the forecast;
+                confidence bands show P10&ndash;P90.
               </li>
             </ul>
             <p>
@@ -625,11 +623,11 @@ export default function VisaBulletinPage() {
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Date for Filing (DFF)</strong> &mdash; When you can submit
+                <strong>Date for Filing (DFF):</strong> When you can submit
                 Form I-485 (Adjustment of Status). Typically advances faster.
               </li>
               <li>
-                <strong>Final Action Date (FAD)</strong> &mdash; When your green
+                <strong>Final Action Date (FAD):</strong> When your green
                 card is actually approved. Typically lags behind DFF.
               </li>
             </ul>

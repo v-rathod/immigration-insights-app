@@ -333,7 +333,7 @@ describe("EB Category Dashboard", () => {
       expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     });
     // New combined chart title
-    expect(screen.getByText("Velocity Charts \u2014 EB1 / EB2 / EB3")).toBeTruthy();
+    expect(screen.getByText("Velocity Charts: EB1 / EB2 / EB3")).toBeTruthy();
     // Sub-labels for each chart panel
     expect(screen.getAllByText("Dates for Filing (DFF)").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Final Action Dates (FAD)").length).toBeGreaterThanOrEqual(1);

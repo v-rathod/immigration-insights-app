@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
 
 export const metadata: Metadata = {
-  title: "Visa Bulletin Priority Date Forecast — April 2026",
+  title: "Visa Bulletin Priority Date Forecast | April 2026",
   description:
     "Track EB1, EB2, and EB3 priority date cutoffs and forecast when your date will become current. Historical trends from 2011, machine learning projections for the next 24 months. India, China, Philippines, and ROW data from the State Department Visa Bulletin. Updated monthly with latest priority date movement analysis.",
   keywords: [

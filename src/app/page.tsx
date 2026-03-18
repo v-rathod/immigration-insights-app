@@ -191,7 +191,7 @@ export default function LandingPage() {
               <span className="font-mono font-medium text-[var(--foreground)]">
                 18.5M+
               </span>{" "}
-              data points from official government sources. Priority date forecasts, employer scores, salary benchmarks—all in one place.
+              data points from official government sources. Priority date forecasts, employer scores, and salary benchmarks, all in one place.
             </p>
           </FadeIn>
 

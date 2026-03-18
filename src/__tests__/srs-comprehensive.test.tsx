@@ -1013,7 +1013,7 @@ describe("SrsScoreGauge — Comprehensive", () => {
         subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
       />
     );
-    expect(screen.getByText("—")).toBeDefined();
+    expect(screen.getByText("N/A")).toBeDefined();
     expect(screen.getByText("Unrated")).toBeDefined();
   });
 
@@ -1075,7 +1075,7 @@ describe("SrsScoreGauge — Comprehensive", () => {
     );
     // Score 0 is a valid score, not "Unrated"
     expect(screen.getByText("Poor")).toBeDefined();
-    expect(screen.queryByText("—")).toBeNull();
+    expect(screen.queryByText("N/A")).toBeNull();
   });
 
   it("score=100 (perfect) renders correctly", () => {

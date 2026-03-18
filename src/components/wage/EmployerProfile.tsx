@@ -361,7 +361,7 @@ export function EmployerProfile({
                 {" · "}
                 {formatCompact(stats.total_filings)} filings (latest yr)
                 {(series.length < 5 || stats.total_filings < 30) && (
-                  <span className="ml-1 text-amber-400/80">· Limited data — treat with caution</span>
+                  <span className="ml-1 text-amber-400/80">· Limited data, treat with caution</span>
                 )}
               </p>
             </div>

@@ -172,7 +172,7 @@ export default function SocDemandDashboardPage() {
             Occupation Demand
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] max-w-2xl">
-            Discover the most in-demand occupations for immigration sponsorship.
+            Track the most in-demand occupations for immigration sponsorship.
             Compare filing volumes, approval rates, and salary levels across
             {" "}{formatNumber(filterDemand(enrichedData, window, dataset).length)} occupations.
           </p>

@@ -908,7 +908,7 @@ export function WageIntelligenceHub() {
           {socGroupStats.length > 0 && (
             <GlassCard variant="default" padding="md">
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-3">
-                Market Context — {selectedSoc.title} vs Related Job Categories
+                Market Context: {selectedSoc.title} vs Related Job Categories
               </p>
               <div className="space-y-2">
                 {socGroupStats.slice(0, 6).map((g) => {

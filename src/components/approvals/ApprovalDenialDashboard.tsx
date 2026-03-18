@@ -635,7 +635,7 @@ function RiskWindow({ data }: { data: PermDetailPoint[] }) {
             See your personal approval climate
           </p>
           <p className="text-xs text-[var(--muted-foreground)] max-w-md">
-            Visit <span className="underline underline-offset-2">/setup</span> and enter your priority date to see what the approval environment looked like when you filed—and how it compares to today.
+            Visit <span className="underline underline-offset-2">/insights</span> and enter your priority date to see what the approval environment looked like when you filed, and how it compares to today.
           </p>
         </div>
       </GlassCard>

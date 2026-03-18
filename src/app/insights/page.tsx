@@ -1024,7 +1024,7 @@ function ProfileCard({
 
       {!isEditing && !filled && (
         <p className="text-xs text-[var(--muted-foreground)]">
-          Fill in your details to unlock personalized immigration insights.
+          Fill in your details to see personalized immigration data.
         </p>
       )}
     </GlassCard>
