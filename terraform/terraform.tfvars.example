@@ -6,7 +6,7 @@
 aws_region = "us-east-1"
 
 # Environment (dev, staging, prod)
-environment = "prod"
+environment = "staging"
 
 # S3 bucket name — MUST BE GLOBALLY UNIQUE across all AWS accounts
 # Tip: include your account ID for uniqueness

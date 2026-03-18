@@ -43,16 +43,17 @@ export type PageName =
 
 /**
  * Internal event capture with automatic environment tagging.
- * All events are tagged with "dev" (localhost) or "prod" (production).
+ * NEXT_PUBLIC_APP_ENV explicitly tags events: dev | stage | prod.
  * This enables filtering all PostHog data by environment without
  * manually adding environment to every function.
  */
 function capture(event: string, props?: Record<string, unknown>) {
   try {
     const environment =
-      typeof window !== "undefined" && process.env.NODE_ENV === "production"
+      process.env.NEXT_PUBLIC_APP_ENV ??
+      (typeof window !== "undefined" && process.env.NODE_ENV === "production"
         ? "prod"
-        : "dev";
+        : "dev");
     posthog.capture(event, { environment, ...props });
   } catch {
     // PostHog not yet initialised (SSR) — silently swallow

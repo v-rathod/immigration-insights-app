@@ -45,9 +45,10 @@ on:
         description: 'Deployment environment'
         type: choice
         required: false
-        default: production
+        default: stage
         options:
-          - production
+          - stage
+          - prod
 
 # Least-privilege permissions for OIDC token
 permissions:
@@ -56,8 +57,6 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  S3_BUCKET: compass-immigration-insights-883107059193
-  CF_DIST_ID: E1LPLTVZ0035Q5
   NODE_VERSION: '20'
 
 jobs:
@@ -69,6 +68,21 @@ jobs:
       # ── Setup ──────────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Resolve environment config
+        id: env
+        run: |
+          ENV="${{ inputs.environment || 'stage' }}"
+          ENV_UPPER=$(echo "$ENV" | tr '[:lower:]' '[:upper:]')
+          CONF="scripts/deploy-envs.conf"
+          S3_BUCKET=$(grep "^${ENV_UPPER}_S3_BUCKET=" "$CONF" | cut -d= -f2)
+          CF_DIST_ID=$(grep "^${ENV_UPPER}_CF_DIST=" "$CONF" | cut -d= -f2)
+          DEPLOY_URL=$(grep "^${ENV_UPPER}_URL=" "$CONF" | cut -d= -f2)
+          echo "s3_bucket=${S3_BUCKET}" >> "$GITHUB_OUTPUT"
+          echo "cf_dist_id=${CF_DIST_ID}" >> "$GITHUB_OUTPUT"
+          echo "deploy_url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+          echo "app_env=${ENV}" >> "$GITHUB_OUTPUT"
+          echo "Deploying to: ${ENV} (bucket=${S3_BUCKET}, cf=${CF_DIST_ID})"
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -107,23 +121,23 @@ jobs:
       - name: Build static site
         if: ${{ !inputs.skip_build }}
         id: build
+        env:
+          NEXT_PUBLIC_APP_ENV: ${{ steps.env.outputs.app_env }}
         run: |
           BUILD_START=$SECONDS
-          echo "## 🔨 Build" >> $GITHUB_STEP_SUMMARY
+          echo "## Build [${{ steps.env.outputs.app_env }}]" >> $GITHUB_STEP_SUMMARY
           echo "Build started at $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # NOTE: This step requires public/data/ (P2 Meridian artifacts).
           # It will only succeed on a self-hosted runner that has the data.
-          # On a GitHub-hosted runner this will fail — please register the dev
-          # machine as a self-hosted runner or use skip_build: true.
           npx next build
 
           BUILD_DURATION=$((SECONDS - BUILD_START))
           HTML_COUNT=$(find out -name "*.html" | wc -l | tr -d ' ')
           echo "build_duration_s=${BUILD_DURATION}" >> "$GITHUB_OUTPUT"
-          echo "| ⏱ Build time | ${BUILD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
-          echo "| 📄 Pages generated | ${HTML_COUNT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build time | ${BUILD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pages generated | ${HTML_COUNT} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Verify out/ directory
         run: |
@@ -139,28 +153,32 @@ jobs:
         id: s3_main
         run: |
           DEPLOY_START=$SECONDS
+          S3_BUCKET="${{ steps.env.outputs.s3_bucket }}"
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🪣 S3 Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "## S3 Deployment [${{ steps.env.outputs.app_env }}]" >> $GITHUB_STEP_SUMMARY
 
-          UPLOADED=$(aws s3 sync out/ "s3://$S3_BUCKET" \
+          UPLOADED=$(aws s3 sync out/ "s3://${S3_BUCKET}" \
             --delete \
             --exclude "data/employers/*" \
+            --exact-timestamps \
             --region "$AWS_REGION" \
             2>&1 | grep -c "upload:" || true)
 
           DEPLOY_DURATION=$((SECONDS - DEPLOY_START))
           echo "main_deploy_s=${DEPLOY_DURATION}" >> "$GITHUB_OUTPUT"
+          echo "| Bucket | ${S3_BUCKET} |" >> $GITHUB_STEP_SUMMARY
           echo "| Main site files uploaded | ${UPLOADED} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⏱ Main sync time | ${DEPLOY_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync time | ${DEPLOY_DURATION}s |" >> $GITHUB_STEP_SUMMARY
 
       - name: Deploy employer shards to S3
         id: s3_shards
         run: |
           SHARD_START=$SECONDS
+          S3_BUCKET="${{ steps.env.outputs.s3_bucket }}"
           SHARD_COUNT=$(find out/data/employers -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
 
-          UPLOADED=$(aws s3 sync out/data/employers/ "s3://$S3_BUCKET/data/employers/" \
+          UPLOADED=$(aws s3 sync out/data/employers/ "s3://${S3_BUCKET}/data/employers/" \
             --region "$AWS_REGION" \
             --size-only \
             2>&1 | grep -c "upload:" || true)
@@ -169,24 +187,25 @@ jobs:
           echo "shard_deploy_s=${SHARD_DURATION}" >> "$GITHUB_OUTPUT"
           echo "| Employer shards total | ${SHARD_COUNT} |" >> $GITHUB_STEP_SUMMARY
           echo "| New shards uploaded | ${UPLOADED} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⏱ Shard sync time | ${SHARD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Shard sync time | ${SHARD_DURATION}s |" >> $GITHUB_STEP_SUMMARY
 
       # ── CloudFront invalidation ────────────────────────────────────────────
       - name: Invalidate CloudFront cache
         id: cf_invalidation
         run: |
           CF_START=$SECONDS
+          CF_DIST_ID="${{ steps.env.outputs.cf_dist_id }}"
           INV_ID=$(aws cloudfront create-invalidation \
-            --distribution-id "$CF_DIST_ID" \
+            --distribution-id "${CF_DIST_ID}" \
             --paths "/*" \
             --region "$AWS_REGION" \
             --query 'Invalidation.Id' \
             --output text)
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🔄 CloudFront Invalidation" >> $GITHUB_STEP_SUMMARY
+          echo "## CloudFront Invalidation" >> $GITHUB_STEP_SUMMARY
           echo "| Invalidation ID | \`$INV_ID\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⏱ Invalidation created in | $((SECONDS - CF_START))s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Created in | $((SECONDS - CF_START))s |" >> $GITHUB_STEP_SUMMARY
           echo "inv_id=${INV_ID}" >> "$GITHUB_OUTPUT"
 
       # ── Total deploy time ──────────────────────────────────────────────────
@@ -197,13 +216,13 @@ jobs:
           SHARD_S="${{ steps.s3_shards.outputs.shard_deploy_s }}"
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ⏱ Total Timing" >> $GITHUB_STEP_SUMMARY
+          echo "## Total Timing [${{ steps.env.outputs.app_env }}]" >> $GITHUB_STEP_SUMMARY
           echo "| Phase | Duration |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|----------|" >> $GITHUB_STEP_SUMMARY
           [[ -n "$BUILD_S"  ]] && echo "| Build | ${BUILD_S}s |"  >> $GITHUB_STEP_SUMMARY
           [[ -n "$MAIN_S"   ]] && echo "| S3 main sync | ${MAIN_S}s |"   >> $GITHUB_STEP_SUMMARY
           [[ -n "$SHARD_S"  ]] && echo "| S3 shard sync | ${SHARD_S}s |" >> $GITHUB_STEP_SUMMARY
-          echo "| CloudFront URL | https://d10immmzyp7xgr.cloudfront.net |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.env.outputs.deploy_url }} |" >> $GITHUB_STEP_SUMMARY
 
       # ── Post-deploy verification ───────────────────────────────────────────
       - name: Wait for CloudFront propagation
@@ -211,11 +230,11 @@ jobs:
 
       - name: Run smoke tests
         env:
-          SMOKE_TEST_URL: https://d10immmzyp7xgr.cloudfront.net
+          SMOKE_TEST_URL: ${{ steps.env.outputs.deploy_url }}
         run: |
           SMOKE_START=$SECONDS
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🧪 Smoke Tests (E2E)" >> $GITHUB_STEP_SUMMARY
+          echo "## Smoke Tests [${{ steps.env.outputs.app_env }}]" >> $GITHUB_STEP_SUMMARY
 
           node scripts/smoke-test.mjs --url "$SMOKE_TEST_URL" 2>&1 | tee /tmp/smoke.txt
           EXIT=$?
@@ -223,5 +242,5 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           cat /tmp/smoke.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "⏱ Tests completed in $((SECONDS - SMOKE_START))s" >> $GITHUB_STEP_SUMMARY
+          echo "Tests completed in $((SECONDS - SMOKE_START))s" >> $GITHUB_STEP_SUMMARY
           exit $EXIT

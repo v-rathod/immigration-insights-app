@@ -1,52 +1,50 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────────────────
-# deploy.sh — Safe deployment script for Compass (P3)
+# -----------------------------------------------------------------------
+# deploy.sh: Safe deployment script for Compass (P3)
 #
-# USAGE — Single Environment (Current):
-#   ./scripts/deploy.sh              # Full deploy: build + sync + invalidate + verify
-#   ./scripts/deploy.sh --skip-build # Skip build, deploy existing out/
-#   ./scripts/deploy.sh --shards-only # Only sync employer shards
-#
-# MULTI-ENVIRONMENT DESIGN (Future Enhancement):
-# ────────────────────────────────────────────────────────────────────────────
-# To support local/staging/prod deployments, this script can be extended
-# with environment awareness. Design pattern:
-#
-# 1. Environment variable: COMPASS_ENV (default: prod)
-#    export COMPASS_ENV=staging
-#    ./scripts/deploy.sh
-#
-# 2. Configuration per environment:
-#    ┌────────────────────────────────────────────────────┐
-#    │ Environment │ S3 Bucket                          │ CloudFront DIst      │
-#    ├────────────────────────────────────────────────────┤
-#    │ local       │ (skip S3, use 'npm run dev')       │ N/A                  │
-#    │ staging     │ compass-staging-883107059193       │ E1LPLTVZ0035Q6 (TBD) │
-#    │ prod        │ compass-immigration-insights-...   │ E1LPLTVZ0035Q5       │
-#    └────────────────────────────────────────────────────┘
-#
-# 3. Implementation in deploy.sh (to be added):
-#    - Parse ${COMPASS_ENV} at top of script
-#    - Load environment-specific config from shell function
-#    - Pass env to all AWS CLI calls
-#    - Add --env=staging flag option for explicit override
-#
-# 4. GitHub Actions CI/CD integration:
-#    - Dev branch → staging deployment (on push)
-#    - Main branch → prod deployment (on merge)
-#    - Environment secrets in GitHub: AWS_ROLE_ARN per environment
-#
-# Implementation deferred to Phase 6 (Post-MVP). Current focus: prod only.
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# This script prevents the "empty out/" footgun that previously caused Access
-# Denied errors by deleting all HTML from S3.
-# ─────────────────────────────────────────────────────────────────────────────
+# USAGE:
+#   ./scripts/deploy.sh                   # Deploy to stage (default)
+#   ./scripts/deploy.sh --env stage       # Explicit stage deploy
+#   ./scripts/deploy.sh --env prod        # Deploy to prod (requires prod config)
+#   ./scripts/deploy.sh --skip-build      # Skip build, deploy existing out/
+#   ./scripts/deploy.sh --shards-only     # Only sync employer shards
+#   ./scripts/deploy.sh --env prod --skip-build  # Combine flags
+# -----------------------------------------------------------------------
 set -euo pipefail
 
-BUCKET="compass-immigration-insights-883107059193"
-CF_DIST="E1LPLTVZ0035Q5"
-REGION="us-east-1"
+# ---- Environment Configuration ------------------------------------------
+# Load from scripts/deploy-envs.conf based on --env flag.
+# Default: stage
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONF_FILE="$SCRIPT_DIR/deploy-envs.conf"
+
+load_env_config() {
+  local env_upper
+  env_upper=$(echo "$1" | tr '[:lower:]' '[:upper:]')
+
+  if [[ ! -f "$CONF_FILE" ]]; then
+    echo "[deploy] ERROR: Config file not found: $CONF_FILE" >&2
+    exit 1
+  fi
+
+  BUCKET=$(grep "^${env_upper}_S3_BUCKET=" "$CONF_FILE" | cut -d= -f2)
+  CF_DIST=$(grep "^${env_upper}_CF_DIST=" "$CONF_FILE" | cut -d= -f2)
+  REGION=$(grep "^${env_upper}_REGION=" "$CONF_FILE" | cut -d= -f2)
+  DEPLOY_URL=$(grep "^${env_upper}_URL=" "$CONF_FILE" | cut -d= -f2)
+
+  if [[ -z "$BUCKET" || -z "$CF_DIST" || -z "$REGION" ]]; then
+    echo "[deploy] ERROR: Missing config for environment '$1' in $CONF_FILE" >&2
+    echo "[deploy] Expected: ${env_upper}_S3_BUCKET, ${env_upper}_CF_DIST, ${env_upper}_REGION" >&2
+    exit 1
+  fi
+}
+
+# Defaults (overridden by load_env_config)
+DEPLOY_ENV="stage"
+BUCKET=""
+CF_DIST=""
+REGION=""
+DEPLOY_URL=""
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="$PROJECT_DIR/out"
 
@@ -154,14 +152,19 @@ preflight() {
 
 do_build() {
   BUILD_START=$SECONDS
-  log "Building static site..."
+  log "Building static site for [$DEPLOY_ENV]..."
   cd "$PROJECT_DIR"
   rm -rf out .next
+
+  # Set NEXT_PUBLIC_APP_ENV so Next.js bakes the environment into the bundle.
+  # .env.stage / .env.production set it too, but explicit export guarantees it.
+  export NEXT_PUBLIC_APP_ENV="$DEPLOY_ENV"
   npx next build
+
   BUILD_DURATION=$(_elapsed $BUILD_START)
   local pages
   pages=$(find "$OUT_DIR" -name '*.html' | wc -l | tr -d ' ')
-  log "Build complete: ${pages} HTML pages in ${BUILD_DURATION}s ✓"
+  log "Build complete: ${pages} HTML pages in ${BUILD_DURATION}s [$DEPLOY_ENV] ✓"
 }
 
 # ── Deploy main site ───────────────────────────────────────────────────────
@@ -366,14 +369,14 @@ notify_github() {
   local repo
   repo=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "v-rathod/immigration-insights-app")
 
-  log "Notifying GitHub Actions (repository_dispatch → smoke-test workflow)..."
+  log "Notifying GitHub Actions (repository_dispatch -> smoke-test workflow)..."
   local http_status
   http_status=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST \
     -H "Authorization: token ${token}" \
     -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/repos/${repo}/dispatches" \
-    -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"cloudfront_url\":\"https://d10immmzyp7xgr.cloudfront.net\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
+    -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"environment\":\"${DEPLOY_ENV}\",\"cloudfront_url\":\"${DEPLOY_URL:-https://d10immmzyp7xgr.cloudfront.net}\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
     2>/dev/null || echo "000")
 
   if [[ "$http_status" == "204" ]]; then
@@ -389,7 +392,7 @@ print_timing_summary() {
   local total_duration=$(( SECONDS - DEPLOY_START ))
   echo ""
   echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BOLD}${CYAN}  Compass Deploy Timing Summary${NC}"
+  echo -e "${BOLD}${CYAN}  Compass Deploy Timing Summary [$DEPLOY_ENV]${NC}"
   echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   if (( BUILD_DURATION > 0 )); then
     printf "  %-28s %s\n" "Build (next build):" "${BUILD_DURATION}s"
@@ -419,22 +422,41 @@ main() {
     case "$arg" in
       --skip-build)  SKIP_BUILD=true ;;
       --shards-only) SHARDS_ONLY=true ;;
+      --env=*)       DEPLOY_ENV="${arg#--env=}" ;;
+      --env)         ;; # handled below via shift
       --help|-h)
-        echo "Usage: $0 [--skip-build] [--shards-only]"
+        echo "Usage: $0 [--env stage|prod] [--skip-build] [--shards-only]"
+        echo "  --env ENV      Environment to deploy (default: stage)"
         echo "  --skip-build   Skip npm build, deploy existing out/"
         echo "  --shards-only  Only sync employer shards"
         exit 0
         ;;
-      *) error "Unknown option: $arg"; exit 1 ;;
+      *) # Handle --env stage (space-separated)
+        if [[ "${prev_arg:-}" == "--env" ]]; then
+          DEPLOY_ENV="$arg"
+        else
+          error "Unknown option: $arg"; exit 1
+        fi
+        ;;
     esac
+    prev_arg="$arg"
   done
+
+  # Also support COMPASS_ENV environment variable
+  DEPLOY_ENV="${DEPLOY_ENV:-${COMPASS_ENV:-stage}}"
+
+  # Load environment-specific AWS config
+  load_env_config "$DEPLOY_ENV"
 
   cd "$PROJECT_DIR"
   DEPLOY_START=$SECONDS
   echo ""
-  log "═══════════════════════════════════════════════════════"
-  log "  Compass Deploy — $(date '+%Y-%m-%d %H:%M:%S')"
-  log "═══════════════════════════════════════════════════════"
+  log "==============================================================="
+  log "  Compass Deploy [$DEPLOY_ENV] - $(date '+%Y-%m-%d %H:%M:%S')"
+  log "  Bucket:  $BUCKET"
+  log "  CF Dist: $CF_DIST"
+  log "  Region:  $REGION"
+  log "==============================================================="
   echo ""
 
   if $SHARDS_ONLY; then

@@ -150,9 +150,10 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     // Register super properties so ALL events (custom + autocapture)
     // get tagged with environment for filtering.
+    // NEXT_PUBLIC_APP_ENV is set per deployment: dev | stage | prod.
     // Super properties are attached to every event automatically.
     const environment =
-      process.env.NODE_ENV === "production" ? "prod" : "dev";
+      process.env.NEXT_PUBLIC_APP_ENV ?? (process.env.NODE_ENV === "production" ? "prod" : "dev");
     posthog.register({ environment });
   }, []);
 

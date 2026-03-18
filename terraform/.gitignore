@@ -17,9 +17,12 @@ terraform.tfvars
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files (keep only .example)
+# Exclude all .tfvars files (keep only .example and env-specific)
 *.tfvars
 *.tfvars.json
+!terraform.tfvars.example
+!stage.tfvars
+!prod.tfvars
 
 # Ignore override files (local development)
 override.tf
