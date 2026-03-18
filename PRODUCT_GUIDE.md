@@ -175,10 +175,11 @@ Four smaller stat cards showing:
 
 Higher velocities mean the line is moving faster, which is good for applicants.
 
-**Optimistic / Realistic Toggle**
-A toggle above the prediction cards switches the forecast between two scenarios:
-- **Optimistic:** Assumes the visa bulletin will continue advancing at the best recent pace
-- **Realistic:** Applies a 30% discount to the velocity, accounting for retrogression risk
+**Forecast Mode Selector**
+A three-way toggle above the prediction cards. Choose the scenario that fits how you want to plan:
+- **Optimistic:** Assumes the visa bulletin keeps advancing at the strongest recent pace — best-case scenario, no setbacks assumed
+- **Realistic:** Applies a moderate haircut to the velocity, accounting for normal slowdowns and occasional retrogression
+- **Risk-Adjusted:** Runs 2,000 simulated futures using the actual historical chance of retrogression each month — shows a realistic range that includes setback risk
 
 ---
 
@@ -300,10 +301,11 @@ These cards only appear when a priority date is entered (otherwise they show a c
 - Shows the estimated month/year your priority date will reach the Final Action Date
 - This is typically 1–3 years later than the DFF date
 
-**Optimistic / Realistic Toggle**
-Above the prediction cards. Controls the forecast velocity assumption:
-- **Optimistic:** Full observed velocity — assumes the best recent trend continues
-- **Realistic:** 70% of observed velocity — built-in buffer for normal retrogression and slowdowns
+**Forecast Mode Selector**
+Above the prediction cards. Controls which forecast model is used for the prediction cards and dashed chart lines:
+- **Optimistic:** Uses the full observed historical velocity — assumes the best recent trend continues without interruption
+- **Realistic:** Uses 70% of observed velocity — a built-in buffer for normal slowdowns and minor setbacks
+- **Risk-Adjusted:** The most sophisticated mode. Simulates 2,000 possible futures, each shaped by the realistic monthly probability of a retrogression. The result is a range of outcomes — not just one date — so you can see the breadth of what's plausible
 
 ---
 
@@ -866,7 +868,7 @@ NorthStar Compass aggregates and analyzes data from the following official US go
 | Waiting List | Department of State (DOS) | annual | 2000–present |
 
 **Forecasting methodology:**
-Priority date forecasts use a time-series model trained on historical visa bulletin cutoff velocity. The model extrapolates 24 months forward using recent advancement rates, with adjustments for known fiscal year patterns (cutoffs sometimes reset in October). Optimistic and Realistic scenarios apply different velocity multipliers. Forecasts are probabilistic estimates, not guarantees.
+Compass tracks every Visa Bulletin since 2011 and uses this history to power three forecast modes. **Optimistic** and **Realistic** models extrapolate the recent trend forward at full and 70% velocity respectively, with adjustments for known fiscal-year patterns (cutoffs sometimes reset in October). The **Risk-Adjusted** model goes further: it runs 2,000 simulated futures per series, each one shaped by the actual month-by-month retrograde probability observed over the past 10 years — so the output is a realistic range of outcomes rather than a single date. All three forecasts project 24 months forward. They are probabilistic estimates, not legal guarantees.
 
 **SRS Scoring methodology:**
 The Sponsor Reliability Score combines 5 sub-scores: approval rate trend, wage competitiveness (vs. prevailing wage), filing volume consistency, occupational diversity, and risk indicators. A machine learning model (gradient-boosted regressor) supplements the rules-based score with pattern recognition on employer filing behavior.

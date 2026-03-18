@@ -83,10 +83,12 @@ DIMENSION_ARTIFACTS = [
 
 MODEL_ARTIFACTS = [
     "pd_forecasts.parquet",
+    "pd_forecasts_retrograde.parquet",
 ]
 
 MODEL_JSON = [
     "pd_forecast_model.json",
+    "pd_forecast_retrograde_model.json",
 ]
 
 

@@ -353,6 +353,13 @@ export interface PdForecast {
   cumulative_advancement_days: number;
 }
 
+/** MCRA (Monte Carlo Retrograde-Adjusted) forecast — extends PdForecast with risk columns */
+export interface PdForecastRetrograde extends PdForecast {
+  retrograde_prob: number;         // P(retrogression) for this calendar month [0..1]
+  expected_setback_days: number;   // E[|setback|] when retrogression occurs
+  risk_adjusted_velocity: number;  // velocity after deducting expected retrograde loss
+}
+
 // ---------------------------------------------------------------------------
 // RAG Types
 // ---------------------------------------------------------------------------

@@ -26,16 +26,20 @@ import { formatMonthYear } from "@/lib/utils/format";
 import { secureGet, secureSet } from "@/lib/security";
 import { FadeIn } from "@/components/ui";
 import { PriorityDateChart } from "@/components/pdi/priority-date-chart";
+import type { ForecastMode } from "@/components/pdi/priority-date-chart";
 import {
   loadPdForecasts,
+  loadPdForecastsRetrograde,
   loadCutoffTrends,
   getForecastSeries,
+  getRetrogradeSeries,
+  getRetrogradeRiskSummary,
   getHistoricalSeries,
   computePdi,
   extrapolateForChart,
   COUNTRY_LABELS,
 } from "@/lib/data/pdi";
-import type { PdForecast } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
 import type { PdiResult, CutoffTrendRecord } from "@/lib/data/pdi";
 import { analytics } from "@/lib/analytics";
 
@@ -92,6 +96,7 @@ export default function VisaBulletinPage() {
 
   // Data
   const [forecasts, setForecasts] = useState<PdForecast[]>([]);
+  const [retrogradeForecasts, setRetrogradeForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,18 +130,22 @@ export default function VisaBulletinPage() {
     } catch {}
   }, [priorityDate, category, country]);
 
-  // Extended charts and toggle state
+  // Extended charts and forecast mode state
   const [showExtended, setShowExtended] = useState(false);
-  const [isOptimistic, setIsOptimistic] = useState(true);
+  const [forecastMode, setForecastMode] = useState<ForecastMode>("optimistic");
 
-  // Current velocity multiplier based on toggle
-  const velocityMultiplier = isOptimistic ? 1.0 : REALISTIC_VELOCITY_MULTIPLIER;
+  // Velocity multiplier: Optimistic 1.0, Realistic 0.65, MCRA uses its own data
+  const velocityMultiplier = forecastMode === "realistic" ? REALISTIC_VELOCITY_MULTIPLIER : 1.0;
 
-  // Load forecasts + historical trends on mount
+  // For MCRA mode, use retrograde forecasts; otherwise use base
+  const activeForecastSource = forecastMode === "mcra" ? retrogradeForecasts : forecasts;
+
+  // Load forecasts (base + MCRA) + historical trends on mount
   useEffect(() => {
-    Promise.all([loadPdForecasts(), loadCutoffTrends()])
-      .then(([fc, tr]) => {
+    Promise.all([loadPdForecasts(), loadPdForecastsRetrograde(), loadCutoffTrends()])
+      .then(([fc, mcra, tr]) => {
         setForecasts(fc);
+        setRetrogradeForecasts(mcra);
         setTrends(tr);
       })
       .catch((err) =>
@@ -148,30 +157,39 @@ export default function VisaBulletinPage() {
       });
   }, []);
 
-  // Compute DFF + FAD series for selected category/country
+  // Compute DFF + FAD series for selected category/country using active source
   const dffSeries = useMemo(
-    () => getForecastSeries(forecasts, "DFF", category, country),
-    [forecasts, category, country]
+    () => getForecastSeries(activeForecastSource, "DFF", category, country),
+    [activeForecastSource, category, country]
   );
   const fadSeries = useMemo(
-    () => getForecastSeries(forecasts, "FAD", category, country),
-    [forecasts, category, country]
+    () => getForecastSeries(activeForecastSource, "FAD", category, country),
+    [activeForecastSource, category, country]
   );
+
+  // Retrograde risk summary (for MCRA mode info card)
+  const retroRisk = useMemo(() => {
+    if (retrogradeForecasts.length === 0) return null;
+    return {
+      dff: getRetrogradeRiskSummary(retrogradeForecasts, "DFF", category, country),
+      fad: getRetrogradeRiskSummary(retrogradeForecasts, "FAD", category, country),
+    };
+  }, [retrogradeForecasts, category, country]);
 
   // Compute predictions (only when PD is entered)
   const dffPdi = useMemo<PdiResult | null>(() => {
     if (!priorityDate || dffSeries.length === 0) return null;
     return computePdi(
-      forecasts, "DFF", category, country, priorityDate, velocityMultiplier
+      activeForecastSource, "DFF", category, country, priorityDate, velocityMultiplier
     );
-  }, [forecasts, category, country, priorityDate, dffSeries.length, velocityMultiplier]);
+  }, [activeForecastSource, category, country, priorityDate, dffSeries.length, velocityMultiplier]);
 
   const fadPdi = useMemo<PdiResult | null>(() => {
     if (!priorityDate || fadSeries.length === 0) return null;
     return computePdi(
-      forecasts, "FAD", category, country, priorityDate, velocityMultiplier
+      activeForecastSource, "FAD", category, country, priorityDate, velocityMultiplier
     );
-  }, [forecasts, category, country, priorityDate, fadSeries.length, velocityMultiplier]);
+  }, [activeForecastSource, category, country, priorityDate, fadSeries.length, velocityMultiplier]);
 
   // Extrapolation for chart extension (when PD is beyond model window)
   const dffExtrapolation = useMemo(() => {
@@ -429,9 +447,54 @@ export default function VisaBulletinPage() {
               dffExtrapolation={dffExtrapolation}
               fadExtrapolation={fadExtrapolation}
               priorityDate={priorityDate || undefined}
-              isOptimistic={isOptimistic}
-              onToggle={() => setIsOptimistic(!isOptimistic)}
+              forecastMode={forecastMode}
+              onModeChange={(mode) => {
+                setForecastMode(mode);
+                analytics.filterChanged({ dashboard: "visa-bulletin", filter: "forecastMode", value: mode });
+              }}
+              showConfidenceBands={forecastMode === "mcra"}
             />
+          </div>
+        </FadeIn>
+      )}
+
+      {/* MCRA Retrograde Risk Summary — only in Risk-Adjusted mode */}
+      {forecastMode === "mcra" && retroRisk && (retroRisk.dff.avgRetroProb > 0 || retroRisk.fad.avgRetroProb > 0) && (
+        <FadeIn delay={0.12}>
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] backdrop-blur-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-400">
+                <Zap className="h-3 w-3 text-white" strokeWidth={2.5} />
+              </div>
+              <h3 className="text-xs font-semibold text-[var(--foreground)]">
+                Monte Carlo Retrograde Risk
+              </h3>
+              <span className="ml-auto text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400">
+                MCRA v3
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div>
+                <div className="text-lg font-bold font-mono text-blue-400">{(retroRisk.dff.avgRetroProb * 100).toFixed(1)}%</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">DFF Retro Prob</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold font-mono text-blue-400">{retroRisk.dff.avgSetbackDays.toFixed(0)}d</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">DFF Avg Setback</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold font-mono text-amber-400">{(retroRisk.fad.avgRetroProb * 100).toFixed(1)}%</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">FAD Retro Prob</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold font-mono text-amber-400">{retroRisk.fad.avgSetbackDays.toFixed(0)}d</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">FAD Avg Setback</div>
+              </div>
+            </div>
+            <p className="mt-2 text-[9px] text-[var(--muted-foreground)]/60">
+              Based on 2,000 Monte Carlo simulations with per-month retrograde probability derived from 10 years of Visa Bulletin history.
+              Shaded bands on the chart show 90% confidence interval (P10–P90).
+            </p>
           </div>
         </FadeIn>
       )}
@@ -471,7 +534,7 @@ export default function VisaBulletinPage() {
               pdi={dffPdi}
               velocity={velocityStats.dff}
               hasPriorityDate={!!priorityDate}
-              isOptimistic={isOptimistic}
+              forecastMode={forecastMode}
               delay={0}
             />
             <PredictionCard
@@ -481,7 +544,7 @@ export default function VisaBulletinPage() {
               pdi={fadPdi}
               velocity={velocityStats.fad}
               hasPriorityDate={!!priorityDate}
-              isOptimistic={isOptimistic}
+              forecastMode={forecastMode}
               delay={0.05}
             />
           </motion.div>
@@ -535,7 +598,30 @@ export default function VisaBulletinPage() {
             <p>
               The <strong>Priority Date Cortex</strong> forecasts EB visa cutoff
               date movement using historical Visa Bulletin data (Oct
-              2015&ndash;present). Two projected timelines are always shown:
+              2015&ndash;present). Three forecast models are available:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <strong>Optimistic</strong> &mdash; Uses full data-driven velocity
+                from the blended time-series model (50% full-history + 25% 24-month
+                rolling + 25% 12-month rolling).
+              </li>
+              <li>
+                <strong>Realistic</strong> &mdash; Applies a 65% velocity dampener
+                to account for general policy uncertainty and bureaucratic friction.
+              </li>
+              <li>
+                <strong>Risk-Adjusted (MCRA)</strong> &mdash; Monte Carlo
+                Retrograde-Adjusted model. Runs 2,000 stochastic simulations that
+                inject per-calendar-month retrograde probability (derived from 10
+                years of weighted historical patterns, with recency bias toward the
+                last 36 months). Each simulation path applies exponentially-distributed
+                setback severity when a retrograde event triggers. The projected
+                cutoff is the P50 path; confidence bands show P10&ndash;P90.
+              </li>
+            </ul>
+            <p>
+              Two projected timelines are always shown:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
@@ -548,7 +634,7 @@ export default function VisaBulletinPage() {
               </li>
             </ul>
             <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-1">
-              Source: State Dept. Visa Bulletin (FY2015&ndash;FY2025) · NorthStar forecast model
+              Source: State Dept. Visa Bulletin (FY2015&ndash;FY2025) · NorthStar forecast model (blended v2.1 &amp; MCRA v3.0)
             </p>
           </div>
         </details>
@@ -561,39 +647,52 @@ export default function VisaBulletinPage() {
             Understanding the Visa Bulletin and Priority Date Movement
           </h2>
           <p>
-            The <strong>Visa Bulletin</strong> is published monthly by the
-            U.S. Department of State (DOS) and determines which employment-based
-            (EB) green card applicants can proceed with their applications. Each
-            bulletin lists <strong>priority date cutoff dates</strong> for EB1,
-            EB2, EB3, EB4, and EB5 categories across different countries of
-            chargeability including <strong>India</strong>,{" "}
-            <strong>China (mainland born)</strong>,{" "}
+            Every month, the U.S. Department of State publishes the{" "}
+            <strong>Visa Bulletin</strong> — a one-page document that controls
+            when hundreds of thousands of green card applicants can move forward.
+            Think of it as a monthly queue update: if your <strong>priority
+            date</strong> (the date your employer filed your labor certification
+            or petition) is earlier than the cutoff listed, you&rsquo;re eligible
+            to proceed. If not, you wait another month. The bulletin covers{" "}
+            <strong>EB1 through EB5</strong> employment categories and tracks
+            separate queues for high-demand countries:{" "}
+            <strong>India</strong>, <strong>China</strong>,{" "}
             <strong>Philippines</strong>, <strong>Mexico</strong>, and{" "}
-            <strong>Rest of World (ROW)</strong>.
+            <strong>Rest of World</strong>.
           </p>
           <p>
-            Compass tracks <strong>priority date movement</strong> since 2011 and
-            uses machine learning to project how cutoff dates will advance over
-            the next 24 months. Our model analyzes movement velocity (days
-            advanced per month), retrogression patterns, and seasonal trends to
-            produce forecasts for both <strong>Final Action Dates</strong> and{" "}
-            <strong>Dates for Filing</strong>.
+            Compass has collected every Visa Bulletin since 2011 and tracks how
+            these cutoff dates move month to month. On average, a healthy month
+            sees the cutoff advance <strong>15–25 calendar days</strong> — but
+            some months it stalls, and occasionally it{" "}
+            <strong>retrogresses</strong> (moves backward). That variability is
+            what makes long-term planning difficult and why forecasting matters.
           </p>
           <p>
-            For <strong>EB2 India</strong>, one of the most heavily subscribed
-            categories, wait times can exceed 10 years. The current{" "}
-            <strong>EB2 India priority date</strong> cutoff moves at
-            approximately 15&ndash;25 days per month on average. Similar
-            analysis is available for{" "}
-            <strong>EB3 India</strong>,{" "}
-            <strong>EB2 China</strong>, and all other category/country
-            combinations.
+            Our forecasting engine offers three views:{" "}
+            <strong>Optimistic</strong> projects the fastest realistic scenario
+            based on peak historical momentum.{" "}
+            <strong>Realistic</strong> uses a balanced trend that averages recent
+            years. <strong>Risk-Adjusted</strong> goes further — it runs{" "}
+            <strong>2,000 simulated futures</strong>, each one shaped by the
+            realistic chance of a retrogression in any given month. The output is
+            a <strong>confidence range</strong> (not just a single date) so you
+            can see the best-case, likely, and worst-case scenarios side by side.
+          </p>
+          <p>
+            For <strong>EB2 India</strong> — one of the longest queues in the
+            world — current wait times can exceed a decade. The cutoff has
+            historically advanced about <strong>15–25 days per month</strong>,
+            with periodic setbacks. Similar forecasts are available for{" "}
+            <strong>EB3 India</strong>, <strong>EB2 China</strong>, and every
+            other category/country combination tracked by the Visa Bulletin.
           </p>
           <p className="text-[10px] text-[var(--muted-foreground)]/50">
-            Data sourced from the US Department of State Visa Bulletin
-            (travel.state.gov). This tool is not affiliated with USCIS or DOS
-            and does not provide legal advice. Always consult an immigration
-            attorney for decisions about your case.
+            Data sourced from the U.S. Department of State Visa Bulletin
+            (travel.state.gov). Compass is not affiliated with USCIS or the
+            Department of State and does not provide legal advice. For decisions
+            about your immigration case, always consult a qualified immigration
+            attorney.
           </p>
         </section>
       </FadeIn>
@@ -612,9 +711,21 @@ interface PredictionCardProps {
   pdi: PdiResult | null;
   velocity: { avg: number; max: number; total: number } | null;
   hasPriorityDate: boolean;
-  isOptimistic: boolean;
+  forecastMode: ForecastMode;
   delay: number;
 }
+
+const PREDICTION_MODE_STYLE: Record<ForecastMode, { bg: string; text: string }> = {
+  optimistic: { bg: "bg-blue-500/10", text: "text-blue-400" },
+  realistic: { bg: "bg-amber-500/10", text: "text-amber-400" },
+  mcra: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
+};
+
+const PREDICTION_MODE_LABEL: Record<ForecastMode, string> = {
+  optimistic: "Optimistic",
+  realistic: "Realistic",
+  mcra: "Risk-Adjusted",
+};
 
 function PredictionCard({
   type,
@@ -622,7 +733,7 @@ function PredictionCard({
   sublabel,
   pdi,
   hasPriorityDate,
-  isOptimistic,
+  forecastMode,
   delay,
 }: PredictionCardProps) {
   const isDFF = type === "dff";
@@ -684,12 +795,11 @@ function PredictionCard({
         <span
           className={cn(
             "ml-auto text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md",
-            isOptimistic
-              ? "bg-blue-500/10 text-blue-400"
-              : "bg-amber-500/10 text-amber-400"
+            PREDICTION_MODE_STYLE[forecastMode].bg,
+            PREDICTION_MODE_STYLE[forecastMode].text
           )}
         >
-          {isOptimistic ? "Optimistic" : "Realistic"}
+          {PREDICTION_MODE_LABEL[forecastMode]}
         </span>
       </div>
 

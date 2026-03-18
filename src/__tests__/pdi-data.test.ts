@@ -362,3 +362,97 @@ describe("getHistoricalSeries", () => {
     expect(result[0].cutoff_date).toBe("2011-06-01");
   });
 });
+
+// ---------------------------------------------------------------------------
+// MCRA Retrograde Loader Tests
+// ---------------------------------------------------------------------------
+
+import { getRetrogradeSeries, getRetrogradeRiskSummary } from "@/lib/data/pdi";
+import type { PdForecastRetrograde } from "@/types/p2-artifacts";
+
+function makeMcraForecast(overrides: Partial<PdForecastRetrograde> = {}): PdForecastRetrograde {
+  return {
+    forecast_month: "2026-04",
+    months_ahead: 1,
+    chart: "DFF",
+    category: "EB2",
+    country: "IND",
+    projected_cutoff_date: "2014-11-19",
+    confidence_low: "2014-06-01",
+    confidence_high: "2015-05-01",
+    velocity_days_per_month: 17.5,
+    cumulative_advancement_days: 17.5,
+    retrograde_prob: 0.019,
+    expected_setback_days: 45.2,
+    risk_adjusted_velocity: 16.9,
+    ...overrides,
+  };
+}
+
+describe("getRetrogradeSeries", () => {
+  const mcraForecasts: PdForecastRetrograde[] = [
+    makeMcraForecast({ months_ahead: 2, forecast_month: "2026-05" }),
+    makeMcraForecast({ months_ahead: 1, forecast_month: "2026-04" }),
+    makeMcraForecast({ months_ahead: 3, forecast_month: "2026-06", chart: "FAD" }),
+  ];
+
+  it("filters by chart/category/country and sorts by months_ahead", () => {
+    const result = getRetrogradeSeries(mcraForecasts, "DFF", "EB2", "IND");
+    expect(result.length).toBe(2);
+    expect(result[0].months_ahead).toBe(1);
+    expect(result[1].months_ahead).toBe(2);
+  });
+
+  it("returns empty for non-existent combo", () => {
+    const result = getRetrogradeSeries(mcraForecasts, "DFF", "EB5", "CHN");
+    expect(result).toEqual([]);
+  });
+
+  it("includes retrograde-specific fields", () => {
+    const result = getRetrogradeSeries(mcraForecasts, "DFF", "EB2", "IND");
+    expect(result[0]).toHaveProperty("retrograde_prob");
+    expect(result[0]).toHaveProperty("expected_setback_days");
+    expect(result[0]).toHaveProperty("risk_adjusted_velocity");
+  });
+});
+
+describe("getRetrogradeRiskSummary", () => {
+  const mcraForecasts: PdForecastRetrograde[] = [
+    makeMcraForecast({ retrograde_prob: 0.05, expected_setback_days: 30 }),
+    makeMcraForecast({ months_ahead: 2, forecast_month: "2026-05", retrograde_prob: 0.15, expected_setback_days: 60 }),
+    makeMcraForecast({ months_ahead: 3, forecast_month: "2026-06", retrograde_prob: 0.25, expected_setback_days: 90 }),
+  ];
+
+  it("computes average retrograde probability", () => {
+    const summary = getRetrogradeRiskSummary(mcraForecasts, "DFF", "EB2", "IND");
+    expect(summary.avgRetroProb).toBeCloseTo(0.15, 2);
+  });
+
+  it("computes average setback days", () => {
+    const summary = getRetrogradeRiskSummary(mcraForecasts, "DFF", "EB2", "IND");
+    expect(summary.avgSetbackDays).toBeCloseTo(60, 0);
+  });
+
+  it("computes max retrograde probability", () => {
+    const summary = getRetrogradeRiskSummary(mcraForecasts, "DFF", "EB2", "IND");
+    expect(summary.maxRetroProb).toBe(0.25);
+  });
+
+  it("assigns correct regime based on avgRetroProb", () => {
+    expect(getRetrogradeRiskSummary(mcraForecasts, "DFF", "EB2", "IND").regime).toBe("moderate");
+    // Low regime
+    const lowForecasts = [makeMcraForecast({ retrograde_prob: 0.02, expected_setback_days: 10 })];
+    expect(getRetrogradeRiskSummary(lowForecasts, "DFF", "EB2", "IND").regime).toBe("low");
+    // Elevated regime
+    const highForecasts = [makeMcraForecast({ retrograde_prob: 0.30, expected_setback_days: 120 })];
+    expect(getRetrogradeRiskSummary(highForecasts, "DFF", "EB2", "IND").regime).toBe("elevated");
+  });
+
+  it("returns zeroes for non-existent combo", () => {
+    const summary = getRetrogradeRiskSummary(mcraForecasts, "FAD", "EB5", "ROW");
+    expect(summary.avgRetroProb).toBe(0);
+    expect(summary.avgSetbackDays).toBe(0);
+    expect(summary.maxRetroProb).toBe(0);
+    expect(summary.regime).toBe("unknown");
+  });
+});

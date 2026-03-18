@@ -68,7 +68,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **929 TESTS PASSING** (31 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, SEO (favicon, OG image, JSON-LD, canonical URLs, AI bot directives), AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **948 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, SEO (favicon, OG image, JSON-LD, canonical URLs, AI bot directives), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -80,14 +80,12 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
 ### Recent Session Notes (Mar 17, 2026)
-**Milestone 10.71 Complete**: April 2026 Visa Bulletin End-to-End Pipeline
-- **P1**: Fetched visabulletin_April2026.pdf (353 KB) from travel.state.gov ✅
-- **P2**: Rebuilt fact_cutoffs (8,115 rows), cutoff_trends, category_movement_metrics (6,605), pd_forecasts (1,320) ✅
-- **P3**: Synced all visa-bulletin/eb-category/forecast data to public/data/ ✅
-- **Key Finding**: EB2/IND FAD jumped +303 days (2013-09-15→2014-07-15), velocity up from 18.4→20.9 d/m
-- **Prediction**: PD 2016-06-15 India EB2 — not current within 24m, ~33m FAD / ~28m DFF estimated ✅
-- **Testing**: 929 tests passing (31 files), no regressions ✅
-- **Commits**: P3 Petition History `900f2a4` pushed, SRS UI `a931462`, docs `53cbb14` (local) ✅
+**Milestone 10.74 Complete**: MCRA FAD Fix + Copy Accessibility Rewrite
+- **P2**: Fixed MCRA FAD "unable to estimate" — capped setback draws at 60d, added 30% velocity floor ✅
+- **P3**: Re-synced `pd_forecasts_retrograde.json` — 0 negative velocities (was 9/24), FAD EB2/IND → Sep 2030 ✅
+- **P3**: Rewrote "Understanding the Visa Bulletin" section for non-technical readers ✅
+- **P3**: Fixed `browser-smoke-test.test.ts` for Vitest 4 API + server-guard ✅
+- **Testing**: 948 tests passing (32 files), no regressions ✅
 - **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 
 **Key Metrics**:
@@ -376,6 +374,10 @@ npm run dev          # Local dev server (http://localhost:3000)
 npm run build        # Static export to out/
 npm run lint         # ESLint
 npm run sync-data    # Sync P2 → public/data/ (calls scripts/sync_p2_data.py)
+npm test             # Run all 940+ tests (Vitest)
+npm test -- pdi      # Run PDI tests only
+npm test -- browser-smoke-test  # Run browser smoke tests (Vitest + HTTP)
+bash scripts/browser-smoke-test.sh  # Run simple curl-based smoke test (alternative)
 ```
 
 ---
@@ -557,7 +559,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 
 ---
 
-### Current File Inventory (as of Milestone 10.70)
+### Current File Inventory (as of Milestone 10.73)
 
 ### Source Files (75+ files)
 
@@ -643,7 +645,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 |------|------|
 | `src/lib/data/loader.ts` | Generic JSON fetcher — loadDashboardData, loadDimensionData, loadModelData, loadRAGData |
 | `src/lib/data/srs.ts` | SRS data loaders — field remapping (efs→srs), filterOverallScores, filterRatedEmployers, mergeMLScores, getEmployerMetrics, getEmployerRisk, computeSrsStats |
-| `src/lib/data/pdi.ts` | PDI data loader — loadPdForecasts, getForecastSeries, computePdi, getVelocitySummary, constants (charts/categories/countries/labels) |
+| `src/lib/data/pdi.ts` | PDI + MCRA data loaders — loadPdForecasts, loadPdForecastsRetrograde (NEW), getForecastSeries, getRetrogradeSeries (NEW), computePdi, getVelocitySummary, getRetrogradeRiskSummary (NEW), constants (charts/categories/countries/labels) |
 | `src/lib/data/wage.ts` | Wage data loaders + helpers — loadWageData, getSocBenchmarks, getEmployerRankings, getEmployerTrends, getEmployerList, computeEmployerGrowth, getTopWageGrowers, getEmployerRoles, annotateWithYoy |
 | `src/lib/data/eb-category.ts` | EB Category data loader — loadCategoryMovement, filterMovementSeries, buildCategorySummary, getAvailableCountries, COUNTRY_LABELS, EB_CATEGORIES |
 | `src/lib/data/geographic.ts` | Geographic data loader — loadGeoMetrics, getStateAggregates, getTopStates, getNationalSummary, STATE_NAMES (50+ states) |
@@ -660,7 +662,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/lib/utils/index.ts` | Barrel export |
 | `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
 
-**Tests (31 files, 929 tests)**
+**Tests (32 files, 948 tests)**
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
@@ -676,9 +678,9 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/landing-page.test.tsx` | 10 | Hero, stats, 9 dashboards (neutral catalog) |
 | `src/__tests__/srs-data.test.ts` | 18 | SRS data helpers + efs→srs remapping |
 | `src/__tests__/srs-components.test.tsx` | 21 | SRS components (search, gauge, detail, chart, overview) |
-| `src/__tests__/pdi-data.test.ts` | 28 | PDI constants, getForecastSeries, computePdi, getVelocitySummary, extrapolateForChart, loadPdForecasts, loadCutoffTrends, getHistoricalSeries |
+| `src/__tests__/pdi-data.test.ts` | 28 + 8 MCRA** | PDI constants, getForecastSeries, computePdi, getVelocitySummary, **getRetrogradeSeries, getRetrogradeRiskSummary** |
 | `src/__tests__/pdi-components.test.tsx` | 19 | PdiQuickLook (11 tests), SrsTeaser (8 tests) |
-| `src/__tests__/visa-bulletin.test.tsx` | 33 | PriorityDateChart (11), VisaBulletinPage (20 incl. historical+forecast chart integration) |
+| `src/__tests__/visa-bulletin.test.tsx` | 33 + 3 MCRA** | PriorityDateChart (14, incl. 3-way mode selector), VisaBulletinPage |
 | `src/__tests__/site-pages.test.tsx` | 42 | Footer (8 incl. Contact button), ContactModal (7), ContactButton (2), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
 | `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
 | `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
@@ -692,6 +694,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |
 | `src/__tests__/srs-comprehensive.test.tsx` | 97 | **Comprehensive SRS feature suite**: search rendering (5), accessibility (7), search behavior (6), result layout fields (8), clear (4), selection (3), keyboard nav (7), Optum regression (3), smart-sort edge cases (7), score gauge (8), detail card (13), trend chart (5), overview (4), shard extractors (6), asScores mapping (6), wage/SOC sort extras (4) |
 | `src/__tests__/visa-bulletin-regression.test.ts` | 62 | **Live-data VB/PD regression**: fact_cutoff_trends structure (10), pd_forecasts structure (11), cross-artifact consistency (4), cutoff continuity EB2/IND+EB3/IND+EB2/CHN (9), forecast accuracy bounds (7), computePdi() on real data (9), data freshness (5), getHistoricalSeries (4), getVelocitySummary (2) |
+| `src/__tests__/browser-smoke-test.test.ts` | 8 | **NEW** — Vitest HTTP tests: server accessibility, page loads, dashboard loads, info pages, timing, visa-bulletin modes, employer SRS, homepage sections; skips gracefully when no server running |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

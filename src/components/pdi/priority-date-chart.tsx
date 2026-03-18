@@ -35,6 +35,8 @@ import type { PdForecast } from "@/types/p2-artifacts";
 // Types
 // ---------------------------------------------------------------------------
 
+export type ForecastMode = "optimistic" | "realistic" | "mcra";
+
 export interface PriorityDateChartProps {
   /** Historical DFF cutoff records (status_flag=D, sorted chronologically) */
   dffTrends: CutoffTrendRecord[];
@@ -50,12 +52,30 @@ export interface PriorityDateChartProps {
   fadExtrapolation?: ExtrapolatedPoint[];
   /** User's priority date (ISO string) — horizontal reference */
   priorityDate?: string;
-  /** Is the toggle set to optimistic? Just for the badge label */
+  /** Active forecast model */
+  forecastMode?: ForecastMode;
+  /** Called when the user changes forecast model (3-way segmented control) */
+  onModeChange?: (mode: ForecastMode) => void;
+  /** Show P10/P90 confidence bands around forecast lines */
+  showConfidenceBands?: boolean;
+  /** @deprecated — use forecastMode instead */
   isOptimistic?: boolean;
-  /** Called when the user toggles optimistic/realistic */
+  /** @deprecated — use onModeChange instead */
   onToggle?: () => void;
   className?: string;
 }
+
+const MODE_LABELS: Record<ForecastMode, string> = {
+  optimistic: "Optimistic",
+  realistic: "Realistic",
+  mcra: "Risk-Adjusted",
+};
+
+const MODE_COLORS: Record<ForecastMode, { bg: string; text: string; border: string; dot: string }> = {
+  optimistic: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30", dot: "bg-blue-400" },
+  realistic: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30", dot: "bg-amber-400" },
+  mcra: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30", dot: "bg-emerald-400" },
+};
 
 /** A single row in the merged chart dataset */
 interface ChartPoint {
@@ -73,6 +93,14 @@ interface ChartPoint {
   dffForecast: number | null;
   /** Projected FAD cutoff */
   fadForecast: number | null;
+  /** Confidence band lower bound (DFF) — for stacked area technique */
+  dffConfLow: number | null;
+  /** Confidence band range DFF (high - low) — stacked on top of Low */
+  dffConfRange: number | null;
+  /** Confidence band lower bound (FAD) */
+  fadConfLow: number | null;
+  /** Confidence band range FAD */
+  fadConfRange: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,10 +209,16 @@ export function PriorityDateChart({
   dffExtrapolation,
   fadExtrapolation,
   priorityDate,
+  forecastMode: forecastModeProp,
+  onModeChange,
+  showConfidenceBands = false,
   isOptimistic,
   onToggle,
   className,
 }: PriorityDateChartProps) {
+  // Resolve effective mode: new prop takes precedence over legacy boolean
+  const effectiveMode: ForecastMode = forecastModeProp ?? (isOptimistic === false ? "realistic" : "optimistic");
+
   // -----------------------------------------------------------------------
   // Merge all data sources into a single sorted timeline
   // -----------------------------------------------------------------------
@@ -201,6 +235,10 @@ export function PriorityDateChart({
           fadActual: null,
           dffForecast: null,
           fadForecast: null,
+          dffConfLow: null,
+          dffConfRange: null,
+          fadConfLow: null,
+          fadConfRange: null,
         });
       }
     };
@@ -220,11 +258,25 @@ export function PriorityDateChart({
     // Model forecasts (24-month projections)
     for (const f of dffForecast) {
       ensure(f.forecast_month);
-      map.get(f.forecast_month)!.dffForecast = toTs(f.projected_cutoff_date);
+      const pt = map.get(f.forecast_month)!;
+      pt.dffForecast = toTs(f.projected_cutoff_date);
+      const lo = toTs(f.confidence_low);
+      const hi = toTs(f.confidence_high);
+      if (lo != null && hi != null) {
+        pt.dffConfLow = lo;
+        pt.dffConfRange = hi - lo;
+      }
     }
     for (const f of fadForecast) {
       ensure(f.forecast_month);
-      map.get(f.forecast_month)!.fadForecast = toTs(f.projected_cutoff_date);
+      const pt = map.get(f.forecast_month)!;
+      pt.fadForecast = toTs(f.projected_cutoff_date);
+      const lo = toTs(f.confidence_low);
+      const hi = toTs(f.confidence_high);
+      if (lo != null && hi != null) {
+        pt.fadConfLow = lo;
+        pt.fadConfRange = hi - lo;
+      }
     }
 
     // Extrapolations (beyond 24-month window)
@@ -289,6 +341,12 @@ export function PriorityDateChart({
       if (d.fadActual) vals.push(d.fadActual);
       if (d.dffForecast) vals.push(d.dffForecast);
       if (d.fadForecast) vals.push(d.fadForecast);
+      if (showConfidenceBands) {
+        if (d.dffConfLow) vals.push(d.dffConfLow);
+        if (d.dffConfLow != null && d.dffConfRange != null) vals.push(d.dffConfLow + d.dffConfRange);
+        if (d.fadConfLow) vals.push(d.fadConfLow);
+        if (d.fadConfLow != null && d.fadConfRange != null) vals.push(d.fadConfLow + d.fadConfRange);
+      }
     }
     if (pdTs) vals.push(pdTs);
     if (vals.length === 0) return [0, 1];
@@ -296,7 +354,7 @@ export function PriorityDateChart({
     const max = Math.max(...vals);
     const pad = (max - min) * 0.08;
     return [min - pad, max + pad];
-  }, [chartData, pdTs]);
+  }, [chartData, pdTs, showConfidenceBands]);
 
   // X-axis: show one tick per year
   const yearTicks = useMemo(() => {
@@ -341,8 +399,37 @@ export function PriorityDateChart({
           <h3 className="text-sm font-semibold text-[var(--foreground)]">
             Priority Date Movement
           </h3>
-          {/* Optimistic / Realistic toggle */}
-          {hasForecast && onToggle && (
+          {/* 3-way segmented control (new) */}
+          {hasForecast && onModeChange && (
+            <div
+              className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] p-0.5 gap-0.5"
+              role="radiogroup"
+              aria-label="Forecast model"
+            >
+              {(["optimistic", "realistic", "mcra"] as const).map((mode) => {
+                const active = effectiveMode === mode;
+                const c = MODE_COLORS[mode];
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => onModeChange(mode)}
+                    role="radio"
+                    aria-checked={active}
+                    className={cn(
+                      "px-2.5 py-1 text-[8px] font-semibold tracking-wide rounded-full transition-all duration-200",
+                      active
+                        ? `${c.bg} ${c.text} border ${c.border}`
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-transparent"
+                    )}
+                  >
+                    {MODE_LABELS[mode]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* Legacy binary toggle — only when onModeChange is NOT provided */}
+          {hasForecast && !onModeChange && onToggle && (
             <button
               onClick={onToggle}
               className={cn(
@@ -402,16 +489,23 @@ export function PriorityDateChart({
               <div className="flex items-center gap-1.5">
                 <div className="h-0 w-4 border-t-[2px] border-dashed border-[#60a5fa]" />
                 <span className="text-[var(--muted-foreground)]">
-                  DFF Forecast{isOptimistic != null && (isOptimistic ? "" : " (Realistic)")}
+                  DFF Forecast{effectiveMode !== "optimistic" ? ` (${MODE_LABELS[effectiveMode]})` : ""}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-0 w-4 border-t-[2px] border-dashed border-[#fbbf24]" />
                 <span className="text-[var(--muted-foreground)]">
-                  FAD Forecast{isOptimistic != null && (isOptimistic ? "" : " (Realistic)")}
+                  FAD Forecast{effectiveMode !== "optimistic" ? ` (${MODE_LABELS[effectiveMode]})` : ""}
                 </span>
               </div>
             </>
+          )}
+          {/* Confidence band indicator */}
+          {hasForecast && showConfidenceBands && (
+            <div className="flex items-center gap-1.5">
+              <div className="h-2.5 w-4 rounded-sm bg-blue-400/15 border border-blue-400/25" />
+              <span className="text-[var(--muted-foreground)]">90% CI</span>
+            </div>
           )}
           {/* PD reference */}
           {pdTs && (
@@ -438,6 +532,14 @@ export function PriorityDateChart({
               <linearGradient id="fillFadAct" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.10} />
                 <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="fillDffBand" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.18} />
+                <stop offset="95%" stopColor="#60a5fa" stopOpacity={0.04} />
+              </linearGradient>
+              <linearGradient id="fillFadBand" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.04} />
               </linearGradient>
             </defs>
 
@@ -523,6 +625,50 @@ export function PriorityDateChart({
               isAnimationActive={false}
             />
 
+            {/* ---- Confidence bands (P10/P90) — stacked area technique ---- */}
+            {showConfidenceBands && (
+              <>
+                {/* DFF band: transparent base (Low) + colored range (High - Low) */}
+                <Area
+                  type="monotone"
+                  dataKey="dffConfLow"
+                  stackId="dffBand"
+                  fill="transparent"
+                  stroke="none"
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="dffConfRange"
+                  stackId="dffBand"
+                  fill="url(#fillDffBand)"
+                  stroke="none"
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+                {/* FAD band */}
+                <Area
+                  type="monotone"
+                  dataKey="fadConfLow"
+                  stackId="fadBand"
+                  fill="transparent"
+                  stroke="none"
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fadConfRange"
+                  stackId="fadBand"
+                  fill="url(#fillFadBand)"
+                  stroke="none"
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              </>
+            )}
+
             {/* ---- Forecast dashed lines ---- */}
             <Line
               type="monotone"
@@ -585,7 +731,8 @@ export function PriorityDateChart({
       <p className="mt-3 text-[10px] text-[var(--muted-foreground)]/60 leading-relaxed">
         Solid lines show actual monthly DOS Visa Bulletin cutoff movement
         (Oct 2015 – present). Dashed lines show projected advancement.
-        When a projection crosses your priority date, you become eligible.
+        {showConfidenceBands && " Shaded bands represent the 90% confidence interval (P10–P90)."}
+        {" "}When a projection crosses your priority date, you become eligible.
         DFF = file I-485; FAD = green card approval.
       </p>
     </div>

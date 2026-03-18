@@ -6,7 +6,7 @@
  */
 
 import { loadModelData, loadDashboardData } from "./loader";
-import type { PdForecast } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,9 +58,56 @@ export const CHART_LABELS: Record<string, string> = {
 // Raw data loader
 // ---------------------------------------------------------------------------
 
-/** Load all 1,344 forecast records */
+/** Load all 1,344 forecast records (optimistic model — base v2.1) */
 export async function loadPdForecasts(): Promise<PdForecast[]> {
   return loadModelData<PdForecast>("pd_forecasts");
+}
+
+/** Load MCRA retrograde-adjusted forecasts (1,320 records, same series as base) */
+export async function loadPdForecastsRetrograde(): Promise<PdForecastRetrograde[]> {
+  return loadModelData<PdForecastRetrograde>("pd_forecasts_retrograde");
+}
+
+/** Get the retrograde-specific data for a series (prob, severity, risk velocity) */
+export function getRetrogradeSeries(
+  forecasts: PdForecastRetrograde[],
+  chart: string,
+  category: string,
+  country: string
+): PdForecastRetrograde[] {
+  return forecasts
+    .filter(
+      (f) =>
+        f.chart === chart &&
+        f.category === category &&
+        f.country === country
+    )
+    .sort((a, b) => a.months_ahead - b.months_ahead);
+}
+
+/** Compute average retrograde probability and severity for a series */
+export function getRetrogradeRiskSummary(
+  forecasts: PdForecastRetrograde[],
+  chart: string,
+  category: string,
+  country: string
+): { avgRetroProb: number; avgSetbackDays: number; maxRetroProb: number; regime: string } {
+  const series = getRetrogradeSeries(forecasts, chart, category, country);
+  if (series.length === 0) {
+    return { avgRetroProb: 0, avgSetbackDays: 0, maxRetroProb: 0, regime: "unknown" };
+  }
+  const probs = series.map((f) => f.retrograde_prob);
+  const sevs = series.map((f) => f.expected_setback_days);
+  const avgProb = probs.reduce((a, b) => a + b, 0) / probs.length;
+  const avgSev = sevs.reduce((a, b) => a + b, 0) / sevs.length;
+  const maxProb = Math.max(...probs);
+  const regime = avgProb >= 0.20 ? "elevated" : avgProb >= 0.10 ? "moderate" : "low";
+  return {
+    avgRetroProb: Math.round(avgProb * 1000) / 1000,
+    avgSetbackDays: Math.round(avgSev * 10) / 10,
+    maxRetroProb: Math.round(maxProb * 1000) / 1000,
+    regime,
+  };
 }
 
 // ---------------------------------------------------------------------------

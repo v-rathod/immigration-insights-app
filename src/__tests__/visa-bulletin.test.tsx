@@ -112,8 +112,9 @@ vi.mock("recharts", async () => {
   };
 });
 
-// Mock loadPdForecasts and loadCutoffTrends
+// Mock loadPdForecasts, loadPdForecastsRetrograde, and loadCutoffTrends
 const mockLoadPdForecasts = vi.fn();
+const mockLoadPdForecastsRetrograde = vi.fn();
 const mockLoadCutoffTrends = vi.fn();
 vi.mock("@/lib/data/pdi", async () => {
   const actual = await vi.importActual<typeof import("@/lib/data/pdi")>(
@@ -122,6 +123,7 @@ vi.mock("@/lib/data/pdi", async () => {
   return {
     ...actual,
     loadPdForecasts: (...args: unknown[]) => mockLoadPdForecasts(...args),
+    loadPdForecastsRetrograde: (...args: unknown[]) => mockLoadPdForecastsRetrograde(...args),
     loadCutoffTrends: (...args: unknown[]) => mockLoadCutoffTrends(...args),
   };
 });
@@ -430,9 +432,11 @@ describe("PriorityDateChart", () => {
 describe("VisaBulletinPage", () => {
   beforeEach(() => {
     mockLoadPdForecasts.mockReset();
+    mockLoadPdForecastsRetrograde.mockReset();
     mockLoadCutoffTrends.mockReset();
-    // Default: return empty trends (individual tests can override)
+    // Default: return empty trends and empty retrograde
     mockLoadCutoffTrends.mockResolvedValue([]);
+    mockLoadPdForecastsRetrograde.mockResolvedValue([]);
   });
 
   it("shows loading spinner initially", () => {
@@ -637,12 +641,14 @@ describe("VisaBulletinPage", () => {
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
   });
 
-  it("renders optimistic/realistic toggle switch", async () => {
+  it("renders forecast model selector (3-way radiogroup)", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    // Toggle switch should be present (starts in optimistic state)
-    const toggle = await screen.findByRole("switch");
-    expect(toggle).toHaveAttribute("aria-checked", "true");
+    // 3-way segmented control should be present (starts in optimistic state)
+    const radiogroup = await screen.findByRole("radiogroup");
+    expect(radiogroup).toBeInTheDocument();
+    const optimisticRadio = screen.getByRole("radio", { name: "Optimistic" });
+    expect(optimisticRadio).toHaveAttribute("aria-checked", "true");
     // Enter PD to reveal prediction cards with mode badges
     const dateInput = document.querySelector(
       'input[type="date"]'
@@ -654,7 +660,7 @@ describe("VisaBulletinPage", () => {
     });
   });
 
-  it("toggling to Realistic shows realistic badges on cards", async () => {
+  it("switching to Realistic shows realistic badges on cards", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
     // Enter PD to reveal prediction cards first
@@ -664,11 +670,10 @@ describe("VisaBulletinPage", () => {
     ) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
     await screen.findByText("File I-485 (Adjustment of Status)");
-    // Now toggle to Realistic
-    const toggle = screen.getByRole("switch");
-    fireEvent.click(toggle);
+    // Now click Realistic
+    fireEvent.click(screen.getByRole("radio", { name: "Realistic" }));
     await waitFor(() => {
-      expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+      expect(screen.getByRole("radio", { name: "Realistic" })).toHaveAttribute("aria-checked", "true");
     });
     await waitFor(() => {
       const badges = screen.getAllByText("Realistic");
@@ -676,7 +681,7 @@ describe("VisaBulletinPage", () => {
     });
   });
 
-  it("both prediction cards visible when PD entered, persist through toggle", async () => {
+  it("both prediction cards visible when PD entered, persist through mode change", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
     // Enter PD to reveal prediction cards
@@ -688,12 +693,68 @@ describe("VisaBulletinPage", () => {
     // Both cards visible after PD entry
     await screen.findByText("File I-485 (Adjustment of Status)");
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
-    // Toggle — cards persist
-    const toggle = screen.getByRole("switch");
-    fireEvent.click(toggle);
+    // Switch mode — cards persist
+    const realisticRadio = screen.getByRole("radio", { name: "Realistic" });
+    fireEvent.click(realisticRadio);
     expect(
       screen.getByText("File I-485 (Adjustment of Status)")
     ).toBeInTheDocument();
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
+  });
+
+  it("switching to Risk-Adjusted shows Risk-Adjusted badges on cards", async () => {
+    mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
+    // Provide MCRA data with retrograde columns
+    const mcraData = buildFullForecasts().map((f) => ({
+      ...f,
+      retrograde_prob: 0.019,
+      expected_setback_days: 45.2,
+      risk_adjusted_velocity: f.velocity_days_per_month * 0.97,
+    }));
+    mockLoadPdForecastsRetrograde.mockResolvedValue(mcraData);
+    render(<VisaBulletinPage />);
+    await screen.findByText("Your PD");
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
+    await screen.findByText("File I-485 (Adjustment of Status)");
+    // Click Risk-Adjusted
+    const mcraRadio = screen.getByRole("radio", { name: "Risk-Adjusted" });
+    fireEvent.click(mcraRadio);
+    await waitFor(() => {
+      const badges = screen.getAllByText("Risk-Adjusted");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it("shows MCRA risk summary card when Risk-Adjusted mode is active with retrograde data", async () => {
+    mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
+    const mcraData = buildFullForecasts().map((f) => ({
+      ...f,
+      retrograde_prob: 0.05,
+      expected_setback_days: 60,
+      risk_adjusted_velocity: f.velocity_days_per_month * 0.95,
+    }));
+    mockLoadPdForecastsRetrograde.mockResolvedValue(mcraData);
+    render(<VisaBulletinPage />);
+    await screen.findByText("Priority Date Movement");
+    // Switch to MCRA
+    const mcraRadio = screen.getByRole("radio", { name: "Risk-Adjusted" });
+    fireEvent.click(mcraRadio);
+    await waitFor(() => {
+      expect(screen.getByText("Monte Carlo Retrograde Risk")).toBeInTheDocument();
+    });
+    expect(screen.getByText("MCRA v3")).toBeInTheDocument();
+    expect(screen.getByText("DFF Retro Prob")).toBeInTheDocument();
+    expect(screen.getByText("FAD Retro Prob")).toBeInTheDocument();
+  });
+
+  it("methodology section describes all three forecast models", async () => {
+    mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
+    render(<VisaBulletinPage />);
+    await screen.findByText("How It Works");
+    expect(screen.getByText(/Three forecast models are available/)).toBeInTheDocument();
+    // "Monte Carlo" appears in both methodology and SEO — use getAllByText
+    const mcMatches = screen.getAllByText(/Monte Carlo/);
+    expect(mcMatches.length).toBeGreaterThanOrEqual(1);
   });
 });
