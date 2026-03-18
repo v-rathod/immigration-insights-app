@@ -95,7 +95,11 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 - Data window dynamic in P2 (always last 10 years), fixed at build in P3
 - EB2 ≥ EB3 now holds correctly across all countries/charts in 10yr window
 
-**Standing Instruction**: Do NOT deploy to AWS without explicit user request
+**Standing Instructions**:
+- Do NOT deploy to AWS without explicit user request
+- When deploying, **ALWAYS use `bash scripts/deploy.sh`** — NEVER run `aws s3 sync` directly
+  - `deploy.sh` runs pre-flight checks, uses `--exact-timestamps`, and runs post-deploy smoke tests
+  - Raw `aws s3 sync` without `--exact-timestamps` will skip re-uploading stale HTML, causing CSS hash mismatches that break all page styling (past incident: Mar 17, 2026)
 
 ---
 
@@ -351,15 +355,17 @@ ACM (SSL cert)           ←  Free HTTPS certificate
 
 ### Deploy commands
 ```bash
-# Build static site
-npm run build                     # → out/
+# Full deploy (build + sync + invalidate + smoke test)
+bash scripts/deploy.sh
 
-# Deploy to S3
-aws s3 sync out/ s3://BUCKET_NAME --delete
+# Deploy without rebuilding (use existing out/)
+bash scripts/deploy.sh --skip-build
 
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation --distribution-id DIST_ID --paths "/*"
+# Only sync employer shards (no rebuild)
+bash scripts/deploy.sh --shards-only
 ```
+
+> ⚠️ **NEVER run `aws s3 sync` directly.** The deploy script uses `--exact-timestamps` to prevent stale HTML from being served with mismatched CSS/JS bundle hashes. It also runs pre-flight checks and post-deploy smoke tests automatically.
 
 ---
 
