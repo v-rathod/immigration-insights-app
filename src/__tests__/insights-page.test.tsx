@@ -164,6 +164,7 @@ vi.mock("@/lib/data/pdi", async (importActual) => {
   return {
     ...actual,
     loadPdForecasts: vi.fn().mockResolvedValue([]),
+    loadPdForecastsRetrograde: vi.fn().mockResolvedValue([]),
     loadCutoffTrends: vi.fn().mockResolvedValue([]),
   };
 });
@@ -398,7 +399,7 @@ describe("InsightsPage — Smart Visibility: Green Card panel", () => {
     });
   });
 
-  it("shows optimistic/realistic toggle", async () => {
+  it("shows optimistic/realistic/risk-adjusted toggle", async () => {
     await renderPage();
     fireEvent.change(screen.getByLabelText(/priority date/i), {
       target: { value: "2021-06-01" },
@@ -406,6 +407,7 @@ describe("InsightsPage — Smart Visibility: Green Card panel", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /optimistic/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /realistic/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /risk.adjusted/i })).toBeInTheDocument();
     });
   });
 });

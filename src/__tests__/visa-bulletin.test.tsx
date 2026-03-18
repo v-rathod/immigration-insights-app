@@ -531,9 +531,8 @@ describe("VisaBulletinPage", () => {
   it("shows methodology section", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    await screen.findByText("How It Works");
-    // "Priority Date Cortex" appears in both h1 and methodology — just verify methodology section
-    expect(screen.getByText(/forecasts EB visa cutoff/)).toBeInTheDocument();
+    await screen.findByText("How Compass Models Priority Date Movement");
+    expect(screen.getByText(/Compass ingests every Visa Bulletin/)).toBeInTheDocument();
   });
 
   it("switching category updates the chart", async () => {
@@ -751,10 +750,10 @@ describe("VisaBulletinPage", () => {
   it("methodology section describes all three forecast models", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
-    await screen.findByText("How It Works");
-    expect(screen.getByText(/Three forecast models are available/)).toBeInTheDocument();
-    // "Monte Carlo" appears in both methodology and SEO — use getAllByText
+    await screen.findByText("How Compass Models Priority Date Movement");
+    // "Monte Carlo" appears in methodology section
     const mcMatches = screen.getAllByText(/Monte Carlo/);
     expect(mcMatches.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Risk-Adjusted \(MCRA\)/)).toBeInTheDocument();
   });
 });

@@ -48,6 +48,7 @@ import {
 } from "@/components/srs";
 import {
   loadPdForecasts,
+  loadPdForecastsRetrograde,
   loadCutoffTrends,
   getForecastSeries,
   getHistoricalSeries,
@@ -73,7 +74,7 @@ import {
   computePercentile,
 } from "@/lib/data/wage";
 import { secureGet, secureSet } from "@/lib/security";
-import type { PdForecast } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
 import type {
   SponsorReliabilityScore,
@@ -271,39 +272,45 @@ function PanelCTA({ icon: Icon, title, body }: { icon: typeof Target; title: str
 // Panel A: Green Card Forecast
 // ---------------------------------------------------------------------------
 
+type GCForecastMode = "optimistic" | "realistic" | "mcra";
+
 function GreenCardPanel({
   profile,
   forecasts,
+  retroForecasts,
   trends,
 }: {
   profile: UserProfile;
   forecasts: PdForecast[];
+  retroForecasts: PdForecastRetrograde[];
   trends: CutoffTrendRecord[];
 }) {
-  const [isOptimistic, setIsOptimistic] = useState(true);
-  const multiplier = isOptimistic ? 1.0 : REALISTIC_MULTIPLIER;
+  const [forecastMode, setForecastMode] = useState<GCForecastMode>("optimistic");
+  const multiplier = forecastMode === "realistic" ? REALISTIC_MULTIPLIER : 1.0;
+  const activeForecastSource: PdForecast[] =
+    forecastMode === "mcra" ? retroForecasts : forecasts;
 
   const hasPd = !!profile.priorityDate;
   const hasData = forecasts.length > 0;
 
   const dffSeries = useMemo(
-    () => (hasData ? getForecastSeries(forecasts, "DFF", profile.category, profile.country) : []),
-    [forecasts, profile.category, profile.country, hasData]
+    () => (hasData ? getForecastSeries(activeForecastSource, "DFF", profile.category, profile.country) : []),
+    [activeForecastSource, profile.category, profile.country, hasData]
   );
   const fadSeries = useMemo(
-    () => (hasData ? getForecastSeries(forecasts, "FAD", profile.category, profile.country) : []),
-    [forecasts, profile.category, profile.country, hasData]
+    () => (hasData ? getForecastSeries(activeForecastSource, "FAD", profile.category, profile.country) : []),
+    [activeForecastSource, profile.category, profile.country, hasData]
   );
 
   const dffPdi = useMemo(() => {
     if (!hasPd || dffSeries.length === 0) return null;
-    return computePdi(forecasts, "DFF", profile.category, profile.country, profile.priorityDate, multiplier);
-  }, [forecasts, profile.category, profile.country, profile.priorityDate, dffSeries.length, multiplier, hasPd]);
+    return computePdi(activeForecastSource, "DFF", profile.category, profile.country, profile.priorityDate, multiplier);
+  }, [activeForecastSource, profile.category, profile.country, profile.priorityDate, dffSeries.length, multiplier, hasPd]);
 
   const fadPdi = useMemo(() => {
     if (!hasPd || fadSeries.length === 0) return null;
-    return computePdi(forecasts, "FAD", profile.category, profile.country, profile.priorityDate, multiplier);
-  }, [forecasts, profile.category, profile.country, profile.priorityDate, fadSeries.length, multiplier, hasPd]);
+    return computePdi(activeForecastSource, "FAD", profile.category, profile.country, profile.priorityDate, multiplier);
+  }, [activeForecastSource, profile.category, profile.country, profile.priorityDate, fadSeries.length, multiplier, hasPd]);
 
   const dffExtrapolation = useMemo(() => {
     if (!hasPd || dffSeries.length === 0) return [];
@@ -364,14 +371,14 @@ function GreenCardPanel({
       <div className="space-y-8">
         {sectionHeader}
 
-        {/* Optimistic / Realistic toggle */}
-        <div className="flex items-center gap-2 justify-end">
+        {/* Forecast mode toggle: Optimistic / Realistic / Risk-Adjusted */}
+        <div className="flex items-center gap-2 justify-end flex-wrap">
           <span className="text-[10px] text-[var(--muted-foreground)]">Forecast mode:</span>
           <button
-            onClick={() => setIsOptimistic(true)}
+            onClick={() => setForecastMode("optimistic")}
             className={cn(
               "px-3 py-1 rounded-full text-xs font-medium border transition-all",
-              isOptimistic
+              forecastMode === "optimistic"
                 ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
             )}
@@ -380,15 +387,26 @@ function GreenCardPanel({
             Optimistic
           </button>
           <button
-            onClick={() => setIsOptimistic(false)}
+            onClick={() => setForecastMode("realistic")}
             className={cn(
               "px-3 py-1 rounded-full text-xs font-medium border transition-all",
-              !isOptimistic
+              forecastMode === "realistic"
                 ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
             )}
           >
             Realistic
+          </button>
+          <button
+            onClick={() => setForecastMode("mcra")}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              forecastMode === "mcra"
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                : "text-[var(--muted-foreground)] border-white/[0.08]"
+            )}
+          >
+            Risk-Adjusted
           </button>
         </div>
 
@@ -418,7 +436,14 @@ function GreenCardPanel({
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Date for Filing (DFF)
                     </p>
-                    {dffPdi.found && dffPdi.currentMonth ? (
+                    {dffPdi.found && dffPdi.monthsUntilCurrent === 0 ? (
+                      <>
+                        <p className="text-xl font-mono font-bold text-emerald-400">Current!</p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          Your priority date is already current for filing
+                        </p>
+                      </>
+                    ) : dffPdi.found && dffPdi.currentMonth ? (
                       <>
                         <p className="text-xl font-mono font-bold text-[var(--foreground)]">
                           {formatMonthYear(dffPdi.currentMonth)}
@@ -431,9 +456,7 @@ function GreenCardPanel({
                         </p>
                       </>
                     ) : (
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        Already current or no data
-                      </p>
+                      <p className="text-sm text-[var(--muted-foreground)]">No data available</p>
                     )}
                   </div>
                 </div>
@@ -449,7 +472,14 @@ function GreenCardPanel({
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Final Action Date (FAD)
                     </p>
-                    {fadPdi.found && fadPdi.currentMonth ? (
+                    {fadPdi.found && fadPdi.monthsUntilCurrent === 0 ? (
+                      <>
+                        <p className="text-xl font-mono font-bold text-emerald-400">Current!</p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                          Your priority date is already current for approval
+                        </p>
+                      </>
+                    ) : fadPdi.found && fadPdi.currentMonth ? (
                       <>
                         <p className="text-xl font-mono font-bold text-[var(--foreground)]">
                           {formatMonthYear(fadPdi.currentMonth)}
@@ -462,9 +492,7 @@ function GreenCardPanel({
                         </p>
                       </>
                     ) : (
-                      <p className="text-sm text-[var(--muted-foreground)]">
-                        Already current or no data
-                      </p>
+                      <p className="text-sm text-[var(--muted-foreground)]">No data available</p>
                     )}
                   </div>
                 </div>
@@ -1042,6 +1070,7 @@ export default function InsightsPage() {
 
   // PDI data
   const [forecasts, setForecasts] = useState<PdForecast[]>([]);
+  const [retroForecasts, setRetroForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
 
   // SRS data
@@ -1131,14 +1160,16 @@ export default function InsightsPage() {
   useEffect(() => {
     Promise.all([
       loadPdForecasts(),
+      loadPdForecastsRetrograde(),
       loadCutoffTrends(),
       loadEmployerSearch(),
       loadSrsScoresML(),
       loadEmployerRiskFeatures(),
       loadSalaryBenchmarksNational(),
     ])
-      .then(([fc, tr, entries, ml, risks, bench]) => {
+      .then(([fc, retroFc, tr, entries, ml, risks, bench]) => {
         setForecasts(fc);
+        setRetroForecasts(retroFc);
         setTrends(tr);
         setSearchEntries(entries);
         // Build lightweight SponsorReliabilityScore[] for EmployerSearch component
@@ -1268,7 +1299,7 @@ export default function InsightsPage() {
 
         {/* Panel A: Green Card Forecast */}
         <StaggerItem>
-          <GreenCardPanel profile={profile} forecasts={forecasts} trends={trends} />
+          <GreenCardPanel profile={profile} forecasts={forecasts} retroForecasts={retroForecasts} trends={trends} />
         </StaggerItem>
 
         {/* Panel B: Sponsor Intelligence */}

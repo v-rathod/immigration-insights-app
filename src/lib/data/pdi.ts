@@ -249,6 +249,34 @@ export function computePdi(
     velocities.reduce((a, b) => a + b, 0) / velocities.length;
   const avgVelocity = rawAvgVelocity * velocityMultiplier;
 
+  // Check if the PD is already current today.
+  // The forecast series starts at months_ahead=1 (one month from now).
+  // Back-calculate the current (baseline) cutoff:
+  //   baseline = series[0].projected_cutoff - series[0].months_ahead * velocity
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const firstForecast = series[0];
+  const firstCutoffMs = new Date(firstForecast.projected_cutoff_date).getTime();
+  const baselineCutoffMs =
+    firstCutoffMs -
+    firstForecast.months_ahead *
+      firstForecast.velocity_days_per_month *
+      MS_PER_DAY;
+
+  if (baselineCutoffMs >= pdTime) {
+    // Cutoff is already past (or at) the user's PD — they are eligible now.
+    return {
+      found: true,
+      extrapolated: false,
+      currentMonth: null,
+      monthsUntilCurrent: 0,
+      projectedCutoff: new Date(baselineCutoffMs).toISOString().slice(0, 10),
+      confidenceLow: null,
+      confidenceHigh: null,
+      avgVelocity: Math.round(rawAvgVelocity * 10) / 10,
+      series,
+    };
+  }
+
   // When multiplier < 1 (realistic mode), we need to recalculate projected
   // cutoff positions using adjusted velocity from the series start.
   if (velocityMultiplier === 1.0) {

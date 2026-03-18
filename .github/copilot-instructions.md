@@ -398,6 +398,11 @@ bash scripts/browser-smoke-test.sh  # Run simple curl-based smoke test (alternat
 7. **Dates** — display as "Month YYYY" in UI, ISO-8601 in data
 8. **Accessibility** — all interactive elements have aria labels, keyboard navigation, WCAG 2.1 AA
 
+## UI Copy Rules (MANDATORY — applies to ALL future changes)
+
+9. **No em-dashes** — NEVER use `—` or `&mdash;` in user-facing text or JSX. Use `:` for labels, `,` or `;` for prose, `|` for metadata separators. En-dashes (`–`, `&ndash;`) in numeric ranges are correct and must stay.
+10. **No AI markers** — NEVER use the following words in user-facing copy: *unlock*, *discover*, *journey*, *empower*, *leverage*, *seamless*, *comprehensive*, *cutting-edge*, *revolutionize*, *delve*, *dive*, *holistic*, *tailored*, *supercharge*, *game-changing*, *transform* (when used as marketing filler). Use plain, direct language instead.
+
 ---
 
 ## Smart Visibility Principle (MANDATORY)

@@ -587,89 +587,62 @@ export default function VisaBulletinPage() {
         </FadeIn>
       )}
 
-      {/* Methodology — collapsible */}
+      {/* Methodology + model context - open by default */}
       <FadeIn delay={0.3}>
-        <details className="group rounded-2xl border border-white/[0.06] bg-white/[0.01] text-xs text-[var(--muted-foreground)]">
+        <details open className="group rounded-2xl border border-white/[0.06] bg-white/[0.01] text-xs text-[var(--muted-foreground)]">
           <summary className="cursor-pointer select-none list-none p-4 flex items-center justify-between gap-2 font-semibold text-[var(--foreground)] text-sm hover:text-blue-400 transition-colors [&::-webkit-details-marker]:hidden">
-            How It Works
+            How Compass Models Priority Date Movement
             <svg className="w-4 h-4 shrink-0 text-[var(--muted-foreground)]/60 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </summary>
-          <div className="px-4 pb-4 space-y-2">
+          <div className="px-4 pb-4 space-y-3">
             <p>
-              The <strong>Priority Date Cortex</strong> forecasts EB visa cutoff
-              date movement using historical Visa Bulletin data (Oct
-              2015&ndash;present). Three forecast models are available:
+              Compass ingests every Visa Bulletin since 2011 and builds per-category,
+              per-country time series tracking how each EB1&ndash;EB5 cutoff moves month
+              to month. From that base it computes movement velocity, detects retrogression
+              patterns, and projects three 24-month forward trajectories:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Optimistic:</strong> Full observed velocity from a
-                blended time-series model (50% full-history + 25% 24-month
-                rolling + 25% 12-month rolling).
+                <strong>Optimistic:</strong> Full observed velocity from a blended
+                time-series model (50% full-history, 25% 24-month rolling, 25% 12-month
+                rolling).
               </li>
               <li>
-                <strong>Realistic:</strong> 65% velocity multiplier applied to
-                account for policy uncertainty and bureaucratic friction.
+                <strong>Realistic:</strong> 65% velocity multiplier applied to account
+                for policy uncertainty and bureaucratic friction.
               </li>
               <li>
-                <strong>Risk-Adjusted (MCRA):</strong> Monte Carlo
-                Retrograde-Adjusted model. Runs 2,000 simulations where each
-                month carries a calibrated retrograde probability from 10 years
-                of weighted Visa Bulletin history. The P50 path is the forecast;
-                confidence bands show P10&ndash;P90.
+                <strong>Risk-Adjusted (MCRA):</strong> 2,000 Monte Carlo simulations
+                where each month carries a calibrated retrograde probability from 10 years
+                of weighted Visa Bulletin history. The P50 path is the central forecast;
+                shaded bands show P10&ndash;P90.
               </li>
             </ul>
             <p>
-              Two projected timelines are always shown:
+              Two timelines are always shown:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Date for Filing (DFF):</strong> When you can submit
-                Form I-485 (Adjustment of Status). Typically advances faster.
+                <strong>Date for Filing (DFF):</strong> When you can submit Form I-485
+                (Adjustment of Status). Typically advances faster than FAD.
               </li>
               <li>
-                <strong>Final Action Date (FAD):</strong> When your green
-                card is actually approved. Typically lags behind DFF.
+                <strong>Final Action Date (FAD):</strong> When your green card is
+                actually approved. Typically lags 1&ndash;3 years behind DFF.
               </li>
             </ul>
-            <p className="text-[10px] text-[var(--muted-foreground)]/60 pt-1">
-              Source: State Dept. Visa Bulletin (FY2015&ndash;FY2025) · NorthStar forecast model (blended v2.1 &amp; MCRA v3.0)
+            <p>
+              Coverage spans EB1, EB2, and EB3 across all chargeable countries.
+              For EB2 India, historical velocity averages 15&ndash;25 days per month
+              with periodic setbacks.
+            </p>
+            <p className="text-[10px] text-[var(--muted-foreground)]/50 pt-1">
+              Data: U.S. Department of State Visa Bulletin (travel.state.gov).
+              NorthStar forecast models v2.1 (blended) and v3.0 (MCRA).
+              Not affiliated with USCIS or the Department of State. Not legal advice.
             </p>
           </div>
         </details>
-      </FadeIn>
-
-      {/* SEO-rich crawlable content - visible to search engines and users */}
-      <FadeIn delay={0.35}>
-        <section className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3 text-xs text-[var(--muted-foreground)]">
-          <h2 className="text-sm font-semibold text-[var(--foreground)]">
-            How Compass Models Priority Date Movement
-          </h2>
-          <p>
-            Compass ingests every Visa Bulletin since 2011 and structures the
-            data into per-category, per-country time series. From that base we
-            compute monthly movement velocity, detect retrogression patterns,
-            and run three 24-month forward projections.
-          </p>
-          <p>
-            <strong>Optimistic</strong> uses full observed momentum from a
-            blended model (50% full-history, 25% 24-month rolling, 25%
-            12-month rolling). <strong>Realistic</strong> applies a 65%
-            velocity multiplier for stalls and friction.{" "}
-            <strong>Risk-Adjusted</strong> runs 2,000 Monte Carlo simulations
-            with calibrated per-month retrograde probabilities derived from 10
-            years of weighted history, producing P10&ndash;P90 confidence bands
-            rather than a single date.
-          </p>
-          <p>
-            Coverage spans <strong>EB1, EB2, and EB3</strong> across all
-            chargeable countries. For <strong>EB2 India</strong>, historical
-            velocity averages 15&ndash;25 days per month with periodic setbacks.
-          </p>
-          <p className="text-[10px] text-[var(--muted-foreground)]/50">
-            Data: U.S. Department of State Visa Bulletin (travel.state.gov).
-            Not affiliated with USCIS or the Department of State. Not legal advice.
-          </p>
-        </section>
       </FadeIn>
     </div>
   );

@@ -159,11 +159,11 @@ describe("computePdi", () => {
   });
 
   it("returns found=true immediately when PD is already current", () => {
-    // PD is before the first cutoff
+    // PD is before the baseline cutoff (Jan 1 2015 back-calculated from series[0])
     const result = computePdi(series, "DFF", "EB2", "IND", "2014-01-01");
     expect(result.found).toBe(true);
     expect(result.extrapolated).toBe(false);
-    expect(result.monthsUntilCurrent).toBe(1);
+    expect(result.monthsUntilCurrent).toBe(0);
   });
 
   it("returns empty series for non-existent combo", () => {
