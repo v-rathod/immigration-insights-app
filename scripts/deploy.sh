@@ -170,9 +170,12 @@ deploy_main() {
   MAIN_SYNC_START=$SECONDS
   log "Deploying main site to S3 (excluding employer shards)..."
   local upload_count
+  # --exact-timestamps ensures HTML files referencing new build hashes are re-uploaded
+  # even when S3 already has a file at the same key (prevents stale HTML + new CSS mismatch).
   upload_count=$(aws s3 sync "$OUT_DIR/" "s3://$BUCKET" \
     --delete \
     --exclude "data/employers/*" \
+    --exact-timestamps \
     --region "$REGION" \
     2>&1 | grep -c "upload:" || true)
   MAIN_SYNC_DURATION=$(_elapsed $MAIN_SYNC_START)
