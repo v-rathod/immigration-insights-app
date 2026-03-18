@@ -1,5 +1,68 @@
 # Compass Progress Tracker
 
+## 2026-03-18 — Milestone 10.75: UI Copy Polish — Em-Dash Sweep + AI Marker Removal + Section Rewrite
+
+### Objective
+Remove all em-dashes from user-facing UI text, shorten and refocus the "Understanding the Visa Bulletin" section to lead with Compass's models, and remove AI-sounding copy markers.
+
+### What Was Done
+
+**P3 Compass — Em-Dash Sweep (11 files):**
+- Replaced every `—` / `&mdash;` in rendered JSX across 10 source files
+  - Headings/labels: `—` → `:` (e.g. `Horizon — The Data Collection Layer` → `Horizon: The Data Collection Layer`)
+  - Prose: `—` → `,` or `;` depending on grammatical relationship
+  - `score-gauge.tsx`: unrated placeholder `—` → `N/A` (clearer + screen-reader friendly)
+  - `RawFilingsTable.tsx`: wage range separator `—` → `to`, section header `&mdash;` → `:`
+  - `WageIntelligenceHub`, `EmployerProfile`, `ApprovalDenialDashboard`: punctuation fixes
+  - `visa-bulletin/layout.tsx` metadata title: `—` → `|`
+  - En-dashes in numeric ranges (P10–P90, 15–25 days) were correctly left unchanged
+
+**P3 Compass — "How Compass Models Priority Date Movement" Section Rewrite:**
+- Replaced the old 4-paragraph "Understanding the Visa Bulletin" section
+- New section title: "How Compass Models Priority Date Movement"
+- Reduced from ~250 words to ~100 words across 3 focused paragraphs:
+  - Para 1: What Compass ingests (every VB since 2011) and computes (velocity, retrograde patterns, 24m projections)
+  - Para 2: How the 3 models work — Optimistic (full momentum), Realistic (65% multiplier), Risk-Adjusted (2,000 MC sims, P10–P90 bands)
+  - Para 3: Coverage note — EB1/EB2/EB3 all countries; EB2 India 15–25 d/mo velocity
+- No VB 101 recap — audience already knows what a priority date is
+- No em-dashes anywhere in the section
+
+**P3 Compass — AI Marker Removal:**
+- `job-demand/page.tsx`: "Discover the most in-demand..." → "Track the most in-demand..."
+- `insights/page.tsx`: "unlock personalized immigration insights" → "see personalized immigration data"
+
+**P3 Compass — Bug Fix (ApprovalDenialDashboard):**
+- Fixed stale path reference: `/setup` → `/insights` in prompt text
+
+### Test Results
+- **P3 Full Suite**: **948 tests passing across 32 files** (unchanged — copy-only changes)
+- TypeScript strict mode: 0 errors
+- ESLint: 0 errors
+- 2 test assertions updated: `srs-comprehensive.test.tsx` (N/A), `new-dashboards.test.tsx` (colon label)
+
+### Files Modified
+- `src/app/dashboard/visa-bulletin/page.tsx` — Section rewrite + em-dash fixes (How It Works list)
+- `src/app/dashboard/visa-bulletin/layout.tsx` — Metadata title punctuation
+- `src/app/dashboard/eb-category/page.tsx` — 6 em-dash fixes
+- `src/app/about/page.tsx` — 4 em-dash fixes (architecture labels + closing line)
+- `src/app/page.tsx` — Hero text em-dash fix
+- `src/app/dashboard/job-demand/page.tsx` — AI marker fix
+- `src/app/insights/page.tsx` — AI marker fix
+- `src/components/wage/RawFilingsTable.tsx` — 4 em-dash fixes
+- `src/components/wage/WageIntelligenceHub.tsx` — Label colon fix
+- `src/components/wage/EmployerProfile.tsx` — Prose punctuation fix
+- `src/components/approvals/ApprovalDenialDashboard.tsx` — Em-dash + path fix
+- `src/components/srs/score-gauge.tsx` — Unrated placeholder → N/A
+- `src/__tests__/srs-comprehensive.test.tsx` — Updated N/A assertion
+- `src/__tests__/new-dashboards.test.tsx` — Updated colon label assertion
+- `PROGRESS.md` / `README.md` / `PRODUCT_GUIDE.md` / `copilot-instructions.md` — Docs updated
+
+### Next Steps
+- [x] Deploy to AWS via `bash scripts/deploy.sh`
+- [x] Verify CloudFront site + styling
+
+---
+
 ## 2026-03-17 — Milestone 10.74: MCRA FAD Fix + Accessibility Rewrite + Test Hardening
 
 ### Objective
@@ -50,14 +113,9 @@ Fix MCRA Risk-Adjusted model producing "unable to estimate" for FAD EB2 India. R
 - `PRODUCT_GUIDE.md` — Updated forecast mode descriptions + forecasting methodology section
 - `PROGRESS.md` — This entry
 
-### Standing Instruction
-- **DO NOT DEPLOY yet** — User will verify pages in browser, then deploy via `bash scripts/deploy.sh`
-
-### Next Steps
-- [ ] User to verify MCRA mode at http://localhost:3000/dashboard/visa-bulletin (enter PD 2016-06-15, EB2 India, switch to Risk-Adjusted)
-- [ ] Confirm FAD shows Sep 2030 (not "unable to estimate")
-- [ ] After verification, `bash scripts/deploy.sh`
-- [ ] Then commit all staged changes to git and push
+### Deployment
+- Deployed to AWS CloudFront via `bash scripts/deploy.sh` on 2026-03-18
+- CloudFront site verified: styling correct, all pages loading
 
 ---
 

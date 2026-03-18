@@ -261,7 +261,7 @@ A large unified line chart showing the full cutoff history plus 24-month forecas
 - **Blue solid line — DFF (Dates for Filing):** The historical monthly cutoff dates for the Adjustment of Status filing window (I-485 filing eligibility)
 - **Green solid line — FAD (Final Action Dates):** The historical monthly cutoff dates for final green card approval
 
-**Dashed lines (AI forecast):**
+**Dashed lines (forecast):**
 - **Blue dashed line — DFF Forecast:** Model projection of where the DFF cutoff will be each month for the next 24 months
 - **Green dashed line — FAD Forecast:** Model projection fo the FAD cutoff for the next 24 months
 
@@ -304,7 +304,7 @@ These cards only appear when a priority date is entered (otherwise they show a c
 **Forecast Mode Selector**
 Above the prediction cards. Controls which forecast model is used for the prediction cards and dashed chart lines:
 - **Optimistic:** Uses the full observed historical velocity — assumes the best recent trend continues without interruption
-- **Realistic:** Uses 70% of observed velocity — a built-in buffer for normal slowdowns and minor setbacks
+- **Realistic:** Uses 65% of observed velocity — a built-in buffer for normal slowdowns and minor setbacks
 - **Risk-Adjusted:** The most sophisticated mode. Simulates 2,000 possible futures, each shaped by the realistic monthly probability of a retrogression. The result is a range of outcomes — not just one date — so you can see the breadth of what's plausible
 
 ---

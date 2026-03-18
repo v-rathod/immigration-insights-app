@@ -79,14 +79,19 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
-### Recent Session Notes (Mar 17, 2026)
-**Milestone 10.74 Complete**: MCRA FAD Fix + Copy Accessibility Rewrite
+### Recent Session Notes (Mar 18, 2026)
+**Milestone 10.75 Complete**: UI Copy Polish — Em-Dash Sweep + AI Marker Removal
+- **P3**: Swept all `—` / `&mdash;` from user-facing JSX across 11 files (kept en-dashes in numeric ranges; `score-gauge` unrated placeholder changed from `—` to `N/A`) ✅
+- **P3**: "Understanding the Visa Bulletin" section replaced with "How Compass Models Priority Date Movement" — shorter, model-first, no VB 101 ✅
+- **P3**: AI markers removed: "Discover" → "Track"; "unlock personalized insights" → "see personalized data" ✅
+- **P3**: Bug fix: `ApprovalDenialDashboard` stale path `/setup` → `/insights` ✅
+- **Testing**: 948 tests passing (32 files), 2 assertions updated ✅
+- **Deployment**: Deployed to AWS CloudFront via `bash scripts/deploy.sh` ✅
+
+**Previous Session (Mar 17, 2026) — Milestone 10.74**: MCRA FAD Fix + Copy Accessibility Rewrite
 - **P2**: Fixed MCRA FAD "unable to estimate" — capped setback draws at 60d, added 30% velocity floor ✅
 - **P3**: Re-synced `pd_forecasts_retrograde.json` — 0 negative velocities (was 9/24), FAD EB2/IND → Sep 2030 ✅
-- **P3**: Rewrote "Understanding the Visa Bulletin" section for non-technical readers ✅
 - **P3**: Fixed `browser-smoke-test.test.ts` for Vitest 4 API + server-guard ✅
-- **Testing**: 948 tests passing (32 files), no regressions ✅
-- **Deployment**: NOT pushed to AWS (per user standing instruction) ✅
 
 **Key Metrics**:
 - 12m rolling avg (current momentum) vs 10yr avg (long-run rate) both visible on cards
