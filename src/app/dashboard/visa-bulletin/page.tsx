@@ -638,59 +638,36 @@ export default function VisaBulletinPage() {
         </details>
       </FadeIn>
 
-      {/* SEO-rich crawlable content — visible to search engines and users */}
+      {/* SEO-rich crawlable content - visible to search engines and users */}
       <FadeIn delay={0.35}>
         <section className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-3 text-xs text-[var(--muted-foreground)]">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">
-            Understanding the Visa Bulletin and Priority Date Movement
+            How Compass Models Priority Date Movement
           </h2>
           <p>
-            Every month, the U.S. Department of State publishes the{" "}
-            <strong>Visa Bulletin</strong> — a one-page document that controls
-            when hundreds of thousands of green card applicants can move forward.
-            Think of it as a monthly queue update: if your <strong>priority
-            date</strong> (the date your employer filed your labor certification
-            or petition) is earlier than the cutoff listed, you&rsquo;re eligible
-            to proceed. If not, you wait another month. The bulletin covers{" "}
-            <strong>EB1 through EB5</strong> employment categories and tracks
-            separate queues for high-demand countries:{" "}
-            <strong>India</strong>, <strong>China</strong>,{" "}
-            <strong>Philippines</strong>, <strong>Mexico</strong>, and{" "}
-            <strong>Rest of World</strong>.
+            Compass ingests every Visa Bulletin since 2011 and structures the
+            data into per-category, per-country time series. From that base we
+            compute monthly movement velocity, detect retrogression patterns,
+            and run three 24-month forward projections.
           </p>
           <p>
-            Compass has collected every Visa Bulletin since 2011 and tracks how
-            these cutoff dates move month to month. On average, a healthy month
-            sees the cutoff advance <strong>15–25 calendar days</strong> — but
-            some months it stalls, and occasionally it{" "}
-            <strong>retrogresses</strong> (moves backward). That variability is
-            what makes long-term planning difficult and why forecasting matters.
+            <strong>Optimistic</strong> uses full observed momentum from a
+            blended model (50% full-history, 25% 24-month rolling, 25%
+            12-month rolling). <strong>Realistic</strong> applies a 65%
+            velocity multiplier for stalls and friction.{" "}
+            <strong>Risk-Adjusted</strong> runs 2,000 Monte Carlo simulations
+            with calibrated per-month retrograde probabilities derived from 10
+            years of weighted history, producing P10&ndash;P90 confidence bands
+            rather than a single date.
           </p>
           <p>
-            Our forecasting engine offers three views:{" "}
-            <strong>Optimistic</strong> projects the fastest realistic scenario
-            based on peak historical momentum.{" "}
-            <strong>Realistic</strong> uses a balanced trend that averages recent
-            years. <strong>Risk-Adjusted</strong> goes further — it runs{" "}
-            <strong>2,000 simulated futures</strong>, each one shaped by the
-            realistic chance of a retrogression in any given month. The output is
-            a <strong>confidence range</strong> (not just a single date) so you
-            can see the best-case, likely, and worst-case scenarios side by side.
-          </p>
-          <p>
-            For <strong>EB2 India</strong> — one of the longest queues in the
-            world — current wait times can exceed a decade. The cutoff has
-            historically advanced about <strong>15–25 days per month</strong>,
-            with periodic setbacks. Similar forecasts are available for{" "}
-            <strong>EB3 India</strong>, <strong>EB2 China</strong>, and every
-            other category/country combination tracked by the Visa Bulletin.
+            Coverage spans <strong>EB1, EB2, and EB3</strong> across all
+            chargeable countries. For <strong>EB2 India</strong>, historical
+            velocity averages 15&ndash;25 days per month with periodic setbacks.
           </p>
           <p className="text-[10px] text-[var(--muted-foreground)]/50">
-            Data sourced from the U.S. Department of State Visa Bulletin
-            (travel.state.gov). Compass is not affiliated with USCIS or the
-            Department of State and does not provide legal advice. For decisions
-            about your immigration case, always consult a qualified immigration
-            attorney.
+            Data: U.S. Department of State Visa Bulletin (travel.state.gov).
+            Not affiliated with USCIS or the Department of State. Not legal advice.
           </p>
         </section>
       </FadeIn>
