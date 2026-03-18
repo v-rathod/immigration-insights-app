@@ -36,7 +36,8 @@ import type { CutoffTrendRecord } from "@/lib/data/pdi";
 import type { PdForecast } from "@/types/p2-artifacts";
 
 // ---------------------------------------------------------------------------
-// Load REAL data files
+// Load REAL data files — skip gracefully when public/data/ is not present
+// (CI environment does not have P2 synced artifacts; gitignored by design)
 // ---------------------------------------------------------------------------
 
 const DATA_ROOT = join(process.cwd(), "public", "data");
@@ -45,15 +46,32 @@ const trendsPath = join(DATA_ROOT, "dashboards", "visa-bulletin", "fact_cutoff_t
 const forecastsPath = join(DATA_ROOT, "models", "pd_forecasts.json");
 const freshnessPath = join(DATA_ROOT, "_freshness.json");
 
-const trends: CutoffTrendRecord[] = JSON.parse(readFileSync(trendsPath, "utf-8"));
-const forecasts: PdForecast[] = JSON.parse(readFileSync(forecastsPath, "utf-8"));
-const freshness: { synced_at: string } = JSON.parse(readFileSync(freshnessPath, "utf-8"));
+/** True when all three required data files are present (local dev / pre-deploy only) */
+const DATA_AVAILABLE =
+  existsSync(trendsPath) && existsSync(forecastsPath) && existsSync(freshnessPath);
+
+const trends: CutoffTrendRecord[] = DATA_AVAILABLE
+  ? JSON.parse(readFileSync(trendsPath, "utf-8"))
+  : [];
+const forecasts: PdForecast[] = DATA_AVAILABLE
+  ? JSON.parse(readFileSync(forecastsPath, "utf-8"))
+  : [];
+const freshness: { synced_at: string } = DATA_AVAILABLE
+  ? JSON.parse(readFileSync(freshnessPath, "utf-8"))
+  : { synced_at: new Date().toISOString() };
+
+if (!DATA_AVAILABLE) {
+  console.warn(
+    "[visa-bulletin-regression] public/data/ not found — live-data tests will be SKIPPED. " +
+    "Run `npm run sync-data` to populate data files before running regression tests."
+  );
+}
 
 // ===========================================================================
 // A. fact_cutoff_trends.json — Structure & Completeness
 // ===========================================================================
 
-describe("fact_cutoff_trends.json — live data", () => {
+describe.skipIf(!DATA_AVAILABLE)("fact_cutoff_trends.json — live data", () => {
   it("has at least 7,000 rows (sanity baseline)", () => {
     expect(trends.length).toBeGreaterThan(7_000);
   });
@@ -140,7 +158,7 @@ describe("fact_cutoff_trends.json — live data", () => {
 // B. pd_forecasts.json — Structure & Completeness
 // ===========================================================================
 
-describe("pd_forecasts.json — live data", () => {
+describe.skipIf(!DATA_AVAILABLE)("pd_forecasts.json — live data", () => {
   it("has at least 1,000 rows", () => {
     expect(forecasts.length).toBeGreaterThanOrEqual(1_000);
   });
@@ -235,7 +253,7 @@ describe("pd_forecasts.json — live data", () => {
 // C. Cross-Artifact Consistency
 // ===========================================================================
 
-describe("Cross-artifact consistency", () => {
+describe.skipIf(!DATA_AVAILABLE)("Cross-artifact consistency", () => {
   it("forecast series count matches expected (chart × category × country)", () => {
     const seriesKeys = new Set(
       forecasts.map((f) => `${f.chart}|${f.category}|${f.country}`)
@@ -311,7 +329,7 @@ describe("Cross-artifact consistency", () => {
 // D. Cutoff Continuity & Retrogression Detection
 // ===========================================================================
 
-describe("Cutoff continuity — EB2/IND/FAD", () => {
+describe.skipIf(!DATA_AVAILABLE)("Cutoff continuity — EB2/IND/FAD", () => {
   const series = getHistoricalSeries(trends, "FAD", "EB2", "IND");
 
   it("has at least 80 monthly data points", () => {
@@ -364,7 +382,7 @@ describe("Cutoff continuity — EB2/IND/FAD", () => {
   });
 });
 
-describe("Cutoff continuity — EB3/IND/FAD", () => {
+describe.skipIf(!DATA_AVAILABLE)("Cutoff continuity — EB3/IND/FAD", () => {
   const series = getHistoricalSeries(trends, "FAD", "EB3", "IND");
 
   it("has at least 80 monthly data points", () => {
@@ -378,7 +396,7 @@ describe("Cutoff continuity — EB3/IND/FAD", () => {
   });
 });
 
-describe("Cutoff continuity — EB2/CHN/DFF", () => {
+describe.skipIf(!DATA_AVAILABLE)("Cutoff continuity — EB2/CHN/DFF", () => {
   const series = getHistoricalSeries(trends, "DFF", "EB2", "CHN");
 
   it("has data points", () => {
@@ -397,7 +415,7 @@ describe("Cutoff continuity — EB2/CHN/DFF", () => {
 // E. Forecast Accuracy Bounds
 // ===========================================================================
 
-describe("Forecast accuracy bounds", () => {
+describe.skipIf(!DATA_AVAILABLE)("Forecast accuracy bounds", () => {
   it("projected cutoff dates advance monotonically within each series", () => {
     const seriesKeys = new Set(
       forecasts.map((f) => `${f.chart}|${f.category}|${f.country}`)
@@ -475,7 +493,7 @@ describe("Forecast accuracy bounds", () => {
 // F. computePdi() on Real Data
 // ===========================================================================
 
-describe("computePdi() with real forecasts", () => {
+describe.skipIf(!DATA_AVAILABLE)("computePdi() with real forecasts", () => {
   it("finds current date for a very old PD (PD before all cutoffs)", () => {
     // PD Jan 2005 should already be current for EB2/IND/FAD or found very soon
     const result = computePdi(forecasts, "FAD", "EB2", "IND", "2005-01-01");
@@ -561,7 +579,7 @@ describe("computePdi() with real forecasts", () => {
 // G. Data Freshness
 // ===========================================================================
 
-describe("Data freshness", () => {
+describe.skipIf(!DATA_AVAILABLE)("Data freshness", () => {
   it("_freshness.json exists and has synced_at", () => {
     expect(existsSync(freshnessPath)).toBe(true);
     expect(freshness.synced_at).toBeDefined();
@@ -606,7 +624,7 @@ describe("Data freshness", () => {
 // H. getHistoricalSeries() on Real Data
 // ===========================================================================
 
-describe("getHistoricalSeries() with real trends", () => {
+describe.skipIf(!DATA_AVAILABLE)("getHistoricalSeries() with real trends", () => {
   it("returns sorted results for EB2/IND/FAD", () => {
     const series = getHistoricalSeries(trends, "FAD", "EB2", "IND");
     expect(series.length).toBeGreaterThan(50);
@@ -648,7 +666,7 @@ describe("getHistoricalSeries() with real trends", () => {
 // I. getVelocitySummary() on Real Data
 // ===========================================================================
 
-describe("getVelocitySummary() with real forecasts", () => {
+describe.skipIf(!DATA_AVAILABLE)("getVelocitySummary() with real forecasts", () => {
   it("returns positive stats for EB2/IND/FAD", () => {
     const stats = getVelocitySummary(forecasts, "FAD", "EB2", "IND");
     expect(stats.avgVelocity).toBeGreaterThan(0);
