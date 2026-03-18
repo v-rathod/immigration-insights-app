@@ -319,6 +319,11 @@ export default function AboutPage() {
                   No accounts, no tracking, no servers. Your profile stays in
                   localStorage and never leaves your device.
                 </p>
+                <p className="text-[var(--foreground)] font-medium">
+                  This took a lot of late nights to build right. The goal is simple:
+                  give you the tools and data to navigate this process with less
+                  uncertainty and better decisions.
+                </p>
               </div>
             </div>
           </GlassCard>
