@@ -136,6 +136,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 | Icons | Lucide React | 0.470.x |
 | Search | Fuse.js (client-side fuzzy) | 7.x |
 | URL State | nuqs | 2.4.x |
+| Analytics | PostHog (posthog-js) | Latest |
 | Font | Geist (Sans + Mono) | System |
 | Package Manager | npm | System |
 
