@@ -302,43 +302,22 @@ export default function AboutPage() {
 
               <div className="space-y-4 text-sm leading-relaxed text-[var(--muted-foreground)]">
                 <p>
-                  I&apos;m a software engineer who has been navigating the U.S.
-                  employment-based immigration system firsthand. If you&apos;ve
-                  been through it, you know: the process is opaque, the data is
-                  scattered across half a dozen government websites, and the
-                  tools that exist either cost a fortune or show you a fraction
-                  of the picture.
+                  I&apos;m a software engineer on the EB immigration path. The data
+                  you need to make informed decisions about your case is public,
+                  but it&apos;s scattered across DOL, State Dept, BLS, and USCIS
+                  websites in formats that aren&apos;t built for individual use.
                 </p>
                 <p>
-                  I kept asking simple questions:{" "}
-                  <span className="text-[var(--foreground)] font-medium italic">
-                    &ldquo;When will my priority date become current? Is my employer
-                    reliable for sponsorship? How does my salary compare?&rdquo;
-                  </span>.{" "}
-                  Answering them required stitching together data from
-                  DOL PERM filings, DOS Visa Bulletins, BLS wage surveys, and USCIS
-                  processing reports. Manually. Every month.
+                  Compass started as a set of Python scripts I used to track my own
+                  priority date and evaluate sponsors. Over time it grew into a full
+                  pipeline: 18.5 million records ingested, forecasting models trained,
+                  employer reliability scores computed, and everything surfaced through
+                  dashboards that work for your specific situation.
                 </p>
                 <p>
-                  So I decided to build what I wished existed:{" "}
-                  <span className="text-[var(--foreground)] font-medium">
-                    a single place that connects all the dots
-                  </span>
-                  . One app that ingests 18.5 million records, runs forecasting
-                  models, computes employer reliability scores, and presents it all
-                  through interactive dashboards, personalized to your specific
-                  situation.
-                </p>
-                <p>
-                  NorthStar Compass is open-source, free, and privacy-first. Your
-                  data never leaves your browser. There are no accounts, no
-                  tracking pixels, no API keys, and no servers to hack. It&apos;s
-                  a statically-hosted web application, deployed globally for speed and reliability.
-                </p>
-                <p className="text-[var(--foreground)] font-medium">
-                  If this project helps even one person navigate their immigration
-                  journey with less anxiety and more clarity, it was worth every
-                  late night building it.
+                  It&apos;s open-source, free, and runs entirely in your browser.
+                  No accounts, no tracking, no servers. Your profile stays in
+                  localStorage and never leaves your device.
                 </p>
               </div>
             </div>
