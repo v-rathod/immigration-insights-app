@@ -386,7 +386,7 @@ export default function VisaBulletinPage() {
             <label className="text-[9px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)] shrink-0">
               Your PD
             </label>
-            <div className="relative max-w-[200px]">
+            <div className="relative w-full sm:max-w-[200px]">
               <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--accent-blue)]" />
               <input
                 type="date"
@@ -476,24 +476,37 @@ export default function VisaBulletinPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div>
                 <div className="text-lg font-bold font-mono text-blue-400">{(retroRisk.dff.avgRetroProb * 100).toFixed(1)}%</div>
-                <div className="text-[9px] text-[var(--muted-foreground)]">DFF Retro Prob</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  DFF Retro Prob
+                  <span className="block text-[8px] text-[var(--muted-foreground)]/50 mt-0.5">per month, avg over 24m</span>
+                </div>
               </div>
               <div>
                 <div className="text-lg font-bold font-mono text-blue-400">{retroRisk.dff.avgSetbackDays.toFixed(0)}d</div>
-                <div className="text-[9px] text-[var(--muted-foreground)]">DFF Avg Setback</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  DFF Avg Setback
+                  <span className="block text-[8px] text-[var(--muted-foreground)]/50 mt-0.5">days lost if retro occurs</span>
+                </div>
               </div>
               <div>
                 <div className="text-lg font-bold font-mono text-amber-400">{(retroRisk.fad.avgRetroProb * 100).toFixed(1)}%</div>
-                <div className="text-[9px] text-[var(--muted-foreground)]">FAD Retro Prob</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  FAD Retro Prob
+                  <span className="block text-[8px] text-[var(--muted-foreground)]/50 mt-0.5">per month, avg over 24m</span>
+                </div>
               </div>
               <div>
                 <div className="text-lg font-bold font-mono text-amber-400">{retroRisk.fad.avgSetbackDays.toFixed(0)}d</div>
-                <div className="text-[9px] text-[var(--muted-foreground)]">FAD Avg Setback</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  FAD Avg Setback
+                  <span className="block text-[8px] text-[var(--muted-foreground)]/50 mt-0.5">days lost if retro occurs</span>
+                </div>
               </div>
             </div>
             <p className="mt-2 text-[9px] text-[var(--muted-foreground)]/60">
-              Based on 2,000 Monte Carlo simulations with per-month retrograde probability derived from 10 years of Visa Bulletin history.
-              Shaded bands on the chart show 90% confidence interval (P10–P90).
+              Retro Prob = chance of a backward move in any given month, averaged across the 24-month forecast window.
+              Avg Setback = how many days the cutoff typically rolls back when a retrogression happens.
+              Based on 2,000 Monte Carlo simulations calibrated against 10 years of Visa Bulletin history.
             </p>
           </div>
         </FadeIn>

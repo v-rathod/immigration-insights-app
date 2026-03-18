@@ -65,10 +65,10 @@ export function SrsScoreGauge({
   return (
     <div className={cn("flex flex-col items-center gap-6", className)}>
       {/* Circular Gauge */}
-      <div className="relative" style={{ width: GAUGE_SIZE, height: GAUGE_SIZE }}>
+      <div className="relative w-full max-w-[180px]" style={{ aspectRatio: '1 / 1' }}>
         <svg
-          width={GAUGE_SIZE}
-          height={GAUGE_SIZE}
+          width="100%"
+          height="100%"
           viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE}`}
           className="-rotate-[135deg]"
           role="img"

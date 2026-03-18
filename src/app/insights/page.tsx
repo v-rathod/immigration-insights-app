@@ -232,7 +232,7 @@ function Pill({
       type="button"
       onClick={onClick}
       className={cn(
-        "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+        "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
         active
           ? activeClasses[color]
           : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
@@ -377,7 +377,7 @@ function GreenCardPanel({
           <button
             onClick={() => setForecastMode("optimistic")}
             className={cn(
-              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
               forecastMode === "optimistic"
                 ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
@@ -389,7 +389,7 @@ function GreenCardPanel({
           <button
             onClick={() => setForecastMode("realistic")}
             className={cn(
-              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
               forecastMode === "realistic"
                 ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
@@ -400,7 +400,7 @@ function GreenCardPanel({
           <button
             onClick={() => setForecastMode("mcra")}
             className={cn(
-              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
               forecastMode === "mcra"
                 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
