@@ -597,7 +597,13 @@ Existing e2e specs:
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 929 tests across 31 files (all passing)
+- **Current count**: 948 tests across 32 files (all passing)
+- **Live-data tests (MANDATORY pattern)**: Tests that load from `public/data/` (gitignored, absent in CI) MUST use the `DATA_AVAILABLE` guard pattern — NEVER call `readFileSync` at module top level on gitignored paths (it crashes CI before Vitest can skip anything):
+  ```typescript
+  const DATA_AVAILABLE = existsSync(dataPath);
+  if (!DATA_AVAILABLE) console.warn("[test] public/data/ not found — tests will be SKIPPED");
+  describe.skipIf(!DATA_AVAILABLE)("suite name", () => { ... });
+  ```
 
 ---
 
