@@ -89,8 +89,13 @@ const TECH_STACK = [
   },
   {
     label: "Vitest 4",
-    detail: "Unit + component testing",
-    explanation: "Vitest runs 586 tests across 25 files: 55 component tests, 18 utility tests, and 513 data loader tests. happy-dom replaces jsdom for lighter ESM compatibility and faster feedback loops.",
+    detail: "Unit + component testing (948 tests)",
+    explanation: "Vitest runs 948 tests across 32 files covering every component, data loader, utility, and live-data regression. happy-dom replaces jsdom for lighter ESM compatibility. Includes optum regression tests, visa-bulletin live-data regression, and a smart-sort correctness suite.",
+  },
+  {
+    label: "Playwright",
+    detail: "Mobile E2E testing — iPhone 14 viewport",
+    explanation: "Playwright runs 85 end-to-end tests against a live dev server at iPhone 14 resolution (390x844, touch, deviceScaleFactor:3). Covers PD Cortex and the home page: no horizontal overflow, 44px touch targets, CTA tap navigation, interactive controls, responsive grid layout, and scroll reachability. Uses Chromium with custom mobile viewport since WebKit is not installed.",
   },
   {
     label: "AWS S3 + CloudFront",

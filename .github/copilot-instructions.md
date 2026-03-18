@@ -405,6 +405,74 @@ bash scripts/browser-smoke-test.sh  # Run simple curl-based smoke test (alternat
 
 ---
 
+## Mobile-First Development (MANDATORY)
+
+Compass is used heavily on mobile. Every UI change must be verified at iPhone 14 resolution (390×844px). These rules apply to all future component and page changes.
+
+### Viewport Target
+- **Primary mobile baseline**: iPhone 14 — 390px wide, 844px tall, touch-enabled
+- **Breakpoint reference**: `sm:` = 640px, `md:` = 768px, `lg:` = 1024px. On iPhone 14 (390px), nothing above `sm:` is active.
+
+### 11 Mobile Rules
+
+11. **Touch targets ≥ 44px** — All interactive elements (buttons, links, pills, toggles) must be at least 44px tall. This is WCAG 2.1 AA. Use `py-3` minimum for buttons and `py-2 sm:py-1` for pills. Verify with Playwright `boundingBox()`.
+
+12. **No fixed pixel widths without overflow-hidden** — Never use `w-[Npx]` or `max-w-[Npx]` on elements that could hold dynamic or varying text content. When fixed widths are needed (e.g. a date input), ensure the parent has `overflow-hidden` or the element is capped with `w-full sm:max-w-[Npx]`.
+
+13. **No horizontal overflow** — `document.documentElement.scrollWidth` must never exceed `clientWidth` at 390px. The Playwright helper `expectNoHorizontalOverflow()` (defined in every `e2e/` spec) checks this. Any new page section that uses negative margins or absolute-positioned wide elements MUST be wrapped in `overflow-hidden`.
+
+14. **Responsive stacking** — Default to `flex-col` for button groups, CTAs, and form rows. Use `sm:flex-row` to unlock side-by-side layout at 640px+. Never use `flex-row` alone without a responsive override.
+
+15. **Responsive grids** — Use `grid-cols-1` as mobile base. Add `sm:grid-cols-N` for small-screen grids and `lg:grid-cols-M` for desktop. Quick reference: stat cards use `grid-cols-2`, quick access uses `grid-cols-1 sm:grid-cols-3`, dashboard grid uses `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`.
+
+16. **Active states, not just hover** — `hover:` styles are invisible on touch devices. For all interactive surfaces, pair `hover:` with `active:` (e.g. `hover:bg-white/10 active:bg-white/15`). For links and buttons, `active:scale-[0.98]` provides haptic-like feedback.
+
+17. **Avoid 100vw or full-bleed widths without containment** — `w-screen`, `100vw`, and negative margin patterns (`-mx-4`) must be wrapped in `overflow-hidden` on the parent.
+
+18. **Font sizes ≥ 12px** — Never use `text-[Npx]` below 12px in body copy. The `text-[9px]` exception is only for decorative micro-badges (e.g. the tech stack badges on quick-access cards) where the text is non-essential.
+
+19. **SVG/canvas containers must be responsive** — Never set `width={N}` and `height={N}` on SVG elements with fixed pixel values that could clip on mobile. Use `width="100%" height="100%"` inside a container with `max-w-[Npx]` and `aspect-ratio`. See `score-gauge.tsx` as the reference implementation.
+
+20. **Recharts wrappers must use percentage widths** — Use `<ResponsiveContainer width="100%" height={N}>` for all chart wrappers. Never set a fixed pixel width on `ResponsiveContainer`.
+
+21. **Run Playwright mobile tests after every page-level UI change** — Any change to a page component that has a corresponding `e2e/[page]-mobile.spec.ts` file must pass all its mobile tests before committing. Run with `npx playwright test [name]-mobile`.
+
+### When to add a new Playwright mobile spec
+Add `e2e/[page]-mobile.spec.ts` for:
+- Any new page route (copy `home-mobile.spec.ts` as a template)
+- Any major UI refactor of an existing page (new sections, rearranged layout)
+- Any new page that has interactive elements (filters, inputs, toggles, navigation)
+
+Existing e2e specs:
+| File | Page | Tests |
+|------|------|-------|
+| `e2e/pd-cortex-mobile.spec.ts` | `/dashboard/visa-bulletin` | 44 |
+| `e2e/home-mobile.spec.ts` | `/` (home/landing) | 41 |
+
+### Reference implementation patterns
+
+```tsx
+{/* BAD — fixed px width will clip on mobile */}
+<input className="w-[200px]" />
+
+{/* GOOD — full width on mobile, capped on tablet+ */}
+<input className="w-full sm:max-w-[200px]" />
+
+{/* BAD — buttons side-by-side on mobile (no room at 390px) */}
+<div className="flex flex-row gap-3">
+
+{/* GOOD — stack on mobile, row on tablet+ */}
+<div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+
+{/* BAD — pill with tiny touch target */}
+<button className="px-3 py-1 text-xs">EB2</button>
+
+{/* GOOD — adequate touch target on mobile */}
+<button className="px-3 py-2 sm:py-1 text-xs">EB2</button>
+```
+
+---
+
 ## Smart Visibility Principle (MANDATORY)
 
 **Never render a widget whose only possible output is a "please provide input" message.** If a component requires user input to be meaningful, hide it entirely until that input exists and replace it with a single, clear call-to-action instead.
@@ -705,6 +773,12 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/srs-comprehensive.test.tsx` | 97 | **Comprehensive SRS feature suite**: search rendering (5), accessibility (7), search behavior (6), result layout fields (8), clear (4), selection (3), keyboard nav (7), Optum regression (3), smart-sort edge cases (7), score gauge (8), detail card (13), trend chart (5), overview (4), shard extractors (6), asScores mapping (6), wage/SOC sort extras (4) |
 | `src/__tests__/visa-bulletin-regression.test.ts` | 62 | **Live-data VB/PD regression**: fact_cutoff_trends structure (10), pd_forecasts structure (11), cross-artifact consistency (4), cutoff continuity EB2/IND+EB3/IND+EB2/CHN (9), forecast accuracy bounds (7), computePdi() on real data (9), data freshness (5), getHistoricalSeries (4), getVelocitySummary (2) |
 | `src/__tests__/browser-smoke-test.test.ts` | 8 | **NEW** — Vitest HTTP tests: server accessibility, page loads, dashboard loads, info pages, timing, visa-bulletin modes, employer SRS, homepage sections; skips gracefully when no server running |
+
+### E2E Tests (Playwright — 2 files, 85 tests)
+| File | Tests | Covers |
+|------|-------|--------|
+| `e2e/pd-cortex-mobile.spec.ts` | 44 | PD Cortex (visa-bulletin) at iPhone 14: page load, nav, category/country pills, PD input, forecast mode toggle (role="radio"), MCRA widget, chart rendering, methodology collapsible, scroll reachability, already-current detection |
+| `e2e/home-mobile.spec.ts` | 41 | Home/landing page at iPhone 14: page load, nav, hero CTAs (stacked, 44px touch targets, tap navigation), stats bar (scoped selectors), quick access cards, dashboard grid (all 8 titles + tap navigation), value props, scroll reachability |
 
 ### Key Technical Decisions Log
 | Decision | Rationale |

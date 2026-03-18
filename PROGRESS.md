@@ -1,5 +1,67 @@
 # Compass Progress Tracker
 
+## 2026-03-18 — Milestone 10.76: Mobile-First E2E Tests for Home Page + Mobile Philosophy
+
+### Objective
+Add comprehensive Playwright iPhone 14 mobile tests for the home/landing page (most-visited on mobile), formalize mobile-first development philosophy as mandatory rules in copilot-instructions.md, and update tech stack documentation.
+
+### What Was Done
+
+**P3 Compass — e2e/home-mobile.spec.ts (41 tests across 8 groups):**
+- Created dedicated iPhone 14 mobile test suite for the home/landing page
+- 8 test groups covering all major content areas:
+  1. Page Load & Structure (5) — load time, title, no horizontal overflow
+  2. Mobile Navigation (4) — sidebar hidden, hamburger visible, overlay open/close via tap
+  3. Hero Section (8) — CTAs visible, stacked vertically (flex-col), 44px touch targets, "Get Started" tap navigates to /insights
+  4. Stats Bar (5) — all 4 labels visible scoped to `section[aria-label]`, 243K value visible
+  5. Quick Access Cards (6) — 3 flagship tools visible, single-column full-width layout, "Most Popular" badge
+  6. Dashboard Grid (6) — "8 Interactive Dashboards" heading, all 8 titles visible, tap navigation, "Explore Dashboards" anchor scroll
+  7. Value Props (4) — "Built Different" heading, 3 tiles, privacy message, no overflow
+  8. Scroll Reachability (3) — footer reachable, no overflow at all scroll positions, page taller than viewport
+- Fixed selector strict-mode violations: scoped `getByText` to each section's `[aria-label]` container to prevent hero subheadline matches
+- All 41 tests passing in 33s
+
+**P3 Compass — copilot-instructions.md Mobile Philosophy:**
+- Added "Mobile-First Development (MANDATORY)" section (replaces former inline mobile rules that were scattered)
+- Defined 11 numbered mobile rules (Rules 11–21):
+  - Touch targets ≥ 44px (WCAG 2.1 AA)
+  - No fixed px widths without overflow containment
+  - No horizontal overflow at 390px
+  - Responsive stacking with `flex-col` default, `sm:flex-row` opt-in
+  - Responsive grids: `grid-cols-1` mobile base
+  - `active:` states alongside `hover:` for touch feedback
+  - `overflow-hidden` required for `w-screen`/negative-margin patterns
+  - Font sizes ≥ 12px (except decorative micro-badges)
+  - SVG containers use `width="100%"` + `aspect-ratio` container
+  - Recharts `<ResponsiveContainer width="100%">` required
+  - Run Playwright mobile tests after any page-level UI change
+- Documented existing e2e specs: pd-cortex-mobile.spec.ts (44 tests), home-mobile.spec.ts (41 tests)
+- Added "when to add new Playwright spec" guidance and reference implementation patterns
+
+**P3 Compass — About Page Tech Stack:**
+- Updated Vitest 4 entry: "586 tests across 25 files" → "948 tests across 32 files" with updated description
+- Added new Playwright entry after Vitest: "Mobile E2E testing — iPhone 14 viewport" explaining Chromium-based custom mobile setup
+
+### Test Results
+- **P3 Vitest Full Suite**: **948 tests passing across 32 files** (unchanged)
+- **Playwright e2e home-mobile**: **41/41 passing in 33s** (NEW)
+- **Playwright e2e pd-cortex-mobile**: **44/44 passing** (existing, unchanged)
+- **Total tests**: 948 Vitest + 85 Playwright = **1,033 tests total**
+- TypeScript strict mode: 0 errors
+- ESLint: 0 errors
+
+### Files Created
+- `e2e/home-mobile.spec.ts` — 41 iPhone 14 tests for the home/landing page
+
+### Files Modified
+- `src/app/about/page.tsx` — Updated Vitest count + added Playwright tech stack entry
+- `.github/copilot-instructions.md` — Added Mobile-First Development (MANDATORY) section with Rules 11–21 and e2e spec guidance
+
+### Next Steps
+- Deploy to AWS via `bash scripts/deploy.sh`
+
+---
+
 ## 2026-03-18 — Milestone 10.75: UI Copy Polish — Em-Dash Sweep + AI Marker Removal + Section Rewrite
 
 ### Objective
@@ -4238,7 +4300,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.72 — 2026-03-17)
+## Quick Reference (Current State as of Milestone 10.76 — 2026-03-18)
 
 | Metric | Value |
 |--------|-------|
@@ -4247,8 +4309,10 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | TypeScript | 5.x (strict mode) |
 | Styling | Tailwind CSS 4.x |
 | Design System | Aurora (dark-first, glassmorphic) |
-| Test Framework | Vitest 4.0.18 + RTL + happy-dom |
-| Tests | **929 passing** across 31 test files |
+| Test Framework | Vitest 4 + RTL + happy-dom (unit) + Playwright (e2e mobile) |
+| **Vitest Tests** | **948 passing** across 32 test files |
+| **Playwright Tests** | **85 passing** — pd-cortex-mobile (44) + home-mobile (41) |
+| **Total Tests** | **1,033** |
 | P2 data synced | ✅ 21 dashboard JSONs + 94,843 employer shards + search/overview/freshness files via `sync_p2_data.py` |
 | **public/data/ payload** | **~28 MB** dashboards + ~14 MB search index + 94,843 employer shards (avg 13.6KB) |
 | **Data architecture** | Unified per-employer shards (wage + SRS + LCA + H1B consolidated); monolithic files eliminated |
@@ -4266,7 +4330,8 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | PostHog | Super properties: `environment` tag on all events |
 | Employer name normalization | ✅ ALL-CAPS → Title Case (1,700 names normalized in friendly scores & monthly metrics) |
 | Data regression testing | ✅ 18-test suite for Optum Services shard (baseline 1,928 LCA records) |
-| AWS deploy | Ready — static export clean, 604 tests passing, JSON files valid |
+| **Mobile E2E testing** | ✅ iPhone 14 (390×844) Playwright tests — home (41 tests) + PD Cortex (44 tests) |
+| AWS deploy | Ready — static export clean, 948 tests passing, JSON files valid |
 | **SEO** | Favicon + OG image + canonical URLs (9 pages) + FAQPage/Dataset JSON-LD + AI bot directives |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
 | **Deploy script** | `scripts/deploy.sh` — pre-flight (index.html check) + post-deploy (S3 + CloudFront HTTP 200) |
@@ -4276,10 +4341,12 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 npm run dev          # Local dev server (http://localhost:3000)
 npm run build        # Static export to out/
 npm run lint         # ESLint
-npm test             # Run all tests (single run)
+npm test             # Run all Vitest tests (single run)
 npm run test:watch   # Tests in watch mode
 npm run test:coverage # Tests with coverage report
 npm run sync-data    # Sync P2 artifacts → public/data/
+npm run test:e2e     # Run all Playwright e2e tests (requires dev server)
+npm run test:e2e:mobile  # Run iPhone 14 tests only
 ```
 
 ### P2 Data Available (21 dashboard JSONs + 94,843 employer shards)
