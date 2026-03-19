@@ -109,6 +109,24 @@ vi.mock("recharts", () => ({
   Legend: () => <div />,
 }));
 
+// ── react-simple-maps Mock ────────────────────────────────────────────────
+
+vi.mock("react-simple-maps", () => ({
+  ComposableMap: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="composable-map">{children}</div>
+  ),
+  Geographies: ({ children }: { children: (args: { geographies: Array<{ rsmKey: string; id: string; properties: { name: string } }> }) => React.ReactNode }) =>
+    children({ geographies: [
+      { rsmKey: "geo-01", id: "06", properties: { name: "California" } },
+      { rsmKey: "geo-02", id: "48", properties: { name: "Texas" } },
+    ] }),
+  Geography: ({ geography, onClick }: { geography: { properties: { name: string } }; onClick?: () => void }) => (
+    <div data-testid={`geo-${geography.properties.name}`} onClick={onClick}>
+      {geography.properties.name}
+    </div>
+  ),
+}));
+
 // ── Data Loader Mocks ─────────────────────────────────────────────────────
 
 // EB Category
@@ -160,12 +178,14 @@ const mockGeoData = [
     offered_median: 135000, distinct_employers: 2000, dataset: "PERM",
     grain: "state", area_code: "", soc_code: "", filings_count_soc_area: 0,
     offered_median_soc_area: 0, city: "", competitiveness_ratio: 0.9,
+    approval_rate: 0.9,
   },
   {
     state: "TX", filings_count: 20000, approvals_count: 18000,
     offered_median: 110000, distinct_employers: 800, dataset: "PERM",
     grain: "state", area_code: "", soc_code: "", filings_count_soc_area: 0,
     offered_median_soc_area: 0, city: "", competitiveness_ratio: 0.75,
+    approval_rate: 0.9,
   },
 ];
 
@@ -392,19 +412,126 @@ describe("Geographic Dashboard", () => {
     });
   });
 
-  it("renders data table", async () => {
+  it("renders data table after switching to table view", async () => {
     render(<GeographicPage />);
     await waitFor(() => {
-      // California should appear in state data
-      expect(screen.getByText("California")).toBeTruthy();
+      // Wait for data to load (KPI card visible)
+      expect(screen.getByText("States")).toBeTruthy();
     });
-    expect(screen.getByText("Texas")).toBeTruthy();
+    // Switch to table view
+    const tableBtn = screen.getByText("Table");
+    fireEvent.click(tableBtn);
+    await waitFor(() => {
+      // California should appear in state data
+      expect(screen.getByText(/California/)).toBeTruthy();
+    });
+    expect(screen.getByText(/Texas/)).toBeTruthy();
   });
 
   it("renders methodology section", async () => {
     render(<GeographicPage />);
     await waitFor(() => {
       expect(screen.getByText("Methodology & Data Sources")).toBeTruthy();
+    });
+  });
+
+  it("defaults to map view with choropleth", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    // Map view should be active by default
+    expect(screen.getByText("Map").className).toContain("amber");
+    // Choropleth map should render
+    expect(screen.getByTestId("composable-map")).toBeTruthy();
+  });
+
+  it("has map/table view toggle", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    expect(screen.getByText("Map")).toBeTruthy();
+    expect(screen.getByText("Table")).toBeTruthy();
+  });
+
+  it("shows color-by metric selector", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("Color by:")).toBeTruthy();
+    });
+  });
+
+  it("toggles between map and table view", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    // Default is map — bar chart visible
+    expect(screen.getByText(/Top.*States/)).toBeTruthy();
+    // Switch to table
+    fireEvent.click(screen.getByText("Table"));
+    await waitFor(() => {
+      expect(screen.getByText("State Rankings")).toBeTruthy();
+    });
+    // Switch back to map
+    fireEvent.click(screen.getByText("Map"));
+    await waitFor(() => {
+      expect(screen.getByText(/Top.*States/)).toBeTruthy();
+    });
+  });
+
+  it("shows state detail panel when clicking a geography", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    // Click California on the mock map
+    const calGeo = screen.getByTestId("geo-California");
+    fireEvent.click(calGeo);
+    // Detail panel should appear with close button
+    await waitFor(() => {
+      expect(screen.getByLabelText("Close state details")).toBeTruthy();
+    });
+    // CA state code badge should appear in the detail panel
+    expect(screen.getByText("CA")).toBeTruthy();
+  });
+
+  it("can close state detail panel", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    // Click California
+    fireEvent.click(screen.getByTestId("geo-California"));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Close state details")).toBeTruthy();
+    });
+    // Close it
+    fireEvent.click(screen.getByLabelText("Close state details"));
+    // Panel should disappear (AnimatePresence mocked to immediate)
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Close state details")).toBeNull();
+    });
+  });
+
+  it("clicking table row selects state for drill-down", async () => {
+    render(<GeographicPage />);
+    await waitFor(() => {
+      expect(screen.getByText("States")).toBeTruthy();
+    });
+    // Switch to table view
+    fireEvent.click(screen.getByText("Table"));
+    await waitFor(() => {
+      expect(screen.getByText(/California/)).toBeTruthy();
+    });
+    // Click CA row — look for the text and click its closest row
+    const caCell = screen.getByText(/California/);
+    const row = caCell.closest("tr");
+    if (row) fireEvent.click(row);
+    // Detail panel should now show with CA metrics
+    await waitFor(() => {
+      expect(screen.getByLabelText("Close state details")).toBeTruthy();
     });
   });
 });

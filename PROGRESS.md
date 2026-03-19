@@ -1,5 +1,63 @@
 # Compass Progress Tracker
 
+## 2026-03-19 — Milestone 10.78: USA Choropleth Heatmap + State Drill-Down
+
+### Objective
+Add an interactive USA state-level choropleth map to the Geographic Heatmaps dashboard. States colored by filing density (or any selected metric), with hover tooltips showing all metrics, click-to-drill-down detail panel, map/table view toggle, and bar chart integration with state selection.
+
+### What Was Done
+
+**New Components**
+- `src/components/geo/usa-choropleth.tsx` — Interactive USA choropleth map using `react-simple-maps` v3 + us-atlas TopoJSON (114KB). Features: 9-stop sequential color scale (navy → blue → green → amber → red), animated Framer Motion tooltips with all 6 metrics, click-to-select with amber highlight stroke, color legend with min/max values, memo-optimized for performance.
+- `src/components/geo/index.ts` — Barrel export for geo components.
+- `src/types/react-simple-maps.d.ts` — TypeScript module declaration for `react-simple-maps` (no bundled types).
+- `public/data/us-states-10m.json` — US states TopoJSON data (114KB, sourced from us-atlas@3).
+
+**Geographic Dashboard Redesign (`src/app/dashboard/geographic/page.tsx`)**
+- Map/Table view toggle (default: map view)
+- Choropleth map as primary visualization
+- "Color by" metric selector (filings, approvals, employers, median wage, approval rate, wage vs market)
+- State detail drill-down panel: animated reveal on state click, 6 metric cards with national rank (#N/total), mini progress bars, close button
+- Bar chart integrated with state selection: clicking a bar selects that state
+- Table view: clickable rows trigger drill-down, selected row highlighted in amber
+- Scroll-to-detail on state selection
+- Mobile-responsive: stacked controls on mobile, adequate touch targets
+
+**Tests (7 new)**
+- Mock for `react-simple-maps` (ComposableMap, Geographies, Geography)
+- Map/table view toggle test
+- Choropleth renders by default test
+- Color-by selector test
+- Click geography → detail panel test
+- Close detail panel test
+- Table row click → drill-down test
+- Fixed existing "renders data table" test for new view mode architecture
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **963 passing** (32 files) |
+| TypeScript | ✅ Clean (`tsc --noEmit`) |
+| ESLint | ✅ 0 errors (63 warnings, pre-existing) |
+| New tests | 7 |
+| New files | 4 |
+| Modified files | 2 |
+
+### Files Created/Modified
+- `src/components/geo/usa-choropleth.tsx` — NEW: Choropleth map component (280 lines)
+- `src/components/geo/index.ts` — NEW: Barrel export
+- `src/types/react-simple-maps.d.ts` — NEW: Type declarations
+- `public/data/us-states-10m.json` — NEW: TopoJSON geodata
+- `src/app/dashboard/geographic/page.tsx` — MODIFIED: Map view, drill-down, view toggle
+- `src/__tests__/new-dashboards.test.tsx` — MODIFIED: 7 new geographic tests, react-simple-maps mock
+
+### Next Steps
+1. Deploy to stage and verify
+2. Add E2E Playwright mobile tests for the new map
+3. Consider adding city-level drill-down within states
+
+---
+
 ## 2026-03-18 — Milestone 10.77: Comprehensive SEO + AI Agent Crawling Strategy + Multi-Environment Infra
 
 ### Objective
@@ -4583,6 +4641,7 @@ npm run test:e2e:mobile  # Run iPhone 14 tests only
 | 10.66 | 2026-03-13 | Comprehensive SRS Test Suite + Deploy | 97-test `srs-comprehensive.test.tsx` covering ALL SRS features; deployed fix to AWS; ALL 42 smoke checks passed; **806 tests** (29 files) |
 | 10.71 | 2026-03-17 | April 2026 Visa Bulletin E2E Pipeline | P1→P2→P3 end-to-end: April 2026 VB fetched, fact_cutoffs 8,115 rows, pd_forecasts 1,320 rows; EB2/IND FAD +303 days; **867 tests** (30 files) |
 | 10.72 | 2026-03-17 | VB/PD Regression Tests + SEO Overhaul | 62 live-data regression tests (visa-bulletin-regression.test.ts); favicon + OG image; canonical URLs (9 pages); FAQPage + Dataset JSON-LD; AI bot directives; crawlable SEO content; **929 tests** (31 files); commit 89f19eb |
+| 10.78 | 2026-03-19 | USA Choropleth Heatmap + State Drill-Down | Interactive USA map with color-coded states, hover tooltips, click-to-drill-down detail panel, map/table view toggle; **963 tests** (32 files) |
 
 ---
 

@@ -68,7 +68,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **948 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **963 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -79,8 +79,14 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
-### Recent Session Notes (Mar 18, 2026)
-**Milestone 10.75 Complete**: UI Copy Polish — Em-Dash Sweep + AI Marker Removal
+### Recent Session Notes (Mar 19, 2026)
+**Milestone 10.78 Complete**: USA Choropleth Heatmap + State Drill-Down
+- **P3**: Built interactive USA choropleth map (`UsaChoropleth` component) using `react-simple-maps` v3 + us-atlas TopoJSON (114KB) ✅
+- **P3**: 9-stop sequential color scale (navy → blue → green → amber → red), animated tooltips, click-to-select ✅
+- **P3**: Map/Table view toggle, "Color by" metric selector, state detail drill-down panel with rank badges ✅
+- **P3**: 7 new tests (963 total across 32 files), zero ESLint errors, clean TypeScript compile ✅
+
+**Previous Session (Mar 18, 2026) — Milestone 10.75**: UI Copy Polish — Em-Dash Sweep + AI Marker Removal
 - **P3**: Swept all `—` / `&mdash;` from user-facing JSX across 11 files (kept en-dashes in numeric ranges; `score-gauge` unrated placeholder changed from `—` to `N/A`) ✅
 - **P3**: "Understanding the Visa Bulletin" section replaced with "How Compass Models Priority Date Movement" — shorter, model-first, no VB 101 ✅
 - **P3**: AI markers removed: "Discover" → "Track"; "unlock personalized insights" → "see personalized data" ✅
@@ -598,7 +604,7 @@ Existing e2e specs:
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 948 tests across 32 files (all passing)
+- **Current count**: 963 tests across 32 files (all passing)
 - **Live-data tests (MANDATORY pattern)**: Tests that load from `public/data/` (gitignored, absent in CI) MUST use the `DATA_AVAILABLE` guard pattern — NEVER call `readFileSync` at module top level on gitignored paths (it crashes CI before Vitest can skip anything):
   ```typescript
   const DATA_AVAILABLE = existsSync(dataPath);
@@ -758,6 +764,12 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/components/wage/RolePercentileTrend.tsx` | 5-year salary distribution chart — stacked area bands (p10/p25/median/p75/p90), OEWS reference line, TrendSummary badges (median growth, salary range, filings), rich tooltip with all percentiles |
 | `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; currently hidden from render but kept in codebase for future use |
 
+**Components — Geographic**
+| File | Purpose |
+|------|------|
+| `src/components/geo/usa-choropleth.tsx` | Interactive USA choropleth map — react-simple-maps + us-atlas TopoJSON, 9-stop color scale, hover tooltips, click-to-select, color legend, FIPS-to-state mapping, memo-optimized |
+| `src/components/geo/index.ts` | Barrel export |
+
 **Components — About**
 | File | Purpose |
 |------|------|
@@ -817,7 +829,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 | `src/__tests__/employer-normalization.test.ts` | 23 | Data integrity tests for canonical employer names in public JSON files; JSON spec compliance (no bare NaN); 200-shard sample test |
 | `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
 | `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
-| `src/__tests__/new-dashboards.test.tsx` | 34 | All 5 new dashboard pages: EB Category (8), Geographic (6), Occupation Demand (6), Processing (5), Backlog (9) |
+| `src/__tests__/new-dashboards.test.tsx` | 41 | All 5 new dashboard pages: EB Category (8), Geographic (13 incl. 7 new: choropleth, view toggle, drill-down), Occupation Demand (6), Processing (5), Backlog (9) |
 | `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
 | `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
 | `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |

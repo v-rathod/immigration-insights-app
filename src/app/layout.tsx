@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | Compass",
   },
   description:
-    "Free tools for employment-based green card applicants. Track priority dates, research employer sponsorship history, benchmark salaries, and forecast your green card timeline with 18.5M+ government data points.",
+    "Useful immigration insights and priority date prediction. Analyze green card wait times, employer sponsorship, salary benchmarks, and more—powered by 18.5M+ government records.",
   keywords: [
     "green card tracker",
     "priority date forecast",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     siteName: "Compass",
     title: "Compass | Useful Immigration Insights & Priority Date Prediction",
     description:
-      "Free tools for employment-based green card applicants. Track priority dates, research employer sponsorship, benchmark salaries, and forecast your green card timeline with 18.5M+ government data points.",
+      "Useful immigration insights and priority date prediction. Analyze green card wait times, employer sponsorship, salary benchmarks, and more—powered by 18.5M+ government records.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Compass | Useful Immigration Insights & Priority Date Prediction",
     description:
-      "Free tools for EB green card applicants. Priority date forecasts, employer sponsorship history, salary benchmarks. Powered by 18.5M+ government records.",
+      "Useful immigration insights and priority date prediction. Analyze green card wait times, employer sponsorship, salary benchmarks, and more—powered by 18.5M+ government records.",
     images: [`${SITE_URL}/og-image.png`],
   },
   robots: {
