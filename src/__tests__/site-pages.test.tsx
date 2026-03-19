@@ -289,7 +289,7 @@ describe("FeedbackWidget", () => {
 describe("AboutPage", () => {
   it("renders page title", () => {
     render(<AboutPage />);
-    expect(screen.getByText("About This Project")).toBeInTheDocument();
+    expect(screen.getByText("About This App")).toBeInTheDocument();
   });
 
   it("renders the story section", () => {
