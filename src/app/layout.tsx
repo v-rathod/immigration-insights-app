@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Compass | Free Immigration Insights & Green Card Tracker",
+    default: "Compass | Useful Immigration Insights & Priority Date Prediction",
     template: "%s | Compass",
   },
   description:
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
     siteName: "Compass",
-    title: "Compass | Free Immigration Insights & Green Card Tracker",
+    title: "Compass | Useful Immigration Insights & Priority Date Prediction",
     description:
       "Free tools for employment-based green card applicants. Track priority dates, research employer sponsorship, benchmark salaries, and forecast your green card timeline with 18.5M+ government data points.",
     images: [
@@ -76,13 +76,13 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "Compass — Free Immigration Insights & Green Card Tracker",
+        alt: "Compass — Useful Immigration Insights & Priority Date Prediction",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Compass | Free Immigration Insights & Green Card Tracker",
+    title: "Compass | Useful Immigration Insights & Priority Date Prediction",
     description:
       "Free tools for EB green card applicants. Priority date forecasts, employer sponsorship history, salary benchmarks. Powered by 18.5M+ government records.",
     images: [`${SITE_URL}/og-image.png`],

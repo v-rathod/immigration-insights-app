@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Dashboards" },
   { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Dashboards" },
   // { href: "/dashboard/backlog", label: "Backlog", icon: Layers, group: "Dashboards" }, // Hidden for now, work on in later phases
-  { href: "/about", label: "About", icon: Compass, group: "Project" },
+  { href: "/about", label: "About", icon: Compass, group: "App" }
 ];
 
 // ---------------------------------------------------------------------------

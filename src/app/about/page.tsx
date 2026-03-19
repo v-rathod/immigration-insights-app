@@ -276,7 +276,7 @@ export default function AboutPage() {
                 NorthStar Compass
               </p>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                About This Project
+                About This App
               </h1>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Built by{" "}
@@ -359,7 +359,7 @@ export default function AboutPage() {
               <div className="space-y-4 text-sm leading-relaxed text-[var(--muted-foreground)]">
                 <p>
                   <span className="text-[var(--foreground)] font-semibold">NorthStar</span> is the guiding vision for
-                  this entire project. Just as a North Star guides sailors across
+                  this entire app. Just as a North Star guides sailors across
                   uncertain oceans, this initiative aims to guide immigrants through
                   the complex employment-based visa system with clarity, data, and hope.
                 </p>
@@ -570,7 +570,7 @@ export default function AboutPage() {
               Get Involved
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted-foreground)]">
-              NorthStar Compass is an open-source community project. Whether you
+              NorthStar Compass is an open-source community app. Whether you
               want to report a bug, suggest a feature, contribute code, or just
               say hello, you&apos;re welcome here.
             </p>
