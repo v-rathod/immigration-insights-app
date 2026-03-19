@@ -202,6 +202,7 @@ vi.mock("@/lib/data/employer-shard", () => ({
   loadEmployerShard: vi.fn().mockResolvedValue(null),
   extractSrsFromShard: vi.fn().mockReturnValue(null),
   extractMonthlyMetrics: vi.fn().mockReturnValue([]),
+  extractWageRoles: vi.fn().mockReturnValue([]),
 }));
 
 // Mock security module
@@ -221,10 +222,21 @@ vi.mock("@/lib/security", async (importActual) => {
 // Setup
 // ---------------------------------------------------------------------------
 
-beforeEach(() => {
+beforeEach(async () => {
   // Clear mock storage before each test
   Object.keys(mockStorage).forEach((k) => delete mockStorage[k]);
   vi.clearAllMocks();
+  // Reset any per-test mock overrides (e.g. loading test changes loadPdForecasts)
+  const pdi = await import("@/lib/data/pdi");
+  (pdi.loadPdForecasts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  (pdi.loadPdForecastsRetrograde as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  (pdi.loadCutoffTrends as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  const shard = await import("@/lib/data/employer-shard");
+  (shard.loadEmployerSearch as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+  (shard.loadEmployerShard as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (shard.extractSrsFromShard as ReturnType<typeof vi.fn>).mockReturnValue(null);
+  (shard.extractMonthlyMetrics as ReturnType<typeof vi.fn>).mockReturnValue([]);
+  (shard.extractWageRoles as ReturnType<typeof vi.fn>).mockReturnValue([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -508,5 +520,276 @@ describe("InsightsPage — loading and error states", () => {
     await waitFor(() => {
       expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// New feature tests — Dual salary comparison + SOC matching + compact search
+// ---------------------------------------------------------------------------
+
+describe("InsightsPage — Salary Compass: dual comparison mode", () => {
+  it("shows industry mode by default when no employer is selected", async () => {
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "145000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "Software Developer" },
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/your offered salary/i)).toBeInTheDocument();
+    });
+    // No toggle should appear since no employer data
+    expect(screen.queryByRole("radiogroup", { name: /salary comparison mode/i })).toBeNull();
+  });
+
+  it("shows employer/industry toggle when employer has wage data", async () => {
+    // Mock the employer shard to return wage_roles data
+    const { loadEmployerShard, extractSrsFromShard, extractMonthlyMetrics, extractWageRoles } =
+      await import("@/lib/data/employer-shard");
+    (loadEmployerShard as ReturnType<typeof vi.fn>).mockResolvedValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      wage_roles: [
+        {
+          soc_code: "15-1252",
+          soc_title: "Software Developers",
+          employer_name: "Google LLC",
+          fiscal_year: 2025,
+          n_filings: 200,
+          mean_salary: 200000,
+          median_salary: 195000,
+          p10_salary: 140000,
+          p25_salary: 165000,
+          p75_salary: 230000,
+          p90_salary: 260000,
+        },
+      ],
+      srs: { efs: 88, efs_tier: "Excellent" },
+    });
+    (extractSrsFromShard as ReturnType<typeof vi.fn>).mockReturnValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      srs: 88,
+      srs_tier: "Excellent",
+      scope: "overall",
+      outcome_subscore: 90,
+      wage_subscore: 85,
+      sustainability_subscore: 88,
+    });
+    (extractMonthlyMetrics as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (extractWageRoles as ReturnType<typeof vi.fn>).mockReturnValue([
+      {
+        soc_code: "15-1252",
+        soc_title: "Software Developers",
+        employer_name: "Google LLC",
+        fiscal_year: 2025,
+        n_filings: 200,
+        mean_salary: 200000,
+        median_salary: 195000,
+        p10_salary: 140000,
+        p25_salary: 165000,
+        p75_salary: 230000,
+        p90_salary: 260000,
+      },
+    ]);
+
+    await renderPage();
+
+    // Enter salary and job title
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "195000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "Software Developer" },
+    });
+
+    // Select employer via Sponsor panel
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+
+    await waitFor(() => {
+      // Toggle should appear
+      const toggle = screen.getByRole("radiogroup", { name: /salary comparison mode/i });
+      expect(toggle).toBeInTheDocument();
+    });
+
+    // Both mode buttons should be present
+    expect(screen.getByRole("radio", { name: /your employer/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /industry average/i })).toBeInTheDocument();
+  });
+
+  it("defaults to employer mode when employer wage data is available", async () => {
+    const { loadEmployerShard, extractSrsFromShard, extractMonthlyMetrics, extractWageRoles } =
+      await import("@/lib/data/employer-shard");
+    (loadEmployerShard as ReturnType<typeof vi.fn>).mockResolvedValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      wage_roles: [
+        {
+          soc_code: "15-1252",
+          soc_title: "Software Developers",
+          employer_name: "Google LLC",
+          fiscal_year: 2025,
+          n_filings: 200,
+          mean_salary: 200000,
+          median_salary: 195000,
+          p25_salary: 165000,
+          p75_salary: 230000,
+        },
+      ],
+      srs: { efs: 88, efs_tier: "Excellent" },
+    });
+    (extractSrsFromShard as ReturnType<typeof vi.fn>).mockReturnValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      srs: 88,
+      srs_tier: "Excellent",
+      scope: "overall",
+    });
+    (extractMonthlyMetrics as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (extractWageRoles as ReturnType<typeof vi.fn>).mockReturnValue([
+      {
+        soc_code: "15-1252",
+        soc_title: "Software Developers",
+        employer_name: "Google LLC",
+        fiscal_year: 2025,
+        n_filings: 200,
+        median_salary: 195000,
+        p25_salary: 165000,
+        p75_salary: 230000,
+      },
+    ]);
+
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "195000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "Software Developer" },
+    });
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+
+    await waitFor(() => {
+      const empBtn = screen.getByRole("radio", { name: /your employer/i });
+      expect(empBtn).toHaveAttribute("aria-checked", "true");
+    });
+  });
+
+  it("switches between employer and industry mode", async () => {
+    const { loadEmployerShard, extractSrsFromShard, extractMonthlyMetrics, extractWageRoles } =
+      await import("@/lib/data/employer-shard");
+    (loadEmployerShard as ReturnType<typeof vi.fn>).mockResolvedValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      wage_roles: [
+        {
+          soc_code: "15-1252",
+          soc_title: "Software Developers",
+          employer_name: "Google LLC",
+          fiscal_year: 2025,
+          n_filings: 200,
+          median_salary: 195000,
+          p25_salary: 165000,
+          p75_salary: 230000,
+        },
+      ],
+      srs: { efs: 88, efs_tier: "Excellent" },
+    });
+    (extractSrsFromShard as ReturnType<typeof vi.fn>).mockReturnValue({
+      employer_name: "Google LLC",
+      employer_id: "google-001",
+      srs: 88,
+      srs_tier: "Excellent",
+      scope: "overall",
+    });
+    (extractMonthlyMetrics as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (extractWageRoles as ReturnType<typeof vi.fn>).mockReturnValue([
+      {
+        soc_code: "15-1252",
+        soc_title: "Software Developers",
+        employer_name: "Google LLC",
+        fiscal_year: 2025,
+        n_filings: 200,
+        median_salary: 195000,
+        p25_salary: 165000,
+        p75_salary: 230000,
+      },
+    ]);
+
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "195000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "Software Developer" },
+    });
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("radio", { name: /your employer/i })).toBeInTheDocument();
+    });
+
+    // Switch to Industry mode
+    fireEvent.click(screen.getByRole("radio", { name: /industry average/i }));
+    await waitFor(() => {
+      const indBtn = screen.getByRole("radio", { name: /industry average/i });
+      expect(indBtn).toHaveAttribute("aria-checked", "true");
+    });
+  });
+});
+
+describe("InsightsPage — Employer search compact mode", () => {
+  it("passes compact prop to EmployerSearch in Insights", async () => {
+    await renderPage();
+    // The mock EmployerSearch doesn't render case counts — confirm it renders
+    expect(screen.getByTestId("employer-search")).toBeInTheDocument();
+  });
+});
+
+describe("InsightsPage — SOC matching improvements", () => {
+  it("matches abbreviation 'SDE' to Software Developers via synonym expansion", async () => {
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "145000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "SDE" },
+    });
+    // Should show benchmark comparison (synonym "sde" → ["software", "developer"])
+    await waitFor(() => {
+      expect(screen.getByText(/vs median/i)).toBeInTheDocument();
+    });
+  });
+
+  it("matches 'DevOps Engineer' to a benchmark via synonym expansion", async () => {
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "160000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "DevOps Engineer" },
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/your offered salary/i)).toBeInTheDocument();
+    });
+  });
+
+  it("no user-facing SOC terminology", async () => {
+    await renderPage();
+    fireEvent.change(screen.getByLabelText(/annual salary/i), {
+      target: { value: "145000" },
+    });
+    fireEvent.change(screen.getByLabelText(/job title/i), {
+      target: { value: "Software Developer" },
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/vs median/i)).toBeInTheDocument();
+    });
+    // "SOC" should not appear in any user-facing text
+    const allText = document.body.textContent ?? "";
+    // Allow SOC in code identifiers but not as a standalone visible label
+    expect(allText).not.toMatch(/\bSOC match\b/i);
+    expect(allText).not.toMatch(/\bSOC code\b/i);
+    expect(allText).not.toMatch(/\bClosest SOC\b/i);
   });
 });

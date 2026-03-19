@@ -66,6 +66,7 @@ import {
   loadEmployerShard,
   extractSrsFromShard,
   extractMonthlyMetrics,
+  extractWageRoles,
   type EmployerSearchEntry,
 } from "@/lib/data/employer-shard";
 import {
@@ -73,6 +74,7 @@ import {
   getNationalBenchmark,
   computePercentile,
 } from "@/lib/data/wage";
+import type { EmployerWageRanking } from "@/lib/data/wage";
 import { secureGet, secureSet } from "@/lib/security";
 import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
@@ -109,6 +111,34 @@ const TITLE_LEVEL_WORDS = new Set([
   "associate", "mid", "entry", "the", "and", "for", "of",
   "i", "ii", "iii", "iv", "v", "1", "2", "3",
 ]);
+
+/** Common job title word → SOC title synonyms for better matching */
+const TITLE_SYNONYMS: Record<string, string[]> = {
+  "dev":        ["developer", "software"],
+  "devops":     ["software", "systems", "administrator"],
+  "sde":        ["software", "developer"],
+  "swe":        ["software", "engineer"],
+  "qa":         ["quality", "assurance", "tester"],
+  "ml":         ["machine", "learning"],
+  "ai":         ["artificial", "intelligence"],
+  "dba":        ["database", "administrator"],
+  "pm":         ["project", "management"],
+  "ba":         ["business", "analyst"],
+  "ux":         ["user", "experience", "designer"],
+  "ui":         ["user", "interface", "designer"],
+  "frontend":   ["web", "developer"],
+  "backend":    ["software", "developer"],
+  "fullstack":  ["software", "developer", "web"],
+  "infra":      ["systems", "infrastructure"],
+  "cloud":      ["systems", "network"],
+  "cyber":      ["information", "security"],
+  "sec":        ["security", "information"],
+  "ops":        ["operations", "systems"],
+  "accounting": ["accountant", "auditor"],
+  "hr":         ["human", "resources"],
+  "marketing":  ["market", "research"],
+  "sales":      ["sales", "representative"],
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -179,27 +209,46 @@ function isProfileFilled(p: UserProfile): boolean {
 
 /**
  * Smart benchmark matching — splits job title into significant words (skipping
- * level prefixes like Sr/Senior/Lead/Staff) and scores each SOC benchmark by
- * how many words match its title.  Returns null if nothing matches (avoids
- * false fallback to unrelated categories like "Chief Executives").
+ * level prefixes like Sr/Senior/Lead/Staff), expands abbreviations via synonyms,
+ * and scores each SOC benchmark by how many words match its title.
+ * Returns null if nothing matches (avoids false fallback to unrelated categories).
  */
 function findBestBenchmark(
   nationalBenchmarks: SalaryBenchmark[],
   jobTitle: string
 ): SalaryBenchmark | null {
   if (!jobTitle.trim()) return null;
-  const words = jobTitle
+  const rawWords = jobTitle
     .toLowerCase()
     .split(/[\s,/\-]+/)
-    .filter((w) => w.length > 2 && !TITLE_LEVEL_WORDS.has(w));
-  if (words.length === 0) return null;
+    .filter((w) => w.length > 1 && !TITLE_LEVEL_WORDS.has(w));
+  if (rawWords.length === 0) return null;
+
+  // Expand synonyms: if a word has known synonyms, add them as additional search terms
+  const expandedWords = new Set<string>();
+  for (const w of rawWords) {
+    expandedWords.add(w);
+    const syns = TITLE_SYNONYMS[w];
+    if (syns) for (const s of syns) expandedWords.add(s);
+  }
+  const words = Array.from(expandedWords);
 
   // Score each benchmark: how many significant words appear in its SOC title
+  // Bonus for exact whole-word matches (not just substring)
   const scored = nationalBenchmarks
-    .map((b) => ({
-      b,
-      score: words.filter((w) => b.soc_title.toLowerCase().includes(w)).length,
-    }))
+    .map((b) => {
+      const titleLower = b.soc_title.toLowerCase();
+      const titleWords = titleLower.split(/[\s,/\-]+/);
+      let score = 0;
+      for (const w of words) {
+        if (titleWords.includes(w)) {
+          score += 2; // exact word match
+        } else if (titleLower.includes(w)) {
+          score += 1; // substring match
+        }
+      }
+      return { b, score };
+    })
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score);
 
@@ -624,6 +673,7 @@ function SponsorPanel({
             employers={overallScores}
             onSelect={onEmployerSelect}
             placeholder={profile.employerName ? `Last: ${profile.employerName}` : "Search 70,000+ employers…"}
+            compact
           />
         </div>
 
@@ -657,15 +707,82 @@ function SponsorPanel({
 // Panel C: Salary Compass
 // ---------------------------------------------------------------------------
 
+type SalaryCompareMode = "employer" | "industry";
+
+/**
+ * Match user's job title to the best employer wage role using the same
+ * word-overlap algorithm as findBestBenchmark but against employer's SOC roles.
+ */
+function findBestEmployerRole(
+  roles: EmployerWageRanking[],
+  jobTitle: string,
+  nationalBenchmarks: SalaryBenchmark[],
+): EmployerWageRanking | null {
+  if (roles.length === 0) return null;
+
+  // If job title given, score by word overlap
+  if (jobTitle.trim()) {
+    const words = jobTitle
+      .toLowerCase()
+      .split(/[\s,/\-]+/)
+      .filter((w) => w.length > 2 && !TITLE_LEVEL_WORDS.has(w));
+    if (words.length > 0) {
+      const scored = roles
+        .map((r) => ({
+          r,
+          score: words.filter((w) => r.soc_title.toLowerCase().includes(w)).length,
+        }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || b.r.n_filings - a.r.n_filings);
+      if (scored[0]) return scored[0].r;
+    }
+  }
+
+  // Fallback: try matching SOC code from national best-match
+  const nationalMatch = jobTitle.trim()
+    ? findBestBenchmark(nationalBenchmarks, jobTitle)
+    : null;
+  if (nationalMatch) {
+    const byCode = roles.find((r) => r.soc_code === nationalMatch.soc_code);
+    if (byCode) return byCode;
+  }
+
+  return null;
+}
+
+/** Convert an EmployerWageRanking into a SalaryBenchmark shape for reuse. */
+function roleAsBenchmark(role: EmployerWageRanking): SalaryBenchmark {
+  return {
+    soc_code: role.soc_code,
+    soc_title: role.soc_title,
+    area_code: "employer",
+    area_title: role.employer_name,
+    p10: role.p10_salary ?? Math.round(role.p25_salary * 0.85),
+    p25: role.p25_salary,
+    median: role.median_salary,
+    p75: role.p75_salary,
+    p90: role.p90_salary ?? Math.round(role.p75_salary * 1.15),
+  };
+}
+
 function SalaryPanel({
   profile,
   benchmarks,
+  employerWageRoles,
+  employerName,
 }: {
   profile: UserProfile;
   benchmarks: SalaryBenchmark[];
+  employerWageRoles: EmployerWageRanking[];
+  employerName: string | null;
 }) {
   const wage = Number(profile.wageOffered);
   const hasWage = wage > 0;
+  const hasEmployerData = employerWageRoles.length > 0 && !!employerName;
+
+  // User can explicitly pick a mode; null = auto-detect from data availability
+  const [compareModeOverride, setCompareModeOverride] = useState<SalaryCompareMode | null>(null);
+  const compareMode: SalaryCompareMode = compareModeOverride ?? (hasEmployerData ? "employer" : "industry");
 
   const sectionHeader = (
     <div className="flex items-center gap-3 mb-1">
@@ -675,7 +792,10 @@ function SalaryPanel({
       <div>
         <h2 className="text-lg font-bold text-[var(--foreground)]">Salary Compass</h2>
         <p className="text-xs text-[var(--muted-foreground)]">
-          How your offered wage compares to market benchmarks
+          How your offered wage compares to{" "}
+          {compareMode === "employer" && employerName
+            ? `peers at ${employerName}`
+            : "industry benchmarks"}
         </p>
       </div>
     </div>
@@ -697,15 +817,39 @@ function SalaryPanel({
   }
 
   const nationalBenchmarks = benchmarks.filter((b) => b.area_code === "99");
-  // Smart multi-word matching — skips level prefixes (Sr, Senior, Lead, etc.)
-  // Falls back to first benchmark only when no job title is entered
-  const benchmark = profile.jobTitle.trim()
-    ? findBestBenchmark(nationalBenchmarks, profile.jobTitle)
-    : (nationalBenchmarks[0] ?? null);
+
+  // Resolve benchmark based on mode
+  let benchmark: SalaryBenchmark | null = null;
+  let matchLabel = "";
+  let matchContext = "";
+
+  if (compareMode === "employer" && hasEmployerData) {
+    const role = findBestEmployerRole(employerWageRoles, profile.jobTitle, nationalBenchmarks);
+    if (role) {
+      benchmark = roleAsBenchmark(role);
+      matchLabel = "Role match at your employer";
+      matchContext = `${role.soc_title} · ${role.n_filings} filings · FY${role.fiscal_year}`;
+    }
+  }
+
+  // Industry mode or employer mode with no match
+  if (!benchmark) {
+    benchmark = profile.jobTitle.trim()
+      ? findBestBenchmark(nationalBenchmarks, profile.jobTitle)
+      : (nationalBenchmarks[0] ?? null);
+    if (benchmark) {
+      matchLabel = profile.jobTitle.trim() ? "Closest role match" : "National reference";
+      matchContext = benchmark.soc_title;
+    }
+    // If we fell through from employer mode, switch labels to indicate fallback
+    if (compareMode === "employer" && benchmark) {
+      matchLabel = "Industry data (no employer data for this role)";
+    }
+  }
 
   const percentileInfo = benchmark ? computePercentile(benchmark, wage) : null;
 
-  // No benchmark match — show a helpful no-data state rather than wrong data
+  // No benchmark match — helpful no-data state
   if (!benchmark) {
     return (
       <FadeIn>
@@ -742,6 +886,41 @@ function SalaryPanel({
       <div className="space-y-6">
         {sectionHeader}
 
+        {/* Compare mode toggle — only shown when employer data is available */}
+        {hasEmployerData && (
+          <div className="flex items-center gap-2 justify-end flex-wrap" role="radiogroup" aria-label="Salary comparison mode">
+            <span className="text-[10px] text-[var(--muted-foreground)]">Compare to:</span>
+            <button
+              role="radio"
+              aria-checked={compareMode === "employer"}
+              onClick={() => setCompareModeOverride("employer")}
+              className={cn(
+                "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+                compareMode === "employer"
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                  : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+              )}
+            >
+              <Building2 className="h-3 w-3 inline mr-1" />
+              Your Employer
+            </button>
+            <button
+              role="radio"
+              aria-checked={compareMode === "industry"}
+              onClick={() => setCompareModeOverride("industry")}
+              className={cn(
+                "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+                compareMode === "industry"
+                  ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                  : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+              )}
+            >
+              <TrendingUp className="h-3 w-3 inline mr-1" />
+              Industry Average
+            </button>
+          </div>
+        )}
+
         <GlassCard variant="elevated" padding="lg">
           <div className="space-y-6">
             {/* Offered wage headline */}
@@ -774,68 +953,66 @@ function SalaryPanel({
             </div>
 
             {/* Benchmark bar */}
-            {benchmark && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-[var(--muted-foreground)]">
-                  {profile.jobTitle.trim() ? "Closest SOC match" : "National reference"} ·{" "}
-                  <span className="text-[var(--foreground)]">{benchmark.soc_title}</span>
-                </p>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+                {matchLabel} ·{" "}
+                <span className="text-[var(--foreground)]">{matchContext}</span>
+              </p>
 
-                {/* Visual percentile ruler */}
-                <div className="relative">
-                  <div className="flex h-6 w-full rounded-lg overflow-hidden">
-                    <div className="h-full flex-1" style={{ background: "linear-gradient(90deg, rgba(251,113,133,0.5) 0%, rgba(251,146,60,0.45) 20%, rgba(96,165,250,0.45) 50%, rgba(52,211,153,0.5) 80%, rgba(16,185,129,0.6) 100%)" }} />
-                  </div>
-                  {/* Wage marker */}
-                  {(() => {
-                    const { p10, p90 } = benchmark;
-                    const clampedPct = Math.min(100, Math.max(0, ((wage - p10) / (p90 - p10)) * 100));
-                    return (
-                      <motion.div
-                        initial={{ left: "50%" }}
-                        animate={{ left: `${clampedPct}%` }}
-                        transition={{ duration: 0.7, ease: EASE }}
-                        className="absolute top-[-4px] -translate-x-1/2 flex flex-col items-center"
-                        style={{ left: `${clampedPct}%` }}
-                      >
-                        <div className="w-0.5 h-8 bg-white/90 rounded-full" />
-                        <div className="w-2 h-2 rounded-full bg-white mt-[-4px]" />
-                      </motion.div>
-                    );
-                  })()}
+              {/* Visual percentile ruler */}
+              <div className="relative">
+                <div className="flex h-6 w-full rounded-lg overflow-hidden">
+                  <div className="h-full flex-1" style={{ background: "linear-gradient(90deg, rgba(251,113,133,0.5) 0%, rgba(251,146,60,0.45) 20%, rgba(96,165,250,0.45) 50%, rgba(52,211,153,0.5) 80%, rgba(16,185,129,0.6) 100%)" }} />
                 </div>
-
-                {/* Range labels */}
-                <div className="grid grid-cols-5 gap-1 text-center">
-                  {[
-                    { label: "p10", val: benchmark.p10, color: "text-rose-400" },
-                    { label: "p25", val: benchmark.p25, color: "text-amber-400" },
-                    { label: "Median", val: benchmark.median, color: "text-blue-400" },
-                    { label: "p75", val: benchmark.p75, color: "text-emerald-400" },
-                    { label: "p90", val: benchmark.p90, color: "text-emerald-400" },
-                  ].map(({ label, val, color }) => (
-                    <div key={label} className="space-y-0.5">
-                      <p className={cn("text-[11px] font-mono font-semibold", color)}>
-                        {formatCurrency(val)}
-                      </p>
-                      <p className="text-[9px] text-[var(--muted-foreground)]">{label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* vs median */}
-                <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-                  <span className={cn(
-                    "font-semibold font-mono",
-                    wage >= benchmark.median ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {wage >= benchmark.median ? "+" : ""}
-                    {formatCurrency(wage - benchmark.median)}
-                  </span>
-                  <span>vs median ({formatCurrency(benchmark.median)})</span>
-                </div>
+                {/* Wage marker */}
+                {(() => {
+                  const { p10, p90 } = benchmark;
+                  const clampedPct = Math.min(100, Math.max(0, ((wage - p10) / (p90 - p10)) * 100));
+                  return (
+                    <motion.div
+                      initial={{ left: "50%" }}
+                      animate={{ left: `${clampedPct}%` }}
+                      transition={{ duration: 0.7, ease: EASE }}
+                      className="absolute top-[-4px] -translate-x-1/2 flex flex-col items-center"
+                      style={{ left: `${clampedPct}%` }}
+                    >
+                      <div className="w-0.5 h-8 bg-white/90 rounded-full" />
+                      <div className="w-2 h-2 rounded-full bg-white mt-[-4px]" />
+                    </motion.div>
+                  );
+                })()}
               </div>
-            )}
+
+              {/* Range labels */}
+              <div className="grid grid-cols-5 gap-1 text-center">
+                {[
+                  { label: "p10", val: benchmark.p10, color: "text-rose-400" },
+                  { label: "p25", val: benchmark.p25, color: "text-amber-400" },
+                  { label: "Median", val: benchmark.median, color: "text-blue-400" },
+                  { label: "p75", val: benchmark.p75, color: "text-emerald-400" },
+                  { label: "p90", val: benchmark.p90, color: "text-emerald-400" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="space-y-0.5">
+                    <p className={cn("text-[11px] font-mono font-semibold", color)}>
+                      {formatCurrency(val)}
+                    </p>
+                    <p className="text-[9px] text-[var(--muted-foreground)]">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* vs median */}
+              <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                <span className={cn(
+                  "font-semibold font-mono",
+                  wage >= benchmark.median ? "text-emerald-400" : "text-rose-400"
+                )}>
+                  {wage >= benchmark.median ? "+" : ""}
+                  {formatCurrency(wage - benchmark.median)}
+                </span>
+                <span>vs median ({formatCurrency(benchmark.median)})</span>
+              </div>
+            </div>
 
             {/* Experience note */}
             {profile.yearsOfExperience && (
@@ -1086,6 +1263,7 @@ export default function InsightsPage() {
 
   // Wage data
   const [benchmarks, setBenchmarks] = useState<SalaryBenchmark[]>([]);
+  const [employerWageRoles, setEmployerWageRoles] = useState<EmployerWageRanking[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1143,14 +1321,17 @@ export default function InsightsPage() {
             setSelectedEmployer({ ...(fullSrs ?? match), srs_ml: mlMatch?.srs_ml });
             setSelectedMetrics(extractMonthlyMetrics(shard));
             setSelectedRisk(getEmployerRisk(riskFeatures, match.employer_id));
+            setEmployerWageRoles(extractWageRoles(shard));
           } else {
             const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
             setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
+            setEmployerWageRoles([]);
           }
         })
         .catch(() => {
           const mlMatch = mlScores.find((m) => m.employer_id === match.employer_id);
           setSelectedEmployer({ ...match, srs_ml: mlMatch?.srs_ml });
+          setEmployerWageRoles([]);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1212,11 +1393,13 @@ export default function InsightsPage() {
         setSelectedEmployer({ ...(fullSrs ?? employer), srs_ml: mlMatch?.srs_ml });
         setSelectedMetrics(extractMonthlyMetrics(shard));
         setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+        setEmployerWageRoles(extractWageRoles(shard));
       } else {
         const mlMatch = mlScores.find((m) => m.employer_id === employer.employer_id);
         setSelectedEmployer({ ...employer, srs_ml: mlMatch?.srs_ml });
         setSelectedMetrics([]);
         setSelectedRisk(getEmployerRisk(riskFeatures, employer.employer_id));
+        setEmployerWageRoles([]);
       }
       // Sync employer name back to profile
       handleProfileChange({ employerName: employer.employer_name });
@@ -1318,7 +1501,12 @@ export default function InsightsPage() {
 
         {/* Panel C: Salary Compass */}
         <StaggerItem>
-          <SalaryPanel profile={profile} benchmarks={benchmarks} />
+          <SalaryPanel
+            profile={profile}
+            benchmarks={benchmarks}
+            employerWageRoles={employerWageRoles}
+            employerName={selectedEmployer?.employer_name ?? null}
+          />
         </StaggerItem>
       </StaggerContainer>
 

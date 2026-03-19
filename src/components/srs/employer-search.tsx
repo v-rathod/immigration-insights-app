@@ -20,6 +20,8 @@ interface EmployerSearchProps {
   selectedId?: string;
   placeholder?: string;
   className?: string;
+  /** When true, hides case count and SRS tier from results (used in Insights). */
+  compact?: boolean;
 }
 
 const MAX_RESULTS = 12;
@@ -31,6 +33,7 @@ export function EmployerSearch({
   selectedId,
   placeholder = "Search 70,000+ employers…",
   className,
+  compact = false,
 }: EmployerSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SponsorReliabilityScore[]>([]);
@@ -247,17 +250,19 @@ export function EmployerSearch({
                   <div className="truncate text-sm font-medium text-[var(--foreground)]">
                     {employer.employer_name}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-                    <span>{(employer.n_36m ?? 0).toLocaleString()} cases</span>
-                    {employer.srs != null && !isNaN(employer.srs) && (
-                      <>
-                        <span className="text-white/10">•</span>
-                        <span className={srsTierColor(employer.srs_tier)}>
-                          {employer.srs_tier} ({employer.srs})
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  {!compact && (
+                    <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                      <span>{(employer.n_36m ?? 0).toLocaleString()} cases</span>
+                      {employer.srs != null && !isNaN(employer.srs) && (
+                        <>
+                          <span className="text-white/10">•</span>
+                          <span className={srsTierColor(employer.srs_tier)}>
+                            {employer.srs_tier} ({employer.srs})
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             );

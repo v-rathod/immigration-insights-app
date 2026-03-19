@@ -43,8 +43,10 @@ export interface EmployerWageRanking {
   n_filings: number;
   mean_salary: number;
   median_salary: number;
+  p10_salary?: number;
   p25_salary: number;
   p75_salary: number;
+  p90_salary?: number;
   prevailing_wage_median: number;
   wage_premium_pct: number;
   wage_vs_pw_pct: number;
