@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+
 export const metadata: Metadata = {
   title: "Green Card Backlog Visualization",
   description:
@@ -19,13 +21,52 @@ export const metadata: Metadata = {
     title: "Green Card Backlog Visualization | Compass",
     description:
       "See how many years remain in the green card queue by country and category. Backlog estimates for EB1, EB2, EB3.",
-    url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/backlog/",
+    url: `${SITE_URL}/dashboard/backlog/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: Green Card Backlog Visualization",
+      },
+    ],
   },
   alternates: {
-    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/backlog/",
+    canonical: `${SITE_URL}/dashboard/backlog/`,
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "How long is the green card backlog for India?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The EB2 and EB3 India green card backlog is among the longest, with estimated wait times measured in decades due to per-country visa caps. Use Compass to see current queue depth estimates and how the backlog has grown over time.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Why is there a green card backlog?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The green card backlog exists because annual demand for employment-based green cards exceeds the per-country visa cap of approximately 7% of the total 140,000 EB visas. Countries with high demand like India and China accumulate multi-year queues.",
+      },
+    },
+  ],
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }

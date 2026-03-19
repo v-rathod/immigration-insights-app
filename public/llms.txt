@@ -1,0 +1,56 @@
+# Compass — Free Immigration Insights & Green Card Tracker
+
+> Compass is a free, open-source web application that provides data-driven immigration insights for employment-based (EB) green card applicants. Built on 18.5M+ government data points from the US Department of Labor, USCIS, State Department, and Bureau of Labor Statistics.
+
+## What Compass Does
+
+Compass helps people navigating the US employment-based immigration system by providing:
+
+- **Priority Date Forecasting**: Machine learning predictions for when EB1, EB2, and EB3 priority dates will become current, based on 15 years of Visa Bulletin history
+- **Employer Sponsorship Scores**: Sponsor Reliability Score (SRS) for 70,000+ employers showing H-1B and PERM approval rates, denial trends, and wage competitiveness
+- **Salary Benchmarks**: H-1B and PERM salary data by employer and occupation with p10-p90 percentile bands and 5-year growth trends
+- **Visa Bulletin Tracking**: Monthly cutoff trends for Dates for Filing (DFF) and Final Action Date (FAD) across all EB categories and countries
+- **EB Category Comparison**: Side-by-side velocity and volatility analysis for EB1 vs EB2 vs EB3
+- **Geographic Heatmaps**: H-1B and PERM filing activity by US state with approval rates and wage data
+- **Occupation Demand**: Which SOC codes have the highest sponsorship demand and approval rates
+- **Processing Speed**: USCIS quarterly throughput, approval rates, and backlog trends
+- **Backlog Visualization**: Queue depth estimates and years-to-clear projections by country and category
+- **Approval & Denial Trends**: 19 years of PERM labor certification outcomes with administration-era policy analysis
+
+## Data Sources
+
+All data comes from official US government sources:
+
+- **Department of Labor (DOL)**: PERM labor certification disclosure data, LCA (Labor Condition Application) data
+- **USCIS**: Employment-based approval and denial statistics, processing data
+- **State Department**: Monthly Visa Bulletin with priority date cutoffs (2011-2026)
+- **Bureau of Labor Statistics (BLS)**: Occupational Employment and Wage Statistics (OEWS) for national salary benchmarks
+
+## Key Pages
+
+- `/` — Home page with key statistics and dashboard navigation
+- `/insights/` — Personalized dashboard: enter your priority date, employer, and job to get tailored forecasts
+- `/dashboard/visa-bulletin/` — Priority date cutoff trends and 24-month ML forecasts
+- `/dashboard/employer/` — Sponsor Reliability Score lookup for 70,000+ employers
+- `/dashboard/wage/` — H-1B and PERM salary benchmarks by employer and occupation
+- `/dashboard/eb-category/` — EB1 vs EB2 vs EB3 movement velocity comparison
+- `/dashboard/geographic/` — H-1B and PERM activity heatmap by US state
+- `/dashboard/job-demand/` — Occupation demand rankings for immigration sponsorship
+- `/dashboard/processing/` — USCIS processing speed and throughput trends
+- `/dashboard/backlog/` — Green card queue depth and years-to-clear estimates
+- `/dashboard/approvals/` — PERM approval and denial trends (1992-2025)
+- `/about/` — Project story, data pipeline, and technology
+- `/ask/` — Immigration Q&A powered by pre-computed answers
+- `/privacy/` — Privacy policy (zero data collection)
+- `/terms/` — Terms of use
+
+## Technical Details
+
+- Static site (no server, no database, no API)
+- All computations run in the user's browser
+- Data updated monthly when new government releases are available
+- Open source: https://github.com/v-rathod/immigration-insights-app
+
+## Contact
+
+- GitHub: https://github.com/v-rathod/immigration-insights-app

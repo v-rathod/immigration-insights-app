@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+
 export const metadata: Metadata = {
   title: "USCIS Processing Speed & Green Card Backlog",
   description:
@@ -19,13 +21,50 @@ export const metadata: Metadata = {
     title: "USCIS Processing Speed | Compass",
     description:
       "Track USCIS processing speed and green card backlog. Quarterly throughput, approval rates, and I-140/I-485 trends.",
-    url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/processing/",
+    url: `${SITE_URL}/dashboard/processing/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: USCIS Processing Speed Dashboard",
+      },
+    ],
   },
   alternates: {
-    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/processing/",
+    canonical: `${SITE_URL}/dashboard/processing/`,
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "USCIS Employment-Based Processing Speed",
+  description:
+    "Quarterly USCIS processing throughput, approval rates, denial rates, and pending case estimates for employment-based immigration forms including I-140 and I-485.",
+  url: `${SITE_URL}/dashboard/processing/`,
+  license: "https://creativecommons.org/licenses/by/4.0/",
+  creator: {
+    "@type": "Organization",
+    name: "NorthStar Compass",
+  },
+  temporalCoverage: "2015/2026",
+  variableMeasured: [
+    "Quarterly approval count",
+    "Quarterly denial count",
+    "Pending case estimate",
+    "Approval rate percentage",
+  ],
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }

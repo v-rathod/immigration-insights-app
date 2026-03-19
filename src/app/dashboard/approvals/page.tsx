@@ -29,6 +29,17 @@ export const metadata: Metadata = {
     description:
       "PERM labor certification approval rates, cross-track comparisons, administration-era analysis, and 30-year trend heatmaps.",
     url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/approvals/",
+    images: [
+      {
+        url: "https://d10immmzyp7xgr.cloudfront.net/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Compass: PERM Approval & Denial Trends",
+      },
+    ],
+  },
+  alternates: {
+    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/approvals/",
   },
 };
 

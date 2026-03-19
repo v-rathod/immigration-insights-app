@@ -68,7 +68,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **948 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, SEO (favicon, OG image, JSON-LD, canonical URLs, AI bot directives), AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **948 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case), live-data regression test suite for Optum + VB/PD pipeline, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -618,6 +618,50 @@ Existing e2e specs:
 6. **Secure storage** — All localStorage access through `secureGet/Set/Remove/ClearAll` with `compass_` prefix
 7. **CSP headers** — Content-Security-Policy configured for CloudFront deployment (`src/lib/security/headers.ts`)
 8. **No secrets in client** — Zero API keys, tokens, or credentials in the codebase
+
+---
+
+## SEO & AI Agent Strategy (MANDATORY for all new pages/routes)
+
+### Per-Page Metadata Requirements
+Every page MUST have a `layout.tsx` (or metadata export in `page.tsx` for server pages) with:
+- **title** — unique, descriptive, keyword-rich
+- **description** — 150-300 chars, includes primary keywords
+- **keywords** — 8-19 relevant terms
+- **canonical URL** — `alternates.canonical` pointing to production URL with trailing slash
+- **Open Graph** — title, description, url, images array with 1200x630 `og-image.png`
+
+### JSON-LD Structured Data
+Add JSON-LD `<script type="application/ld+json">` where applicable:
+- **FAQPage** — for dashboards with natural questions (use 2-5 real questions users would ask)
+- **Dataset** — for dashboards showing tabular data with temporal/spatial coverage
+- **WebApplication** — for interactive tool pages (e.g., `/insights`)
+- **AboutPage** — for `/about`
+- Root layout has `@graph` with WebSite + WebApplication + Organization
+
+### AI Agent Discoverability
+- **`public/llms.txt`** — structured overview of site for LLM ingestion (llmstxt.org standard). Update when adding new pages/features.
+- **`public/robots.txt`** — explicit `Allow: /` for 9 named AI crawlers. Add new crawlers as they emerge.
+- **`public/manifest.webmanifest`** — web app manifest for mobile "Add to Home Screen" and PWA metadata.
+
+### When to Update SEO Files
+| Change | Required update |
+|--------|----------------|
+| **New page route** | Create `layout.tsx` with full metadata. Add to `sitemap.xml`. Add description to `llms.txt`. |
+| **New dashboard** | Add JSON-LD (FAQPage or Dataset). Update `sitemap.xml`. Update `llms.txt` page list. |
+| **Dashboard renamed** | Update title, description, URLs in metadata + sitemap + llms.txt. |
+| **Feature added** | Update featureList in root layout JSON-LD. Update `llms.txt` feature list. |
+| **Page removed** | Remove from sitemap, llms.txt, and any layout.tsx. |
+
+### Multi-Environment Deployment
+Three tiers via `NEXT_PUBLIC_APP_ENV`:
+| Environment | URL | Config |
+|-------------|-----|--------|
+| `dev` | `http://localhost:3000` | `.env.local` |
+| `stage` | `https://d10immmzyp7xgr.cloudfront.net` | `.env.stage` + `scripts/deploy-envs.conf` |
+| `prod` | Custom domain (TBD) | `.env.production` + `scripts/deploy-envs.conf` |
+
+Deploy: `bash scripts/deploy.sh --env stage` or `--env prod`. See `ENVIRONMENTS.md`.
 
 ---
 

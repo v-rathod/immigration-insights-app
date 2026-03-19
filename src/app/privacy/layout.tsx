@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
@@ -8,7 +10,18 @@ export const metadata: Metadata = {
     title: "Privacy Policy | Compass",
     description:
       "Compass collects zero data. All personalization runs locally in your browser. No accounts, no tracking, no servers.",
-    url: "https://d10immmzyp7xgr.cloudfront.net/privacy/",
+    url: `${SITE_URL}/privacy/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: Free Immigration Insights & Green Card Tracker",
+      },
+    ],
+  },
+  alternates: {
+    canonical: `${SITE_URL}/privacy/`,
   },
   robots: { index: true, follow: false },
 };

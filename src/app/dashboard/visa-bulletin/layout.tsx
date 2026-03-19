@@ -35,6 +35,14 @@ export const metadata: Metadata = {
     description:
       "Track EB1/EB2/EB3 priority date cutoffs and forecast when your date will become current. 15 years of Visa Bulletin history + 24-month ML projections.",
     url: `${SITE_URL}/dashboard/visa-bulletin/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: Visa Bulletin Priority Date Forecast",
+      },
+    ],
   },
 };
 

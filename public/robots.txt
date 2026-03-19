@@ -9,8 +9,12 @@ Disallow: /ops/
 # Exclude raw data files from indexing (served for app, not for crawling)
 Disallow: /data/
 
-# Sitemap (auto-generated at build time)
+# Sitemap
 Sitemap: https://d10immmzyp7xgr.cloudfront.net/sitemap.xml
+
+# LLM context file (emerging standard for AI agent discoverability)
+# See https://llmstxt.org/
+# AI agents can read /llms.txt for a structured summary of this site
 
 # Allow AI crawlers and search bots to access all content pages
 User-agent: GPTBot
@@ -26,4 +30,16 @@ User-agent: PerplexityBot
 Allow: /
 
 User-agent: ClaudeBot
+Allow: /
+
+User-agent: Anthropic-ai
+Allow: /
+
+User-agent: Cohere-ai
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Applebot-Extended
 Allow: /

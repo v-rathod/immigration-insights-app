@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+
 export const metadata: Metadata = {
   title: "Terms of Use",
   description:
@@ -8,7 +10,18 @@ export const metadata: Metadata = {
     title: "Terms of Use | Compass",
     description:
       "Terms of use for Compass. Not a substitute for professional immigration legal advice.",
-    url: "https://d10immmzyp7xgr.cloudfront.net/terms/",
+    url: `${SITE_URL}/terms/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: Free Immigration Insights & Green Card Tracker",
+      },
+    ],
+  },
+  alternates: {
+    canonical: `${SITE_URL}/terms/`,
   },
   robots: { index: true, follow: false },
 };

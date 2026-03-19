@@ -146,7 +146,9 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 - **Security** — XSS prevention, proto pollution defense, URL sanitization, CSP headers
 
 ### Testing
-- **604 tests** across 26 test files (Vitest 4 + React Testing Library + happy-dom)
+- **948 tests** across 32 test files (Vitest 4 + React Testing Library + happy-dom)
+- **85 Playwright E2E tests** for iPhone 14 mobile (390x844)
+- **Total: 1,033 tests**
 - Includes live-data regression suite for Optum Services (18 tests, baseline 1,928 LCA records)
 - Covers all components, data loaders, utilities, security, and page integrations
 
@@ -382,7 +384,7 @@ Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired. Full patterns in [`BES
 - **Framer Motion easing** — `[0.25, 0.1, 0.25, 1]` throughout; 50ms stagger between card sequences
 - **Recharts theming** — `stroke="rgba(255,255,255,0.05)"` grid, `fill="var(--muted-foreground)"` axis ticks
 
-## AWS Hosting (~$1–3/month)
+## AWS Hosting (~$1-3/month)
 
 | Service | Purpose | Cost |
 |---------|---------|------|
@@ -392,6 +394,27 @@ Dark-first, glassmorphic, Linear/Vercel/Raycast-inspired. Full patterns in [`BES
 | ACM | SSL certificate | Free |
 
 No Lambda, no database, no API Gateway, no EC2.
+
+### Environments
+
+| Environment | URL | `NEXT_PUBLIC_APP_ENV` |
+|-------------|-----|----------------------|
+| **Dev** | `http://localhost:3000` | `dev` |
+| **Stage** | `https://d10immmzyp7xgr.cloudfront.net` | `stage` |
+| **Prod** | Custom domain (TBD) | `prod` |
+
+```bash
+# Deploy to stage (default)
+bash scripts/deploy.sh --env stage
+
+# Deploy to prod (when configured)
+bash scripts/deploy.sh --env prod
+
+# Skip rebuild (use existing out/)
+bash scripts/deploy.sh --env stage --skip-build
+```
+
+See [ENVIRONMENTS.md](ENVIRONMENTS.md) for full setup guide.
 
 ## CI/CD — GitHub Actions
 
@@ -463,17 +486,30 @@ MIT
 ## Deploy Commands
 
 ```bash
-# Build static export (skip slow prebuild data sync — data already in public/data/)
-npx next build        # → out/  (18 HTML pages)
+# Build static export
+npx next build        # → out/ (16 HTML pages)
 
-# Fresh deploy to AWS (deletes stale S3 files, syncs employer shards size-only)
-bash scripts/deploy.sh --skip-build
+# Deploy to stage (includes build + smoke test)
+bash scripts/deploy.sh --env stage
 
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation \
-  --distribution-id E1LPLTVZ0035Q5 \
-  --paths "/*"
+# Deploy without rebuilding
+bash scripts/deploy.sh --env stage --skip-build
 
-# CloudFront URL: https://d10immmzyp7xgr.cloudfront.net
-# S3 Bucket:      compass-immigration-insights-883107059193
+# Stage URL: https://d10immmzyp7xgr.cloudfront.net
+```
+
+> **Never run `aws s3 sync` directly.** Always use `scripts/deploy.sh` which handles `--exact-timestamps` and post-deploy smoke tests.
+
+## SEO & AI Agent Strategy
+
+### Search Engine Optimization
+- **Every page** has unique title, description, keywords, canonical URL, and Open Graph image
+- **JSON-LD structured data** on 12/16 pages: FAQPage (visa-bulletin, eb-category, employer, backlog, ask), Dataset (visa-bulletin, geographic, job-demand, processing), WebApplication (root, insights), AboutPage, Organization
+- **Sitemap** at `/sitemap.xml` with all 16 routes, priorities, and change frequencies
+- **Web App Manifest** at `/manifest.webmanifest` for "Add to Home Screen" on mobile
+
+### AI Agent Discoverability
+- **`/llms.txt`** — Structured site summary following the [llmstxt.org](https://llmstxt.org) standard for LLM ingestion
+- **`/robots.txt`** — Explicit `Allow: /` directives for 9 named AI crawlers: GPTBot, ChatGPT-User, Google-Extended, PerplexityBot, ClaudeBot, Anthropic-ai, Cohere-ai, meta-externalagent, Applebot-Extended
+- All content pages are pre-rendered static HTML (ideal for both search engines and AI agents)
 ```

@@ -1,5 +1,80 @@
 # Compass Progress Tracker
 
+## 2026-03-18 — Milestone 10.77: Comprehensive SEO + AI Agent Crawling Strategy + Multi-Environment Infra
+
+### Objective
+Implement industry-standard SEO across all 16 pages, add AI agent discoverability (llms.txt, expanded bot directives), create web app manifest, and complete multi-environment infrastructure (dev/stage/prod).
+
+### What Was Done
+
+**SEO: Per-Page Metadata (all 16 pages now complete)**
+- Enhanced 5 non-dashboard layouts (`about`, `insights`, `ask`, `privacy`, `terms`) with: keywords, canonical URLs, OG images, and JSON-LD structured data
+- Added `alternates.canonical` to 2 dashboard pages missing it (`wage`, `approvals`)
+- Added explicit OG images (1200x630 with descriptive alt text) to all 15 page-level metadata blocks (dashboards + non-dashboard pages)
+- Every page now has: title, description, keywords, canonical URL, Open Graph with image, and Twitter Card metadata
+
+**SEO: JSON-LD Structured Data (12/16 pages)**
+- Added `FAQPage` schema (3 Q&As each) to: employer, backlog, ask
+- Added `Dataset` schema to: geographic, job-demand, processing
+- Added `AboutPage` schema to: about
+- Added `WebApplication` schema to: insights
+- Pre-existing JSON-LD: visa-bulletin (FAQPage + Dataset), eb-category (FAQPage)
+- Root layout: WebSite + WebApplication + Organization graph
+
+**AI Agent Crawling Strategy**
+- Created `public/llms.txt` (emerging llmstxt.org standard): structured site summary, feature descriptions, page index, data sources, technical details for LLM ingestion
+- Enhanced `public/robots.txt`: added 4 new AI crawler directives (Anthropic-ai, Cohere-ai, meta-externalagent, Applebot-Extended) to existing 5, with `llms.txt` documentation comment
+- Total AI bot directives: 9 named crawlers + wildcard Allow
+
+**Web App Manifest**
+- Created `public/manifest.webmanifest`: app name, description, icons (16px, 32px, 180px), dark theme color (#3b82f6), standalone display mode
+- Added `manifest` link to root layout metadata
+
+**Multi-Environment Infrastructure (from previous session)**
+- Created 3-tier environment system: `dev` (localhost) / `stage` (CloudFront) / `prod` (custom domain TBD)
+- `NEXT_PUBLIC_APP_ENV` environment variable baked into builds
+- `scripts/deploy.sh --env stage|prod` flag with `deploy-envs.conf` resource mapping
+- GitHub Actions workflows updated with environment selector
+- PostHog analytics tagged with environment on all events
+- Terraform `stage.tfvars` and `prod.tfvars` for infrastructure management
+
+**Sitemap**
+- Updated all 16 lastmod dates to 2026-03-18
+
+### Files Changed
+- **Enhanced**: `src/app/about/layout.tsx`, `src/app/insights/layout.tsx`, `src/app/ask/layout.tsx`, `src/app/privacy/layout.tsx`, `src/app/terms/layout.tsx`
+- **Enhanced**: `src/app/dashboard/employer/layout.tsx`, `src/app/dashboard/geographic/layout.tsx`, `src/app/dashboard/job-demand/layout.tsx`, `src/app/dashboard/processing/layout.tsx`, `src/app/dashboard/backlog/layout.tsx`, `src/app/dashboard/visa-bulletin/layout.tsx`, `src/app/dashboard/eb-category/layout.tsx`
+- **Enhanced**: `src/app/dashboard/wage/page.tsx`, `src/app/dashboard/approvals/page.tsx`
+- **Enhanced**: `src/app/layout.tsx` (manifest link), `public/robots.txt` (AI bots), `public/sitemap.xml` (dates)
+- **Created**: `public/llms.txt`, `public/manifest.webmanifest`
+
+### Test Results
+- **948 Vitest tests passing** across 32 files (all green)
+- **ESLint**: 0 errors, 63 pre-existing warnings
+- No test changes needed (metadata-only changes don't affect component tests)
+
+### SEO Coverage Summary
+
+| Page | Title | Description | Keywords | Canonical | OG Image | JSON-LD |
+|------|:-----:|:-----------:|:--------:|:---------:|:--------:|:-------:|
+| `/` (home) | ✅ root | ✅ root | ✅ root | ✅ root | ✅ root | ✅ root (3 schemas) |
+| `/about` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ AboutPage |
+| `/insights` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ WebApplication |
+| `/ask` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ FAQPage (3 Q&As) |
+| `/privacy` | ✅ | ✅ | - | ✅ | ✅ | - |
+| `/terms` | ✅ | ✅ | - | ✅ | ✅ | - |
+| `/dashboard/visa-bulletin` | ✅ | ✅ | ✅ 19kw | ✅ | ✅ | ✅ FAQPage (5) + Dataset |
+| `/dashboard/employer` | ✅ | ✅ | ✅ 9kw | ✅ | ✅ | ✅ FAQPage (3) |
+| `/dashboard/wage` | ✅ | ✅ | ✅ 9kw | ✅ | ✅ | - |
+| `/dashboard/eb-category` | ✅ | ✅ | ✅ 12kw | ✅ | ✅ | ✅ FAQPage (3) |
+| `/dashboard/geographic` | ✅ | ✅ | ✅ 8kw | ✅ | ✅ | ✅ Dataset |
+| `/dashboard/job-demand` | ✅ | ✅ | ✅ 9kw | ✅ | ✅ | ✅ Dataset |
+| `/dashboard/processing` | ✅ | ✅ | ✅ 9kw | ✅ | ✅ | ✅ Dataset |
+| `/dashboard/backlog` | ✅ | ✅ | ✅ 9kw | ✅ | ✅ | ✅ FAQPage (2) |
+| `/dashboard/approvals` | ✅ | ✅ | ✅ 8kw | ✅ | ✅ | - |
+
+---
+
 ## 2026-03-18 — Milestone 10.76: Mobile-First E2E Tests for Home Page + Mobile Philosophy
 
 ### Objective
@@ -4300,7 +4375,7 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 
 ---
 
-## Quick Reference (Current State as of Milestone 10.76 — 2026-03-18)
+## Quick Reference (Current State as of Milestone 10.77 — 2026-03-18)
 
 | Metric | Value |
 |--------|-------|
@@ -4331,10 +4406,12 @@ Sync all new P2 artifacts (49 tables, 22.5M+ rows, 341 RAG chunks, 684 QA pairs)
 | Employer name normalization | ✅ ALL-CAPS → Title Case (1,700 names normalized in friendly scores & monthly metrics) |
 | Data regression testing | ✅ 18-test suite for Optum Services shard (baseline 1,928 LCA records) |
 | **Mobile E2E testing** | ✅ iPhone 14 (390×844) Playwright tests — home (41 tests) + PD Cortex (44 tests) |
+| **Environments** | ✅ 3-tier: `dev` (localhost) / `stage` (CloudFront) / `prod` (custom domain TBD) — `NEXT_PUBLIC_APP_ENV` |
 | AWS deploy | Ready — static export clean, 948 tests passing, JSON files valid |
-| **SEO** | Favicon + OG image + canonical URLs (9 pages) + FAQPage/Dataset JSON-LD + AI bot directives |
+| **SEO** | ✅ Full: every page has title, description, keywords, canonical, OG image; JSON-LD on 12/16 pages; FAQPage/Dataset schemas; `llms.txt` for AI agents; `manifest.webmanifest`; AI bot directives for 9 crawlers |
+| **AI Agent Crawling** | ✅ `llms.txt` + `robots.txt` directives for GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Google-Extended, Anthropic-ai, Cohere-ai, meta-externalagent, Applebot-Extended |
 | **Build status** | Compiles ✅ · Tests ✅ · Static export ✅ (16 pages) · JSON NaN-free ✅ |
-| **Deploy script** | `scripts/deploy.sh` — pre-flight (index.html check) + post-deploy (S3 + CloudFront HTTP 200) |
+| **Deploy script** | `scripts/deploy.sh --env stage|prod` — pre-flight + `NEXT_PUBLIC_APP_ENV` baked + post-deploy smoke |
 
 ### Quick Commands
 ```bash

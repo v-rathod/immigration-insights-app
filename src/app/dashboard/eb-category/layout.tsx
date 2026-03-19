@@ -28,6 +28,14 @@ export const metadata: Metadata = {
     description:
       "Compare EB1, EB2, EB3 movement velocity and volatility. Understand which employment-based green card category moves fastest.",
     url: `${SITE_URL}/dashboard/eb-category/`,
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Compass: EB Category Comparison",
+      },
+    ],
   },
 };
 
