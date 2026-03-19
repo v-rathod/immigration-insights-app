@@ -276,7 +276,8 @@ describe("InsightsPage — profile card (empty state)", () => {
   it("shows profile card with edit form open by default", async () => {
     await renderPage();
     expect(screen.getByLabelText(/priority date/i)).toBeInTheDocument();
-    // Employer is set via Sponsor Intelligence panel, not a text input
+    // Employer search is now inside the profile form
+    expect(screen.getByTestId("employer-search")).toBeInTheDocument();
     expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/job title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/years of experience/i)).toBeInTheDocument();
@@ -350,9 +351,9 @@ describe("InsightsPage — profile card (field interactions)", () => {
     });
   });
 
-  it("employer name in collapsed summary reflects selection from Sponsor panel", async () => {
+  it("employer name in collapsed summary reflects selection from profile form", async () => {
     await renderPage();
-    // Select employer via the Sponsor Intelligence panel search
+    // Select employer via the profile card employer search
     fireEvent.click(screen.getByTestId("mock-select-employer"));
     // After selection, employer name appears in both score gauge, detail card, and profile summary
     await waitFor(() => {
@@ -425,14 +426,24 @@ describe("InsightsPage — Smart Visibility: Green Card panel", () => {
 });
 
 describe("InsightsPage — Smart Visibility: Sponsor panel", () => {
-  it("always shows EmployerSearch", async () => {
+  it("shows EmployerSearch inside profile card form", async () => {
     await renderPage();
+    // EmployerSearch is now in the ProfileCard form (open by default)
     expect(screen.getByTestId("employer-search")).toBeInTheDocument();
   });
 
   it("shows CTA when no employer selected yet", async () => {
     await renderPage();
-    expect(screen.getByText(/select your employer/i)).toBeInTheDocument();
+    expect(screen.getByText(/set your employer/i)).toBeInTheDocument();
+  });
+
+  it("selecting employer in profile form syncs to sponsor intelligence", async () => {
+    await renderPage();
+    // Select via profile form employer search
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => {
+      expect(screen.getByTestId("srs-score-gauge")).toBeInTheDocument();
+    });
   });
 
   it("shows score gauge after employer is selected", async () => {

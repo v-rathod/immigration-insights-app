@@ -650,7 +650,7 @@ function SponsorPanel({
         <p className="text-xs text-[var(--muted-foreground)]">
           {profile.employerName
             ? `Showing data for: ${profile.employerName}`
-            : "Search your employer to see their sponsorship track record"}
+            : "Enter your employer in Your Profile above"}
         </p>
       </div>
     </div>
@@ -661,28 +661,12 @@ function SponsorPanel({
       <div className="space-y-6">
         {sectionHeader}
 
-        {/* Employer search — always shown, pre-filled with profile employer */}
-        <div className="relative z-10 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Building2 className="h-4 w-4 text-[var(--accent-blue)]" strokeWidth={1.5} />
-            <span className="text-sm font-semibold text-[var(--foreground)]">
-              {selectedEmployer ? "Selected Employer" : "Search Any Employer"}
-            </span>
-          </div>
-          <EmployerSearch
-            employers={overallScores}
-            onSelect={onEmployerSelect}
-            placeholder={profile.employerName ? `Last: ${profile.employerName}` : "Search 70,000+ employers…"}
-            compact
-          />
-        </div>
-
         {/* Score + details — hidden until employer selected (Smart Visibility) */}
         {!selectedEmployer ? (
           <PanelCTA
             icon={Shield}
-            title="Select your employer"
-            body="Search for your sponsoring employer above to see their Sponsor Reliability Score, approval rates, wage competitiveness, and risk signals."
+            title="Set your employer"
+            body="Enter your employer in Your Profile above to see their Sponsor Reliability Score, approval rates, wage competitiveness, and risk signals."
           />
         ) : (
           <SponsorScoreContent employer={selectedEmployer} risk={selectedRisk} />
@@ -1042,11 +1026,15 @@ function ProfileCard({
   onChange,
   isEditing,
   onToggleEdit,
+  overallScores,
+  onEmployerSelect,
 }: {
   profile: UserProfile;
   onChange: (updates: Partial<UserProfile>) => void;
   isEditing: boolean;
   onToggleEdit: () => void;
+  overallScores: SponsorReliabilityScore[];
+  onEmployerSelect: (e: SponsorReliabilityScore) => void;
 }) {
   const filled = isProfileFilled(profile);
 
@@ -1139,6 +1127,20 @@ function ProfileCard({
                     </Pill>
                   ))}
                 </div>
+              </div>
+
+              {/* Employer */}
+              <div className="col-span-full">
+                <FormLabel icon={Building2}>Employer</FormLabel>
+                <EmployerSearch
+                  employers={overallScores}
+                  onSelect={(e) => {
+                    onChange({ employerName: e.employer_name });
+                    onEmployerSelect(e);
+                  }}
+                  placeholder={profile.employerName || "Search 70,000+ employers…"}
+                  compact
+                />
               </div>
 
               {/* Annual Salary */}
@@ -1464,6 +1466,8 @@ export default function InsightsPage() {
           onChange={handleProfileChange}
           isEditing={isEditing}
           onToggleEdit={() => setIsEditing((v) => !v)}
+          overallScores={overallScores}
+          onEmployerSelect={handleEmployerSelect}
         />
       </FadeIn>
 
