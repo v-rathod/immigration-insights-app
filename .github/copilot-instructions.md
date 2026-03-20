@@ -67,8 +67,8 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **986 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case) + entity resolution (199 merges) + abbreviation fix (Us→US), live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
+### Current Project Status (as of Mar 20, 2026)
+- **P3**: ✅ **986 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, all 3 post-M10.79 defects now fixed: (1) Insights smart-sort works (n_36m field), (2) employer name canonical forms clean ("US" not "Us"/"U S"), (3) dropdown vertical alignment correct (portal escapes Framer Motion transforms), 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -80,21 +80,28 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
 ### Recent Session Notes (Mar 20, 2026)
-**Milestone 10.80 Complete**: Search Sort + Dropdown + Canonical Name Fixes
+**Milestone 10.81 Complete**: Dropdown Position Portal Fix (CSS Transform Escape)
+- **Root cause**: Framer Motion `FadeIn` applies `transform: translateY(0)`, creating CSS containing block that hijacks `position: fixed` anchoring
+- **Diagnosis**: Playwright measured input bottom=403px, but visual dropdown appeared at 552px (149px offset!)
+- **P3**: Fixed via React `createPortal()` — compact dropdown now renders into `document.body` outside all CSS transforms ✅
+- **Verification**: Portal fix correct — visual position now 407px (4px gap as intended, was 149px) ✅
+- **P3**: 986 tests still passing (32 files), zero ESLint errors ✅
+- **Deployed**: Stage deployment in progress
+
+**Previous Milestone (Mar 20, 2026) — Milestone 10.80**: Search Sort + Dropdown + Canonical Name Fixes
 - **P3**: Fixed Insights page smart-sort — added `n_36m: e.total_filings` to asScores mapping (was 0 before, breaking volume ranking) ✅
 - **P3**: Fixed employer search dropdown position race condition — synchronous `setDropdownPos` in debounce callback, scroll+resize listeners ✅
 - **P3**: Fixed canonical names: `clean_canonical_name()` converts "Us"→"US", "U S"→"US", "Llc"→"LLC"; applied to all 102,225 entries ✅
 - **P3**: 986 tests (32 files), 0 ESLint errors ✅
 
-**Previous Session Notes (Mar 20, 2026)**
-**Milestone 10.79 Complete**: Employer Entity Resolution + Tooltip & Dropdown Fixes
+**Earlier Session (Mar 20, 2026) — Milestone 10.79**: Employer Entity Resolution + Tooltip & Dropdown Fixes
 - **P3**: Created `scripts/employer_consolidation.py` — regex-based entity resolution (normalizes "U S"→"US", collapses repeated chars, merges duplicates) ✅
 - **P3**: 199 employer groups merged (102,424 → 102,225 entries): Cognizant TS (152K filings), Ernst Young (96K), Deloitte Touche (25K) ✅
 - **P3**: Fixed Insights page employer dropdown — compact mode uses fixed positioning to escape overflow-hidden parent ✅
 - **P3**: Fixed geographic tooltip — viewport-aware clamping (flipX/flipY) for eastern states ✅
 - **P3**: 23 new tests (985 total across 32 files), zero ESLint errors, clean TypeScript compile ✅
 
-**Previous Session (Mar 19, 2026) — Milestone 10.78**: USA Choropleth Heatmap + State Drill-Down
+**Earlier Session (Mar 19, 2026) — Milestone 10.78**: USA Choropleth Heatmap + State Drill-Down
 - **P3**: Built interactive USA choropleth map (`UsaChoropleth` component) using `react-simple-maps` v3 + us-atlas TopoJSON (114KB) ✅
 - **P3**: 9-stop sequential color scale (navy → blue → green → amber → red), animated tooltips, click-to-select ✅
 - **P3**: Map/Table view toggle, "Color by" metric selector, state detail drill-down panel with rank badges ✅

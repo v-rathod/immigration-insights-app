@@ -1,5 +1,59 @@
 # Compass Progress Tracker
 
+## 2026-03-20 — Milestone 10.81: Dropdown Position Portal Fix (CSS Transform Escape)
+
+### Objective
+Fix the critical Insights page employer search dropdown misalignment discovered during browser testing: dropdown appeared **149px too low** (style.top=407px correct, visual position=552px).
+
+### Root Cause
+The Insights page wraps the profile form in a `FadeIn` animation component (Framer Motion `motion.div` with `animate={{ y: 0 }}`). Even `translateY(0)` creates a new CSS containing block. This breaks `position: fixed` for nested elements — the fixed dropdown anchors to the FadeIn wrapper's bounding box (~145px from viewport) instead of the viewport itself. Result: dropdown appeared 145+ pixels below where it should be.
+
+**Measured diagnostics:**
+- Input: `top=357, bottom=403` (height 46px)
+- Expected dropdown: `top=407` (4px gap: `403 + 4 = 407`)
+- Actual dropdown: `visual top=552` (gap: `552 - 403 = 149px` — WRONG)
+- Root cause: `parentElement=DIV` (FadeIn wrapper), not viewport
+
+### What Was Done
+
+**React Portal Fix (`src/components/srs/employer-search.tsx`)**
+- Added `import { createPortal } from "react-dom"`
+- Implemented `mounted` state guard for SSR safety (portals require `document.body`)
+- **Non-compact mode** (SRS Dashboard): kept as-is (absolute positioning, worked correctly)
+- **Compact mode** (Insights): conditionally render dropdown via `createPortal(..., document.body)` when `isOpen && compact && mounted && dropdownPos`
+- Portal attaches the `<ul>` directly to `document.body`, completely outside all CSS transform ancestors
+- Now `position: fixed` reads true viewport coordinates
+
+**Verification via Playwright diagnostic:**
+- After fix: `Input: top=357, bottom=403` → `Dropdown: visual top=407`
+- Gap: now **4px** (was 149px) ✓
+- `parentElement=BODY` (portal, no transforms above) ✓
+- `style.top="407px"` matches visual position perfectly ✓
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **986 passing** (32 files, no regressions) |
+| TypeScript | ✅ Clean |
+| ESLint | ✅ 0 errors |
+| Modified files | 1 |
+| Deployment | Stage + production ready |
+
+### Files Modified
+- `src/components/srs/employer-search.tsx` — Added portal rendering for compact mode
+
+### Impact
+- ✅ Insights page employer search dropdown now appears at correct vertical position (bottom-left of input, not middle)
+- ✅ Wage Intelligence page employer search works correctly
+- ✅ All 3 original defects from M10.80 (smart-sort, duplicates, alignment) are now fixed
+- ✅ Users can now successfully search for employers on Insights without confusion about dropdown position
+
+### Next Steps
+1. Deploy to stage and verify with browser testing
+2. Monitor dropdown UX feedback
+
+---
+
 ## 2026-03-20 — Milestone 10.80: Search Sort + Dropdown + Canonical Name Fixes
 
 ### Objective
