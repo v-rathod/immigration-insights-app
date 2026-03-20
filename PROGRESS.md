@@ -1,6 +1,127 @@
 # Compass Progress Tracker
 
-## 2026-03-20 — Milestone 10.81: Dropdown Position Portal Fix (CSS Transform Escape)
+**📋 Format Convention:** Each milestone entry is **timestamped** (date + time) for precise tracking. This is the source of truth for all completed work. For architectural guidance and coding patterns, see `.github/copilot-instructions.md`.
+
+---
+
+## 2026-03-20 15:45 — Milestone 10.82: Frequent Update Instructions for Specialized Documentation
+
+### Objective
+Establish clear **maintenance instructions** for all 8 specialized documentation files, so agents know **when, how, and who** should update them, eliminating duplication in copilot-instructions.md and establishing independent file update patterns.
+
+### Problem Addressed
+Previous documentation refactoring (M10.81) broke down copilot-instructions.md from 1000+ lines to 569 lines and created 8 specialized files. But without explicit maintenance instructions IN each file, agents wouldn't know:
+- WHEN to update (after every test run? Quarterly? Per feature?)
+- HOW to update (which section? What format?)
+- WHO should do it (developer? QA? Designer?)
+
+Result: Risk of copilot-instructions.md creeping back to 1000+ lines as agents duplicate content instead of updating specialized files.
+
+### What Was Done
+
+**Added "🔄 How to Maintain This File" sections to all 8 specialized docs:**
+
+1. **TEST_AUDIT.md**
+   - ✅ Update frequency: After every `npm test` run
+   - ✅ How: Update test count table + add new test files to inventory
+   - ✅ Command: `npm test 2>&1 | grep -E 'passing|failing'`
+   - ✅ Who: Developer running tests (immediate, not batched)
+
+2. **CODEBASE_INVENTORY.md**
+   - ✅ Update frequency: Immediately when files added/removed (don't batch)
+   - ✅ How: Add 1 line to relevant section (App Pages, Components, Data Loaders, etc.)
+   - ✅ Quarterly refresh: Re-run file counts after large refactors
+   - ✅ Who: Developer adding the file (commit together)
+
+3. **ANALYTICS_STRATEGY.md**
+   - ✅ Update frequency: Every time a trackable action is added
+   - ✅ How: Define event name + properties in Events section, add helper to src/lib/analytics/events.ts
+   - ✅ Who: Developer building the feature (commit together)
+   - ✅ Critical rule: Never call posthog.capture() directly
+
+4. **SEO_STRATEGY.md**
+   - ✅ Update frequency: Immediately after creating a new route/page
+   - ✅ How: Add metadata row to "Per-Page Metadata" table
+   - ✅ Who: Developer adding the page (commit together)
+   - ✅ Pre-deploy: Verify all pages have metadata, sitemap.xml is current
+
+5. **ARCHITECTURE_DECISIONS.md**
+   - ✅ Update frequency: After major architectural decisions (quarterly review, NOT per-commit)
+   - ✅ How: Document decision + rationale + trade-offs + alternatives
+   - ✅ Who: Tech lead / senior developer (after design review)
+   - ✅ When NOT to update: Bug fixes, feature additions, test additions (use other files instead)
+
+6. **UI_DESIGN_PRINCIPLES.md**
+   - ✅ Update frequency: When Aurora design system evolves (not frequent)
+   - ✅ How: Update globals.css CSS variable, then document in this file
+   - ✅ Who: Designer or frontend lead (when design decisions made)
+   - ✅ Include: variable name, usage, examples
+
+7. **MOBILE_DEVELOPMENT_GUIDE.md**
+   - ✅ Update frequency: When mobile patterns are discovered (not frequent)
+   - ✅ How: Add to "Reference Implementations" or "Testing Patterns" section
+   - ✅ Who: Frontend developer (while testing on iPhone 14)
+   - ✅ Pre-commit: Run mobile tests: `npx playwright test -g mobile`
+
+8. **SECURITY_UI_COPY_GUIDE.md**
+   - ✅ Update frequency: When security/copy standards evolve (not frequent)
+   - ✅ How: Document principle/rule in relevant section (Security or Copy Standards)
+   - ✅ Who: Security lead or senior developer (when standards formalized)
+   - ✅ Pre-commit: Run security checklist + copy checklist
+
+### Key Pattern Established
+
+**Before (❌ duplication risk):**
+```
+Agent adds new test → updates TEST_AUDIT.md 
+                  → tempted to also update copilot-instructions.md 
+                  → duplicates test counts
+```
+
+**After (✅ independent files):**
+```
+Agent adds new test → reads TEST_AUDIT.md maintenance section
+                   → sees: "Update after every test run, not copilot-instructions.md"
+                   → updates ONLY TEST_AUDIT.md
+                   → copilot-instructions.md stays stable
+```
+
+### Files Modified
+- `TEST_AUDIT.md`: Added 8-line maintenance section
+- `CODEBASE_INVENTORY.md`: Added 11-line maintenance section
+- `ANALYTICS_STRATEGY.md`: Added 11-line maintenance section
+- `SEO_STRATEGY.md`: Added 16-line maintenance section
+- `ARCHITECTURE_DECISIONS.md`: Added 18-line maintenance section
+- `UI_DESIGN_PRINCIPLES.md`: Added 14-line maintenance section
+- `MOBILE_DEVELOPMENT_GUIDE.md`: Added 14-line maintenance section
+- `SECURITY_UI_COPY_GUIDE.md`: Added 15-line maintenance section
+- **Total additions**: 107 lines across 8 files
+
+### Results
+✅ Each specialized file now has explicit maintenance instructions
+✅ Clear trigger points (when to update each file)
+✅ Step-by-step bash/code examples showing how to update
+✅ Frequency specified (after test run, quarterly, per-feature, etc.)
+✅ Ownership clear (who should do it)
+✅ **copilot-instructions.md remains stable** (not updated for test counts, inventory, events, etc.)
+✅ All 986 tests passing
+✅ No code changes, documentation-only
+
+### Next Steps
+- Agents now follow maintenance instructions when:
+  - Adding new tests → update TEST_AUDIT.md
+  - Creating new files → update CODEBASE_INVENTORY.md
+  - Adding tracked events → update ANALYTICS_STRATEGY.md
+  - Creating new routes → update SEO_STRATEGY.md
+  - Discovering mobile patterns → update MOBILE_DEVELOPMENT_GUIDE.md
+  - Establishing security/copy rules → update SECURITY_UI_COPY_GUIDE.md
+  - Making architectural decisions → update ARCHITECTURE_DECISIONS.md
+  - Evolving design system → update UI_DESIGN_PRINCIPLES.md
+- copilot-instructions.md referenced as starting point only
+
+---
+
+## 2026-03-20 14:35 — Milestone 10.81: Dropdown Position Portal Fix (CSS Transform Escape)
 
 ### Objective
 Fix the critical Insights page employer search dropdown misalignment discovered during browser testing: dropdown appeared **149px too low** (style.top=407px correct, visual position=552px).
@@ -54,7 +175,7 @@ The Insights page wraps the profile form in a `FadeIn` animation component (Fram
 
 ---
 
-## 2026-03-20 — Milestone 10.80: Search Sort + Dropdown + Canonical Name Fixes
+## 2026-03-20 12:20 — Milestone 10.80: Search Sort + Dropdown + Canonical Name Fixes
 
 ### Objective
 Fix three user-reported defects found after the M10.79 deploy: (1) smart-sort not working on Insights employer search (missing n_36m volume field), (2) employer search dropdown appearing in wrong position (race condition in getBoundingClientRect), (3) canonical employer names showing "Us" instead of "US" (title-case mangling of abbreviation).
