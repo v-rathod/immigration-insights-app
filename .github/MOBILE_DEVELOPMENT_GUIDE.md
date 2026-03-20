@@ -1,8 +1,31 @@
 # Mobile Development Guide
 
 **Read this file when:** Building UI components, modifying pages, or working with forms/interactive elements.
-**Auto-updated by:** Manual updates (standards are stable).
+**Auto-updated by:** Manual updates when mobile patterns are discovered or standards change.
 **Referenced in:** copilot-instructions.md → "Refer to MOBILE_DEVELOPMENT_GUIDE.md"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ When mobile testing reveals a new pattern or issue
+- ✅ When creating a new mobile E2E test spec (add it to Testing Patterns section)
+- ✅ When breakpoints or touch target standards change
+
+**How to update:**
+```bash
+# Before committing mobile UI changes:
+# 1. Test on iPhone 14 (or 390px width)
+# 2. Run mobile tests: npx playwright test -g mobile
+# 3. If new pattern discovered → add to "Reference Implementations" section
+# 4. If new E2E spec created → add entry to "Testing Patterns" section
+# 5. Commit code + updated MOBILE_DEVELOPMENT_GUIDE.md
+```
+
+**Who should do it:** Frontend developer building mobile UI (while testing on device).
+
+**Frequency**: As needed when new mobile patterns emerge (not frequent, not per-commit).
 
 ---
 

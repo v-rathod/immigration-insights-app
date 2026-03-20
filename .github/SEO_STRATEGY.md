@@ -1,8 +1,36 @@
 # SEO & AI Agent Discovery Strategy
 
 **Read this file when:** Creating new pages, updating content, deploying to production, or integrating with AI crawlers.
-**Auto-updated by:** Manual updates + post-deployment verification.
+**Auto-updated by:** Manual updates when routes are added/removed.
 **Referenced in:** copilot-instructions.md → "Refer to SEO_STRATEGY.md"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ Immediately after creating a new route/page (e.g., `/dashboard/new-feature`)
+- ✅ When a page is deleted (remove from metadata table)
+- ✅ When page title/purpose changes (update metadata)
+
+**How to update:**
+```bash
+# Adding a new page?
+# 1. Create src/app/new-route/page.tsx
+# 2. Add metadata row to "Per-Page Metadata" table in this file
+# 3. Implement metadata in your page's getMetadata function
+# 4. Add route to public/sitemap.xml
+# 5. Commit all together
+
+# Before deployment:
+# - Verify all pages have metadata in this file
+# - Check sitemap.xml has all routes
+# - Verify robots.txt and llms.txt are current
+```
+
+**Who should do it:** Developer adding the page (update SEO metadata while creating route).
+
+**Frequency:** Every time a route is added/removed (not in copilot-instructions.md — this file gets updated instead).
 
 ---
 

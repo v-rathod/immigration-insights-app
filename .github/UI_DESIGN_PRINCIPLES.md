@@ -1,8 +1,33 @@
 # UI Design Principles — Aurora Design System
 
 **Read this file when:** Building new components, styling pages, or updating design tokens.
-**Auto-updated by:** Manual updates only (design is stable).
+**Auto-updated by:** Manual updates when Aurora design system evolves.
 **Referenced in:** copilot-instructions.md → "Refer to UI_DESIGN_PRINCIPLES.md for design direction"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ When a new color token is added to Aurora design system
+- ✅ When a new component pattern is established (e.g., new card style)
+- ✅ When animation standards or typography changes
+- ✅ When accessibility guidelines are refined
+
+**How to update:**
+```bash
+# Adding a new design token?
+# 1. Update Aurora colors in src/app/globals.css (CSS variables)
+# 2. Document the token in this file:
+#    - Variable name (e.g., --color-accent-500)
+#    - Usage (where to use it? When?)
+#    - Examples (show reference implementations)
+# 3. Commit design file + UI_DESIGN_PRINCIPLES.md together
+```
+
+**Who should do it:** Designer or frontend lead (when design system changes).
+
+**Frequency**: As needed when design decisions are made (not frequent, not per-commit).
 
 ---
 

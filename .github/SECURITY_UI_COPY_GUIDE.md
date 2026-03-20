@@ -1,8 +1,34 @@
 # Security & UI Copy Guidelines
 
 **Read this file when:** Validating user input, handling sensitive data, or writing user-facing copy.
-**Auto-updated by:** Manual updates only (standards are stable).
+**Auto-updated by:** Manual updates when security practices or copy standards evolve.
 **Referenced in:** copilot-instructions.md → "Refer to SECURITY_UI_COPY_GUIDE.md"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ When a new security vulnerability/pattern is discovered
+- ✅ When UI copy standards change (new grammar rule, banned words, tone)
+- ✅ When a new security test or best practice is established
+
+**How to update:**
+```bash
+# Discovering a new security practice?
+# 1. Document the principle or checklist item in this file
+# 2. Add to relevant section (Security Principles or Copy Standards)
+# 3. Implement in code, following the new standard
+# 4. Commit all together
+
+# Before committing any feature:
+# - Security checklist: Does this violate any 8 principles? (see list)
+# - Copy checklist: Does any UI text violate copy rules? (no em-dashes, no AI markers)
+```
+
+**Who should do it:** Security lead or senior developer (when standards are formalized).
+
+**Frequency**: As needed when standards change (not frequent, not per-commit).
 
 ---
 

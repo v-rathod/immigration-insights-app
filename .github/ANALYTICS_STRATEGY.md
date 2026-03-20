@@ -1,8 +1,31 @@
 # Analytics Strategy — PostHog Instrumentation
 
 **Read this file when:** Adding new UI features, pages, dashboards, or user interactions.
-**Auto-updated by:** Manual updates only (event types are stable).
+**Auto-updated by:** Manual updates when new features are tracked.
 **Referenced in:** copilot-instructions.md → "Refer to ANALYTICS_STRATEGY.md"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ Every time you add a new user-trackable action (button click, form submission, dashboard view, etc.)
+- ✅ When event properties change (timestamp, user context, custom fields)
+- ✅ When feature is removed (delete the event definition)
+
+**How to update:**
+```bash
+# Adding a new event?
+# 1. Build the feature and identify what should be tracked
+# 2. Define the event in ANALYTICS_STRATEGY.md (Events section)
+# 3. Add event helper function to src/lib/analytics/events.ts
+# 4. Call the helper from your feature code (NEVER call posthog.capture() directly)
+# 5. Commit all together
+```
+
+**Who should do it:** Developer building the feature (update analytics file while implementing tracking).
+
+**Frequency:** Every time a trackable interaction is added (not in copilot-instructions.md — this file gets updated instead).
 
 ---
 

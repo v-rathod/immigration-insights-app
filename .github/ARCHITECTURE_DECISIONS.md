@@ -1,8 +1,38 @@
 # Architecture Decisions Log
 
 **Read this file when:** Understanding why technical choices were made, evaluating alternatives, or planning major refactors.
-**Auto-updated by:** Manual updates only (decisions are strategic, not frequent).
+**Auto-updated by:** Manual updates when major architectural decisions are made (quarterly review).
 **Referenced in:** copilot-instructions.md → "Refer to ARCHITECTURE_DECISIONS.md"
+
+---
+
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ After a major architectural decision is made (new tech choice, new pattern, etc.)
+- ✅ Quarterly review to verify decisions are still valid
+- ✅ When a previous decision is superseded (mark old decision as DEPRECATED)
+
+**When NOT to update:**
+- ❌ Bug fixes or feature additions (update other files instead)
+- ❌ Test additions (update TEST_AUDIT.md instead)
+- ❌ Component styling (update UI_DESIGN_PRINCIPLES.md instead)
+
+**How to update:**
+```bash
+# Making a major architectural change?
+# 1. Document the decision in this file with:
+#    - Decision: What was chosen?
+#    - Rationale: Why this choice?
+#    - Trade-offs: What's the cost?
+#    - Alternatives considered: What else could we do?
+# 2. Implement the decision in code
+# 3. Commit architecture file + code together
+```
+
+**Who should do it:** Tech lead or senior developer (after design review).
+
+**Frequency**: Not frequent (strategic decisions, not per-commit).
 
 ---
 

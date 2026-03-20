@@ -6,6 +6,28 @@
 
 ---
 
+## 🔄 How to Maintain This File
+
+**When to update:**
+- ✅ After every `npm test` run (test counts change)
+- ✅ When a new test file is created (add to inventory)
+- ✅ When a new test pattern is discovered (document it)
+
+**How to update:**
+```bash
+# Run tests and capture output
+npm test 2>&1 | grep -E 'passing|failing'
+
+# Update the test counts in the table above (line 8–15)
+# If new test file created, add entry to "Test File Inventory" section below
+```
+
+**Who should do it:** Developer adding tests or running test suite (don't batch updates; do it immediately).
+
+**Frequency:** After every test run (not in copilot-instructions.md — this file gets updated instead).
+
+---
+
 ## Test Status (Updated 2026-03-20 14:35)
 
 | Metric | Count | Status |
