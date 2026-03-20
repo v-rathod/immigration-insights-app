@@ -147,8 +147,20 @@ export function EmployerSearch({
     inputRef.current?.focus();
   }, []);
 
+  // Track dropdown position for fixed positioning (compact mode)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update dropdown position when opening (compact mode uses fixed to escape overflow-hidden)
+  useEffect(() => {
+    if (isOpen && compact && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+    }
+  }, [isOpen, compact]);
+
   return (
-    <div className={cn("relative w-full", className)}>
+    <div ref={containerRef} className={cn("relative w-full", className)}>
       {/* Search Input */}
       <div className="relative">
         <Search
@@ -198,11 +210,18 @@ export function EmployerSearch({
           id="employer-search-results"
           role="listbox"
           className={cn(
-            "absolute left-0 right-0 top-full z-50 mt-2 max-h-[400px] overflow-y-auto",
+            compact && dropdownPos
+              ? "fixed z-[9999] max-h-[360px] overflow-y-auto"
+              : "absolute left-0 right-0 top-full z-50 mt-2 max-h-[400px] overflow-y-auto",
             "rounded-xl border border-white/[0.08] bg-[var(--background)]/95 backdrop-blur-2xl",
             "shadow-2xl shadow-black/20",
             "py-1"
           )}
+          style={
+            compact && dropdownPos
+              ? { top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }
+              : undefined
+          }
         >
           {results.map((employer, i) => {
             const isSelected = employer.employer_id === selectedId;

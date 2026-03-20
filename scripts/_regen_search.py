@@ -2,6 +2,7 @@
 import pandas as pd
 import json
 from pathlib import Path
+from employer_consolidation import consolidate_entries, get_merge_stats
 
 P2 = Path("/Users/vrathod1/dev/NorthStar/immigration-model-builder/artifacts/tables")
 OUT = Path("/Users/vrathod1/dev/NorthStar/immigration-insights-app/public/data/employers")
@@ -61,6 +62,14 @@ for _, row in stats.iterrows():
         "ss": srs.get("ss"),
         "st": srs.get("st", "Unrated"),
     })
+
+# Apply employer name consolidation (deduplicate U S/US, typo variants)
+print(f"\nRunning employer name consolidation...")
+stats_before = get_merge_stats(entries)
+entries = consolidate_entries(entries)
+stats_after = get_merge_stats(entries)
+print(f"  Before: {stats_before['total_entries']:,} entries")
+print(f"  After:  {len(entries):,} entries ({stats_before['entries_merged']:,} merged)")
 
 out_path = OUT / "_search.json"
 out_path.write_text(json.dumps(entries))

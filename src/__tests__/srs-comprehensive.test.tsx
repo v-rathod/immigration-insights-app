@@ -1646,3 +1646,74 @@ describe("SOC Search — sortSocResults extra", () => {
     expect(sorted[0].code).toBe("15-1252");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11. EMPLOYER SEARCH — COMPACT MODE (Insights page)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("EmployerSearch — compact mode (fixed dropdown)", () => {
+  const compactEmployers = [
+    makeSrs({ employer_name: "Test Corp", n_36m: 500, srs: 75, srs_tier: "Good" }),
+    makeSrs({ employer_name: "Test Inc", n_36m: 200, srs: 60, srs_tier: "Fair" }),
+  ];
+
+  it("renders with compact prop without crashing", () => {
+    const { container } = render(
+      <EmployerSearch employers={compactEmployers} onSelect={() => {}} compact />
+    );
+    expect(container.querySelector("input")).toBeTruthy();
+  });
+
+  it("compact mode hides case count and SRS tier in results", async () => {
+    render(
+      <EmployerSearch employers={compactEmployers} onSelect={() => {}} compact />
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "Test" } });
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeTruthy();
+    });
+    // In compact mode, case count ("cases") should NOT appear
+    expect(screen.queryAllByText(/cases/)).toHaveLength(0);
+  });
+
+  it("non-compact mode shows case count and SRS tier", async () => {
+    render(
+      <EmployerSearch employers={compactEmployers} onSelect={() => {}} />
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "Test" } });
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toBeTruthy();
+    });
+    // In normal mode, case count should appear
+    expect(screen.getAllByText(/cases/).length).toBeGreaterThan(0);
+  });
+
+  it("compact dropdown uses fixed positioning class", async () => {
+    render(
+      <EmployerSearch employers={compactEmployers} onSelect={() => {}} compact />
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "Test" } });
+    await waitFor(() => {
+      const listbox = screen.getByRole("listbox");
+      expect(listbox).toBeTruthy();
+      // Compact mode uses fixed positioning to escape overflow-hidden parents
+      expect(listbox.className).toContain("fixed");
+    });
+  });
+
+  it("non-compact dropdown uses absolute positioning", async () => {
+    render(
+      <EmployerSearch employers={compactEmployers} onSelect={() => {}} />
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "Test" } });
+    await waitFor(() => {
+      const listbox = screen.getByRole("listbox");
+      expect(listbox).toBeTruthy();
+      expect(listbox.className).toContain("absolute");
+    });
+  });
+});

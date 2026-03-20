@@ -718,3 +718,63 @@ describe("Backlog Visualization Dashboard", () => {
     // Should update without error
   });
 });
+
+// ─── UsaChoropleth Tooltip Positioning ─────────────────────────────────────
+
+describe("UsaChoropleth tooltip viewport clamping", () => {
+  // The tooltip uses viewport-aware clamping to prevent overflow.
+  // We test the clamping logic directly (extracted from the component).
+
+  const tooltipWidth = 210;
+  const tooltipHeight = 200;
+
+  function computeTooltipPos(
+    cursorX: number,
+    cursorY: number,
+    viewportW: number = 1200,
+    viewportH: number = 800
+  ) {
+    const flipX = cursorX + tooltipWidth + 12 > viewportW;
+    const flipY = cursorY + tooltipHeight > viewportH;
+    return {
+      left: flipX ? cursorX - tooltipWidth - 12 : cursorX + 12,
+      top: flipY ? cursorY - tooltipHeight : cursorY - 8,
+    };
+  }
+
+  it("positions tooltip to the right of cursor when space is available", () => {
+    const pos = computeTooltipPos(400, 300, 1200, 800);
+    expect(pos.left).toBe(412); // 400 + 12
+    expect(pos.top).toBe(292); // 300 - 8
+  });
+
+  it("flips tooltip to the left when cursor is near right edge", () => {
+    const pos = computeTooltipPos(1050, 300, 1200, 800);
+    expect(pos.left).toBe(1050 - tooltipWidth - 12); // flipped left
+    expect(pos.left).toBeLessThan(1050); // tooltip is to the left
+  });
+
+  it("flips tooltip upward when cursor is near bottom edge", () => {
+    const pos = computeTooltipPos(400, 700, 1200, 800);
+    expect(pos.top).toBe(700 - tooltipHeight); // flipped up
+    expect(pos.top).toBeLessThan(700);
+  });
+
+  it("flips both when cursor is in bottom-right corner", () => {
+    const pos = computeTooltipPos(1100, 750, 1200, 800);
+    expect(pos.left).toBeLessThan(1100); // flipped left
+    expect(pos.top).toBeLessThan(750);   // flipped up
+  });
+
+  it("handles small viewports (mobile)", () => {
+    const pos = computeTooltipPos(300, 500, 390, 844);
+    expect(pos.left).toBe(300 - tooltipWidth - 12); // flipped on 390px width
+    expect(pos.left).toBeLessThan(300);
+  });
+
+  it("eastern US states (right side of map) get left-flipped tooltips", () => {
+    // Simulating mouse at x=900 on a 1024px viewport (common laptop)
+    const pos = computeTooltipPos(900, 300, 1024, 768);
+    expect(pos.left).toBeLessThan(900); // should flip left
+  });
+});

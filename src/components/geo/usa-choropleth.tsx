@@ -126,6 +126,19 @@ interface TooltipData {
 function MapTooltip({ tooltip, metric }: { tooltip: TooltipData; metric: MapMetric }) {
   const { name, stateCode, data } = tooltip;
 
+  // Clamp tooltip position so it doesn't overflow the viewport.
+  // Tooltip is ~200px wide. If the cursor is within 220px of the right edge,
+  // flip to the left side of the cursor. Same logic for bottom edge.
+  const tooltipWidth = 210;
+  const tooltipHeight = 200;
+  const viewportW = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
+
+  const flipX = tooltip.x + tooltipWidth + 12 > viewportW;
+  const flipY = tooltip.y + tooltipHeight > viewportH;
+  const left = flipX ? tooltip.x - tooltipWidth - 12 : tooltip.x + 12;
+  const top = flipY ? tooltip.y - tooltipHeight : tooltip.y - 8;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
@@ -133,7 +146,7 @@ function MapTooltip({ tooltip, metric }: { tooltip: TooltipData; metric: MapMetr
       exit={{ opacity: 0, y: 4 }}
       transition={{ duration: 0.15 }}
       className="pointer-events-none fixed z-50"
-      style={{ left: tooltip.x + 12, top: tooltip.y - 8 }}
+      style={{ left, top }}
     >
       <div className="bg-[#09090b]/95 border border-white/[0.12] rounded-xl px-4 py-3 shadow-2xl backdrop-blur-xl min-w-[180px]">
         <div className="flex items-center gap-2 mb-2">

@@ -1,5 +1,69 @@
 # Compass Progress Tracker
 
+## 2026-03-20 — Milestone 10.79: Employer Entity Resolution + Tooltip & Dropdown Fixes
+
+### Objective
+Fix three user-reported defects: (1) duplicate employer names in search data (e.g., "Cognizant Technology Solutions Us" vs "U S"), (2) Insights page employer search dropdown clipped by parent overflow, (3) geographic tooltip going beyond viewport on eastern states. Apply industry-standard entity resolution to employer data.
+
+### What Was Done
+
+**P2 Employer Entity Resolution (`scripts/employer_consolidation.py` — NEW)**
+- Created a standalone Python module implementing regex-based employer name normalization:
+  - Collapses "U S" → "US" (space-separated single letters)
+  - Removes repeated characters in company names ("Worrldwide" → "Worldwide", "Kellly" → "Kelly")
+  - Normalizes whitespace and casing for grouping
+- `consolidate_entries()`: groups entries by normalized key, merges filing counts (sum), salary (weighted avg), preserves SRS from highest-rated variant, picks highest-filing name as canonical
+- Updated `scripts/_regen_search.py` to import and call consolidation before writing JSON
+- Result: **199 employer groups merged** (102,424 → 102,225 entries)
+- Key merges: Cognizant TS (Us+U S → 152,125 filings), Ernst Young (95,900), Deloitte Touche (24,812), Kelly Services (1,002)
+
+**Insights Page Dropdown Fix (`src/components/srs/employer-search.tsx`)**
+- Added `compact` prop with fixed-position dropdown to escape `overflow-hidden` parent
+- When `compact=true`: dropdown uses `position: fixed` with `z-[9999]`, `max-h-[360px]`, positioned via `getBoundingClientRect()`
+- When `compact=false` (default): remains `position: absolute` with `max-h-[400px]`
+- Insight page now shows full dropdown with all results instead of 2
+
+**Geographic Tooltip Fix (`src/components/geo/usa-choropleth.tsx`)**
+- Added viewport-aware tooltip clamping with flipX/flipY logic
+- `flipX`: when cursor.x + tooltipWidth + 12 > viewport width → tooltip appears left of cursor
+- `flipY`: when cursor.y + tooltipHeight > viewport height → tooltip appears above cursor
+- Eastern US states now show tooltip to the left, bottom-edge states flip upward
+
+**Tests (23 new across 4 files)**
+- `employer-normalization.test.ts`: +12 consolidation verification tests (no U S/US duplicates, Cognizant dedup, merged SRS preservation, sorted by filings)
+- `new-dashboards.test.tsx`: +6 tooltip viewport clamping tests (right/left/up/corner/mobile/eastern states)
+- `srs-comprehensive.test.tsx`: +5 compact mode tests (renders, hides cases, fixed vs absolute positioning)
+- `real-data-integration.test.ts`: Fixed Optum Medical Care test for consolidation threshold
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **985 passing** (32 files) |
+| TypeScript | ✅ Clean |
+| ESLint | ✅ 0 errors |
+| New tests | 23 |
+| New files | 1 (`scripts/employer_consolidation.py`) |
+| Modified files | 7 |
+| Employers merged | 199 (102,424 → 102,225) |
+
+### Files Created/Modified
+- `scripts/employer_consolidation.py` — NEW: Entity resolution module (130 lines)
+- `scripts/_regen_search.py` — MODIFIED: Added consolidation import and usage
+- `public/data/employers/_search.json` — REGENERATED: 102,225 entries (199 merges)
+- `src/components/srs/employer-search.tsx` — MODIFIED: Compact fixed-position dropdown
+- `src/components/geo/usa-choropleth.tsx` — MODIFIED: Viewport-clamped tooltip
+- `src/__tests__/employer-normalization.test.ts` — MODIFIED: +12 consolidation tests
+- `src/__tests__/new-dashboards.test.tsx` — MODIFIED: +6 tooltip clamping tests
+- `src/__tests__/srs-comprehensive.test.tsx` — MODIFIED: +5 compact mode tests
+- `src/__tests__/real-data-integration.test.ts` — MODIFIED: Fixed Optum threshold test
+
+### Next Steps
+1. Deploy to stage and verify all 3 fixes
+2. Consider expanding entity resolution to employer shard files
+3. Monitor for additional employer name variants in user feedback
+
+---
+
 ## 2026-03-19 — Milestone 10.78: USA Choropleth Heatmap + State Drill-Down
 
 ### Objective

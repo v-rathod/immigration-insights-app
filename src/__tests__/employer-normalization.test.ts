@@ -312,3 +312,112 @@ describe("JSON spec compliance", () => {
   });
 });
 
+// ─── Employer Name Consolidation verification ────────────────────────────────
+
+describe("Employer name consolidation in _search.json", () => {
+  const data = loadJson("employers/_search.json") as Array<{
+    n?: string; id?: string; f?: number; sc?: number; ss?: number | null; st?: string;
+  }>;
+
+  /**
+   * Normalize employer name for consolidation check (mirrors Python logic).
+   * Collapses "U S" -> "US", repeated chars, and extra spaces.
+   */
+  function normalizeKey(name: string): string {
+    let key = name.toLowerCase().trim();
+    key = key.replace(/\bu\s*\.\s*s\s*\.?\b/g, "us");
+    key = key.replace(/\bu\s+s\b/g, "us");
+    key = key.replace(/(.)\1+/g, "$1"); // collapse repeated chars
+    key = key.replace(/\s+/g, " ").trim();
+    return key;
+  }
+
+  it("no U S / US duplicate pairs remain", () => {
+    const names = data.map((e) => e.n ?? "");
+    const usSpaceNames = names.filter((n) => /\bU S\b/.test(n));
+    const usNoSpaceNames = new Set(names.filter((n) => /\bUs\b/.test(n)).map((n) => n.toLowerCase()));
+    const conflicts = usSpaceNames.filter((n) => {
+      const normalized = n.replace(/\bU S\b/g, "Us").toLowerCase();
+      return usNoSpaceNames.has(normalized);
+    });
+    expect(conflicts).toStrictEqual([]);
+  });
+
+  it("no triple-letter typo duplicates remain", () => {
+    const seen = new Map<string, string>();
+    const dupes: string[] = [];
+    for (const e of data) {
+      const name = e.n ?? "";
+      const key = normalizeKey(name);
+      if (seen.has(key) && seen.get(key) !== name) {
+        dupes.push(`${name} <-> ${seen.get(key)}`);
+      }
+      seen.set(key, name);
+    }
+    expect(dupes).toStrictEqual([]);
+  });
+
+  it("Cognizant Technology Solutions has only one entry", () => {
+    const cognizant = data.filter((e) =>
+      (e.n ?? "").toLowerCase().startsWith("cognizant technology solutions")
+    );
+    expect(cognizant).toHaveLength(1);
+    expect(cognizant[0].f).toBeGreaterThan(150000); // merged filing count
+  });
+
+  it("Cognizant Worldwide has only one entry (no Worrldwide)", () => {
+    const ww = data.filter((e) =>
+      (e.n ?? "").toLowerCase().includes("cognizant wor")
+    );
+    expect(ww).toHaveLength(1);
+    expect(ww[0].n).toBe("Cognizant Worldwide");
+  });
+
+  it("Kelly Services has only one entry (no Kellly)", () => {
+    const kelly = data.filter((e) =>
+      normalizeKey(e.n ?? "") === "kely services"
+    );
+    expect(kelly).toHaveLength(1);
+  });
+
+  it("Ernst Young U S has only one entry (U S / Us variants merged)", () => {
+    const ey = data.filter((e) => {
+      const name = (e.n ?? "").toLowerCase();
+      return name === "ernst young u s" || name === "ernst young us";
+    });
+    expect(ey).toHaveLength(1);
+    expect(ey[0].f).toBeGreaterThan(90000);
+  });
+
+  it("consolidated entries have merged filing counts", () => {
+    // Cognizant TS had 131K + 21K = 152K+
+    const cog = data.find((e) =>
+      (e.n ?? "").toLowerCase().startsWith("cognizant technology solutions")
+    );
+    expect(cog).toBeTruthy();
+    expect(cog!.f).toBeGreaterThanOrEqual(152000);
+  });
+
+  it("consolidated entries preserve SRS scores from rated variant", () => {
+    const cog = data.find((e) =>
+      (e.n ?? "").toLowerCase().startsWith("cognizant technology solutions")
+    );
+    expect(cog).toBeTruthy();
+    expect(cog!.ss).toBeGreaterThan(0); // SRS score preserved from rated variant
+    expect(cog!.st).not.toBe("Unrated");
+  });
+
+  it("total entry count decreased after consolidation", () => {
+    // Before consolidation: 102,424 entries; after: should be fewer
+    expect(data.length).toBeLessThan(102400);
+    expect(data.length).toBeGreaterThan(100000); // sanity - not too much removed
+  });
+
+  it("entries are sorted by total filings descending", () => {
+    if (data.length < 10) return;
+    const filings = data.slice(0, 100).map((e) => e.f ?? 0);
+    for (let i = 1; i < filings.length; i++) {
+      expect(filings[i]).toBeLessThanOrEqual(filings[i - 1]);
+    }
+  });
+});
