@@ -78,10 +78,18 @@ export function EmployerSearch({
         // Apply smart sorting that combines text relevance + volume + quality
         const sorted = sortEmployerResults(hits, value).slice(0, MAX_RESULTS);
 
-        // Compute dropdown position before setIsOpen so both land in the same render batch
-        if (sorted.length > 0 && compact && containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
+        // Compute dropdown position before setIsOpen so both land in the same render batch.
+        // Use inputRef (the <input> element) for exact bottom-of-field coordinate.
+        if (sorted.length > 0 && compact && inputRef.current) {
+          const rect = inputRef.current.getBoundingClientRect();
           setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+          // Re-measure after paint to catch any position change from ongoing animations
+          requestAnimationFrame(() => {
+            if (inputRef.current) {
+              const r = inputRef.current.getBoundingClientRect();
+              setDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width });
+            }
+          });
         }
 
         setResults(sorted);
@@ -157,10 +165,10 @@ export function EmployerSearch({
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /** Compute and set dropdown position from containerRef (viewport-relative for fixed). */
+  /** Compute and set dropdown position from the input element (viewport-relative for fixed). */
   const updateDropdownPos = useCallback(() => {
-    if (compact && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
+    if (compact && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
       setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
     }
   }, [compact]);
