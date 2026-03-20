@@ -1355,7 +1355,8 @@ export default function InsightsPage() {
         setRetroForecasts(retroFc);
         setTrends(tr);
         setSearchEntries(entries);
-        // Build lightweight SponsorReliabilityScore[] for EmployerSearch component
+        // Build lightweight SponsorReliabilityScore[] for EmployerSearch component.
+        // n_36m is populated from total_filings so smart-sort volume ranking works.
         const asScores: SponsorReliabilityScore[] = entries
           .filter((e) => e.srs_score != null || e.total_filings > 0)
           .map((e) => ({
@@ -1364,6 +1365,7 @@ export default function InsightsPage() {
             scope: "overall",
             srs: e.srs_score,
             srs_tier: e.srs_tier,
+            n_36m: e.total_filings, // drives smart-sort volume ranking
           } as SponsorReliabilityScore));
         setOverallScores(asScores);
         setMlScores(ml);

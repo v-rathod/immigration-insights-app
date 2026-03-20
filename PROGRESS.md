@@ -1,5 +1,66 @@
 # Compass Progress Tracker
 
+## 2026-03-20 — Milestone 10.80: Search Sort + Dropdown + Canonical Name Fixes
+
+### Objective
+Fix three user-reported defects found after the M10.79 deploy: (1) smart-sort not working on Insights employer search (missing n_36m volume field), (2) employer search dropdown appearing in wrong position (race condition in getBoundingClientRect), (3) canonical employer names showing "Us" instead of "US" (title-case mangling of abbreviation).
+
+### What Was Done
+
+**Smart-Sort Fix — Insights Page (`src/app/insights/page.tsx`)**
+- Added `n_36m: e.total_filings` to the `asScores` conversion mapping
+- Without this, `smart-sort.ts` computed `volumeScore = 0` for all entries on Insights page (volume is worth 20% of composite score)
+- Same fix already existed on SRS Dashboard page but was missing on Insights
+- Result: Optum, Microsoft, Walmart now rank correctly above minor employers when searching
+
+**Dropdown Position Fix — EmployerSearch (`src/components/srs/employer-search.tsx`)**
+- **Root cause**: The `useEffect(() => { setDropdownPos(...) }, [isOpen])` pattern fires AFTER the render where `isOpen=true`, creating one frame where `compact=true, dropdownPos=null` → fell back to absolute positioning inside `overflow-hidden` → wrong position
+- **Fix**: Compute `dropdownPos` synchronously inside the debounce search callback right before `setResults/setIsOpen` — React 18 batches these into one render so no race condition
+- Also updated `onFocus` to call `updateDropdownPos()` before re-opening dropdown
+- Added scroll+resize listeners to keep position synced while dropdown is open
+- Result: dropdown always appears directly below the search input, at correct coordinates
+
+**Canonical Name Fix — Consolidation Script (`scripts/employer_consolidation.py`)**
+- Added `clean_canonical_name()` function that normalizes DOL/USCIS abbreviation mangling:
+  - `"U S"` → `"US"` (space-separated country code)
+  - `"(?<=[A-Za-z0-9] )Us\b"` → `"US"` (title-cased acronym, e.g. "Cognizant Technology Solutions Us" → "US")
+  - `"Llc"` → `"LLC"`, `"Llp"` → `"LLP"`, `"N.a"` → `"N.A."`
+- Applied to BOTH merged entries AND single-entry groups (all names now cleaned)
+- **P2 note**: The proper long-term fix is in P2 where employer names should be normalized consistently at the source. The P3 sync script applies this as the data-entry boundary fix.
+- Regenerated `_search.json`: 102,225 entries, all with clean abbreviations
+
+**Results: before vs after**
+| Before | After |
+|--------|-------|
+| "Cognizant Technology Solutions Us" | "Cognizant Technology Solutions US" |
+| "Ernst Young U S" | "Ernst Young US" |
+| "Capgemini Us" | "Capgemini US" |
+| 311 entries with " U S" suffix | 0 entries with " U S" suffix |
+| 0 entries with trailing " Us" | 0 entries with trailing " Us" |
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests | **986 passing** (32 files) |
+| TypeScript | ✅ Clean |
+| ESLint | ✅ 0 errors |
+| New tests | 1 (Insights smart-sort n_36m) |
+| Modified files | 6 |
+
+### Files Modified
+- `src/app/insights/page.tsx` — Added n_36m to asScores mapping
+- `src/components/srs/employer-search.tsx` — Fixed dropdown position race condition
+- `scripts/employer_consolidation.py` — Added clean_canonical_name(), applied to all entries
+- `public/data/employers/_search.json` — Regenerated with clean "US" canonical names
+- `src/__tests__/employer-normalization.test.ts` — Updated to assert "US" not "Us"
+- `src/__tests__/insights-page.test.tsx` — Added smart-sort n_36m mapping test
+
+### Next Steps
+1. Consider P2-level employer name normalization for consistency across all artifacts
+2. Monitor for additional abbreviation edge cases (LLC, LLP visible in data)
+
+---
+
 ## 2026-03-20 — Milestone 10.79: Employer Entity Resolution + Tooltip & Dropdown Fixes
 
 ### Objective

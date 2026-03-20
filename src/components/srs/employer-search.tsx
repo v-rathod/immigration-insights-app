@@ -77,7 +77,13 @@ export function EmployerSearch({
         
         // Apply smart sorting that combines text relevance + volume + quality
         const sorted = sortEmployerResults(hits, value).slice(0, MAX_RESULTS);
-        
+
+        // Compute dropdown position before setIsOpen so both land in the same render batch
+        if (sorted.length > 0 && compact && containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+        }
+
         setResults(sorted);
         setIsOpen(sorted.length > 0);
       }, DEBOUNCE_MS);
@@ -147,17 +153,30 @@ export function EmployerSearch({
     inputRef.current?.focus();
   }, []);
 
-  // Track dropdown position for fixed positioning (compact mode)
+  // Track dropdown position for fixed positioning (compact mode escapes overflow-hidden)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update dropdown position when opening (compact mode uses fixed to escape overflow-hidden)
-  useEffect(() => {
-    if (isOpen && compact && containerRef.current) {
+  /** Compute and set dropdown position from containerRef (viewport-relative for fixed). */
+  const updateDropdownPos = useCallback(() => {
+    if (compact && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
     }
-  }, [isOpen, compact]);
+  }, [compact]);
+
+  // Keep dropdown position in sync with scroll / resize (without rerender spam)
+  useEffect(() => {
+    if (!compact) return;
+    const onScroll = () => { if (isOpen) updateDropdownPos(); };
+    const onResize = () => { if (isOpen) updateDropdownPos(); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [compact, isOpen, updateDropdownPos]);
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -181,7 +200,10 @@ export function EmployerSearch({
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            if (results.length > 0) setIsOpen(true);
+            if (results.length > 0) {
+              updateDropdownPos();
+              setIsOpen(true);
+            }
           }}
           placeholder={placeholder}
           className={cn(

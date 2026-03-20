@@ -332,15 +332,12 @@ describe("Employer name consolidation in _search.json", () => {
     return key;
   }
 
-  it("no U S / US duplicate pairs remain", () => {
-    const names = data.map((e) => e.n ?? "");
-    const usSpaceNames = names.filter((n) => /\bU S\b/.test(n));
-    const usNoSpaceNames = new Set(names.filter((n) => /\bUs\b/.test(n)).map((n) => n.toLowerCase()));
-    const conflicts = usSpaceNames.filter((n) => {
-      const normalized = n.replace(/\bU S\b/g, "Us").toLowerCase();
-      return usNoSpaceNames.has(normalized);
-    });
-    expect(conflicts).toStrictEqual([]);
+  it("no 'U S' / 'Us' patterns in canonical names (all normalized to 'US')", () => {
+    // After clean_canonical_name runs, no entry should have " U S" or " Us" suffix
+    const badUS = data.filter((e) => /\bU S\b/.test(e.n ?? ""));
+    const badUs = data.filter((e) => /(?<=[A-Za-z0-9] )Us\b/.test(e.n ?? ""));
+    expect(badUS.map((e) => e.n)).toStrictEqual([]);
+    expect(badUs.map((e) => e.n)).toStrictEqual([]);
   });
 
   it("no triple-letter typo duplicates remain", () => {
@@ -357,12 +354,13 @@ describe("Employer name consolidation in _search.json", () => {
     expect(dupes).toStrictEqual([]);
   });
 
-  it("Cognizant Technology Solutions has only one entry", () => {
+  it("Cognizant Technology Solutions has only one entry with clean 'US' suffix", () => {
     const cognizant = data.filter((e) =>
       (e.n ?? "").toLowerCase().startsWith("cognizant technology solutions")
     );
     expect(cognizant).toHaveLength(1);
     expect(cognizant[0].f).toBeGreaterThan(150000); // merged filing count
+    expect(cognizant[0].n).toBe("Cognizant Technology Solutions US"); // "Us" fixed to "US"
   });
 
   it("Cognizant Worldwide has only one entry (no Worrldwide)", () => {
@@ -380,12 +378,11 @@ describe("Employer name consolidation in _search.json", () => {
     expect(kelly).toHaveLength(1);
   });
 
-  it("Ernst Young U S has only one entry (U S / Us variants merged)", () => {
-    const ey = data.filter((e) => {
-      const name = (e.n ?? "").toLowerCase();
-      return name === "ernst young u s" || name === "ernst young us";
-    });
+  it("Ernst Young US has only one entry (U S / Us variants merged, name cleaned to US)", () => {
+    // clean_canonical_name normalizes "Ernst Young U S" → "Ernst Young US"
+    const ey = data.filter((e) => (e.n ?? "").toLowerCase() === "ernst young us");
     expect(ey).toHaveLength(1);
+    expect(ey[0].n).toBe("Ernst Young US"); // proper capitalization
     expect(ey[0].f).toBeGreaterThan(90000);
   });
 

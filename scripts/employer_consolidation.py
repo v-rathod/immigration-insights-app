@@ -43,6 +43,26 @@ def normalize_employer_name(name: str) -> str:
     return key
 
 
+def clean_canonical_name(name: str) -> str:
+    """
+    Fix abbreviation capitalization in the canonical employer name.
+
+    DOL/USCIS data often has all-caps names (e.g. "COGNIZANT TECHNOLOGY SOLUTIONS US")
+    which get title-cased to "Cognizant Technology Solutions Us". This re-applies
+    proper casing for known abbreviations.
+    """
+    # Fix "U S" (space-separated) → "US"
+    name = re.sub(r'\bU S\b', 'US', name)
+    # Fix title-cased abbreviation at word boundary: "Us" → "US" (country code)
+    # Use negative lookbehind to avoid affecting words like "Focus", "Bonus"
+    name = re.sub(r'(?<=[A-Za-z0-9] )Us\b', 'US', name)
+    # Fix other common title-case manglings of company abbreviations
+    name = re.sub(r'\bLlc\b', 'LLC', name)
+    name = re.sub(r'\bLlp\b', 'LLP', name)
+    name = re.sub(r'\bN\.a\b', 'N.A.', name)
+    return name
+
+
 def build_consolidation_map(entries: list[dict]) -> dict[str, list[dict]]:
     """
     Group entries by their normalized canonical key.
@@ -79,7 +99,10 @@ def consolidate_entries(entries: list[dict]) -> list[dict]:
 
     for key, group in groups.items():
         if len(group) == 1:
-            consolidated.append(group[0])
+            # Still apply name cleaning to single entries (fix "Us"→"US" etc.)
+            entry = dict(group[0])
+            entry["n"] = clean_canonical_name(entry["n"])
+            consolidated.append(entry)
             continue
 
         # Sort by filings desc, then by having a shard id, then by having SRS score
@@ -127,7 +150,7 @@ def consolidate_entries(entries: list[dict]) -> list[dict]:
                 break
 
         merged = {
-            "n": canonical["n"],
+            "n": clean_canonical_name(canonical["n"]),  # fix "Us"→"US", "Llc"→"LLC" etc.
             "id": emp_id,
             "f": total_filings,
             "sc": max_soc,

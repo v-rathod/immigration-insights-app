@@ -68,7 +68,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
 ### Current Project Status (as of Mar 17, 2026)
-- **P3**: ✅ **985 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case) + entity resolution (199 merges), live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
+- **P3**: ✅ **986 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, SRS detail card surfaces PERM/H-1B/GC signals, all 9 dashboards live with interactive tech stack, 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, employer name normalization (ALL-CAPS→Title Case) + entity resolution (199 merges) + abbreviation fix (Us→US), live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
 - **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
 - **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
 - **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
@@ -80,6 +80,13 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
 
 ### Recent Session Notes (Mar 20, 2026)
+**Milestone 10.80 Complete**: Search Sort + Dropdown + Canonical Name Fixes
+- **P3**: Fixed Insights page smart-sort — added `n_36m: e.total_filings` to asScores mapping (was 0 before, breaking volume ranking) ✅
+- **P3**: Fixed employer search dropdown position race condition — synchronous `setDropdownPos` in debounce callback, scroll+resize listeners ✅
+- **P3**: Fixed canonical names: `clean_canonical_name()` converts "Us"→"US", "U S"→"US", "Llc"→"LLC"; applied to all 102,225 entries ✅
+- **P3**: 986 tests (32 files), 0 ESLint errors ✅
+
+**Previous Session Notes (Mar 20, 2026)**
 **Milestone 10.79 Complete**: Employer Entity Resolution + Tooltip & Dropdown Fixes
 - **P3**: Created `scripts/employer_consolidation.py` — regex-based entity resolution (normalizes "U S"→"US", collapses repeated chars, merges duplicates) ✅
 - **P3**: 199 employer groups merged (102,424 → 102,225 entries): Cognizant TS (152K filings), Ernst Young (96K), Deloitte Touche (25K) ✅
@@ -611,7 +618,7 @@ Existing e2e specs:
 - **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
 - **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
 - **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 985 tests across 32 files (all passing)
+- **Current count**: 986 tests across 32 files (all passing)
 - **Live-data tests (MANDATORY pattern)**: Tests that load from `public/data/` (gitignored, absent in CI) MUST use the `DATA_AVAILABLE` guard pattern — NEVER call `readFileSync` at module top level on gitignored paths (it crashes CI before Vitest can skip anything):
   ```typescript
   const DATA_AVAILABLE = existsSync(dataPath);
