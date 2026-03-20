@@ -67,69 +67,50 @@ cd /Users/vrathod1/dev/NorthStar/immigration-model-builder
 cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 ```
 
-### Current Project Status (as of Mar 20, 2026)
-- **P3**: ✅ **986 TESTS PASSING** (32 files), TypeScript strict, ESLint 0 errors, all 3 post-M10.79 defects now fixed: (1) Insights smart-sort works (n_36m field), (2) employer name canonical forms clean ("US" not "Us"/"U S"), (3) dropdown vertical alignment correct (portal escapes Framer Motion transforms), 94K+ employer shards with full wage + SRS + LCA + H1B data inline, EB category velocity 10-year rolling window, live-data regression test suite for Optum + VB/PD pipeline, USA choropleth heatmap with state drill-down, full SEO (all 16 pages: title/description/keywords/canonical/OG; JSON-LD on 12 pages; llms.txt; manifest.webmanifest; 9 AI bot directives), 3-tier environments (dev/stage/prod), AWS CloudFront deployed, GitHub Actions workflow stable
-- **P2**: April 2026 Visa Bulletin ingested, artifacts rebuilt: category_movement_metrics (6,605 rows, 2016-04 to 2026-04), pd_forecasts (1,320 rows, 55 series × 24m), all 46 data artifacts + 341 RAG chunks export successfully
-- **P1**: April 2026 Visa Bulletin fetched (169 PDFs total, 2011–2026)
-- **Note**: Ask/Chat RAG feature deferred to future phases; Groq & OpenAI LLM tools removed from current scope
+### Current Project Status
+
+**Live Status**: Check [`PROGRESS.md`](../PROGRESS.md) for latest milestones and current state (updated with every change).
+
+**Quick Facts** (baseline):
+- **P3 Tests**: 986 passing (32 files) | **TypeScript**: Strict mode ✅ | **ESLint**: 0 errors ✅
+- **Architecture**: Static export (no backend). AWS cost ~$1–3/month (S3 + CloudFront)
+- **Dashboards**: 8 deployed + Insights personalization + geographic heatmap
+- **Data**: 102K+ employer shards, full wage/SRS/LCA/H1B metrics inline
+- **SEO**: All 16 pages with metadata, JSON-LD structured data, llms.txt, manifest
 
 ### Common Workflow Patterns
 1. **Modify P3 code** → Run `npm test` → Run `npm run build` → Commit to git
 2. **Sync new P2 data** → Run `python3 scripts/sync_p2_data.py` → Update types/loaders → Commit
 3. **Check P2 artifacts** → `cd ../immigration-model-builder && python3 -c "import pandas as pd; ..."`
-4. **Update documentation** → Edit `.md` files → Commit (must keep PROGRESS.md + copilot-instructions.md current)
+4. **Update documentation** → Edit relevant `.md` files → Commit
+   - **Session notes / milestones** → `PROGRESS.md` (source of truth, timestamped)
+   - **Strategic guidance / patterns** → `copilot-instructions.md` (this file, high-level only)
+   - **Other doc changes** → Parent directory `.md` files if needed (context matters)
 
-### Recent Session Notes (Mar 20, 2026)
-**Milestone 10.81 Complete**: Dropdown Position Portal Fix (CSS Transform Escape)
-- **Root cause**: Framer Motion `FadeIn` applies `transform: translateY(0)`, creating CSS containing block that hijacks `position: fixed` anchoring
-- **Diagnosis**: Playwright measured input bottom=403px, but visual dropdown appeared at 552px (149px offset!)
-- **P3**: Fixed via React `createPortal()` — compact dropdown now renders into `document.body` outside all CSS transforms ✅
-- **Verification**: Portal fix correct — visual position now 407px (4px gap as intended, was 149px) ✅
-- **P3**: 986 tests still passing (32 files), zero ESLint errors ✅
-- **Deployed**: Stage deployment in progress
+### 📋 For Latest Project Status and Milestone History
 
-**Previous Milestone (Mar 20, 2026) — Milestone 10.80**: Search Sort + Dropdown + Canonical Name Fixes
-- **P3**: Fixed Insights page smart-sort — added `n_36m: e.total_filings` to asScores mapping (was 0 before, breaking volume ranking) ✅
-- **P3**: Fixed employer search dropdown position race condition — synchronous `setDropdownPos` in debounce callback, scroll+resize listeners ✅
-- **P3**: Fixed canonical names: `clean_canonical_name()` converts "Us"→"US", "U S"→"US", "Llc"→"LLC"; applied to all 102,225 entries ✅
-- **P3**: 986 tests (32 files), 0 ESLint errors ✅
+**READ: [`PROGRESS.md`](../PROGRESS.md)** — Single source of truth for all work completed.
+- Every milestone is **timestamped** (date + time) for easy reference
+- Includes: objective, root causes, what was done, results, files modified, next steps
+- Sessions are organized chronologically (newest first)
 
-**Earlier Session (Mar 20, 2026) — Milestone 10.79**: Employer Entity Resolution + Tooltip & Dropdown Fixes
-- **P3**: Created `scripts/employer_consolidation.py` — regex-based entity resolution (normalizes "U S"→"US", collapses repeated chars, merges duplicates) ✅
-- **P3**: 199 employer groups merged (102,424 → 102,225 entries): Cognizant TS (152K filings), Ernst Young (96K), Deloitte Touche (25K) ✅
-- **P3**: Fixed Insights page employer dropdown — compact mode uses fixed positioning to escape overflow-hidden parent ✅
-- **P3**: Fixed geographic tooltip — viewport-aware clamping (flipX/flipY) for eastern states ✅
-- **P3**: 23 new tests (985 total across 32 files), zero ESLint errors, clean TypeScript compile ✅
+**Do NOT** seek latest status from this file — it becomes stale. Always check PROGRESS.md for current state.
 
-**Earlier Session (Mar 19, 2026) — Milestone 10.78**: USA Choropleth Heatmap + State Drill-Down
-- **P3**: Built interactive USA choropleth map (`UsaChoropleth` component) using `react-simple-maps` v3 + us-atlas TopoJSON (114KB) ✅
-- **P3**: 9-stop sequential color scale (navy → blue → green → amber → red), animated tooltips, click-to-select ✅
-- **P3**: Map/Table view toggle, "Color by" metric selector, state detail drill-down panel with rank badges ✅
-- **P3**: 7 new tests (963 total across 32 files), zero ESLint errors, clean TypeScript compile ✅
+### 🔧 Standing Instructions (Critical)
 
-**Previous Session (Mar 18, 2026) — Milestone 10.75**: UI Copy Polish — Em-Dash Sweep + AI Marker Removal
-- **P3**: Swept all `—` / `&mdash;` from user-facing JSX across 11 files (kept en-dashes in numeric ranges; `score-gauge` unrated placeholder changed from `—` to `N/A`) ✅
-- **P3**: "Understanding the Visa Bulletin" section replaced with "How Compass Models Priority Date Movement" — shorter, model-first, no VB 101 ✅
-- **P3**: AI markers removed: "Discover" → "Track"; "unlock personalized insights" → "see personalized data" ✅
-- **P3**: Bug fix: `ApprovalDenialDashboard` stale path `/setup` → `/insights` ✅
-- **Testing**: 948 tests passing (32 files), 2 assertions updated ✅
-- **Deployment**: Deployed to AWS CloudFront via `bash scripts/deploy.sh` ✅
-
-**Previous Session (Mar 17, 2026) — Milestone 10.74**: MCRA FAD Fix + Copy Accessibility Rewrite
-- **P2**: Fixed MCRA FAD "unable to estimate" — capped setback draws at 60d, added 30% velocity floor ✅
-- **P3**: Re-synced `pd_forecasts_retrograde.json` — 0 negative velocities (was 9/24), FAD EB2/IND → Sep 2030 ✅
-- **P3**: Fixed `browser-smoke-test.test.ts` for Vitest 4 API + server-guard ✅
-
-**Key Metrics**:
-- 12m rolling avg (current momentum) vs 10yr avg (long-run rate) both visible on cards
-- Data window dynamic in P2 (always last 10 years), fixed at build in P3
-- EB2 ≥ EB3 now holds correctly across all countries/charts in 10yr window
-
-**Standing Instructions**:
+**Deployment:**
 - Do NOT deploy to AWS without explicit user request
 - When deploying, **ALWAYS use `bash scripts/deploy.sh`** — NEVER run `aws s3 sync` directly
   - `deploy.sh` runs pre-flight checks, uses `--exact-timestamps`, and runs post-deploy smoke tests
-  - Raw `aws s3 sync` without `--exact-timestamps` will skip re-uploading stale HTML, causing CSS hash mismatches that break all page styling (past incident: Mar 17, 2026)
+  - Raw `aws s3 sync` without `--exact-timestamps` will skip re-uploading stale HTML, causing CSS hash mismatches that break all page styling
+
+**Documentation:**
+- After completing ANY feature/fix: (1) Update PROGRESS.md with **timestamped milestone**, (2) Update parent docs if architectural changes, (3) DO NOT duplicate in copilot-instructions.md
+
+**Test Quality:**
+- All code changes require `npm test` passing (986+ tests across 32 files as baseline)
+- TypeScript strict mode + ESLint 0 errors (non-negotiable)
+- Mobile tests required for UI changes (see Rule 21 in Mobile-First Development below)
 
 ---
 
@@ -250,39 +231,11 @@ npm run build    # Outputs to out/ (static HTML/CSS/JS)
 
 ---
 
-## Design System — "Aurora"
+## 🎨 Design & UI Standards
 
-### Aesthetic
-**Linear / Vercel / Raycast-inspired** — dark-first, glassmorphism, fluid micro-interactions, bold typography. Award-winning modern sleek UI.
+**→ Read [UI_DESIGN_PRINCIPLES.md](./UI_DESIGN_PRINCIPLES.md)** for the complete Aurora design system, color tokens, component conventions, and visual philosophy.
 
-### Color Tokens (CSS variables in globals.css)
-```
---background:      Dark: #09090b    Light: #fafafa
---foreground:      Dark: #fafafa    Light: #09090b
---card:            Dark: rgba(255,255,255,0.03)
---accent-blue:     #3b82f6
---accent-purple:   #8b5cf6
---accent-emerald:  #10b981
---accent-amber:    #f59e0b
---accent-rose:     #f43f5e
---gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6)
-```
-
-### Signature Patterns
-- **Glassmorphic cards**: `backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-2xl`
-- **Gradient text**: `bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent`
-- **Number tickers**: Animated count-up on stat cards (Framer Motion)
-- **Staggered reveals**: Dashboard cards animate in sequence on page load
-- **Chart glow**: Subtle glow effect on chart hover states
-- **Typography**: Geist Sans for UI, Geist Mono for data/numbers
-- **Generous whitespace**: Let the data breathe
-
-### Component Conventions
-- All components in `src/components/` use `"use client"` only when needed (event handlers, state, effects)
-- Naming: PascalCase files matching component name (`StatCard.tsx`, `ChartContainer.tsx`)
-- shadcn/ui primitives in `src/components/ui/` — do not modify these directly
-- Custom components wrap shadcn/ui with Aurora design tokens
-- All charts wrapped in `<ChartContainer>` with consistent theming
+**→ Read [SECURITY_UI_COPY_GUIDE.md](./SECURITY_UI_COPY_GUIDE.md)** for copy rules (no em-dashes, no AI markers) and UI text standards.
 
 ---
 
@@ -431,73 +384,9 @@ bash scripts/browser-smoke-test.sh  # Run simple curl-based smoke test (alternat
 9. **No em-dashes** — NEVER use `—` or `&mdash;` in user-facing text or JSX. Use `:` for labels, `,` or `;` for prose, `|` for metadata separators. En-dashes (`–`, `&ndash;`) in numeric ranges are correct and must stay.
 10. **No AI markers** — NEVER use the following words in user-facing copy: *unlock*, *discover*, *journey*, *empower*, *leverage*, *seamless*, *comprehensive*, *cutting-edge*, *revolutionize*, *delve*, *dive*, *holistic*, *tailored*, *supercharge*, *game-changing*, *transform* (when used as marketing filler). Use plain, direct language instead.
 
----
+## 📱 Mobile Development
 
-## Mobile-First Development (MANDATORY)
-
-Compass is used heavily on mobile. Every UI change must be verified at iPhone 14 resolution (390×844px). These rules apply to all future component and page changes.
-
-### Viewport Target
-- **Primary mobile baseline**: iPhone 14 — 390px wide, 844px tall, touch-enabled
-- **Breakpoint reference**: `sm:` = 640px, `md:` = 768px, `lg:` = 1024px. On iPhone 14 (390px), nothing above `sm:` is active.
-
-### 11 Mobile Rules
-
-11. **Touch targets ≥ 44px** — All interactive elements (buttons, links, pills, toggles) must be at least 44px tall. This is WCAG 2.1 AA. Use `py-3` minimum for buttons and `py-2 sm:py-1` for pills. Verify with Playwright `boundingBox()`.
-
-12. **No fixed pixel widths without overflow-hidden** — Never use `w-[Npx]` or `max-w-[Npx]` on elements that could hold dynamic or varying text content. When fixed widths are needed (e.g. a date input), ensure the parent has `overflow-hidden` or the element is capped with `w-full sm:max-w-[Npx]`.
-
-13. **No horizontal overflow** — `document.documentElement.scrollWidth` must never exceed `clientWidth` at 390px. The Playwright helper `expectNoHorizontalOverflow()` (defined in every `e2e/` spec) checks this. Any new page section that uses negative margins or absolute-positioned wide elements MUST be wrapped in `overflow-hidden`.
-
-14. **Responsive stacking** — Default to `flex-col` for button groups, CTAs, and form rows. Use `sm:flex-row` to unlock side-by-side layout at 640px+. Never use `flex-row` alone without a responsive override.
-
-15. **Responsive grids** — Use `grid-cols-1` as mobile base. Add `sm:grid-cols-N` for small-screen grids and `lg:grid-cols-M` for desktop. Quick reference: stat cards use `grid-cols-2`, quick access uses `grid-cols-1 sm:grid-cols-3`, dashboard grid uses `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`.
-
-16. **Active states, not just hover** — `hover:` styles are invisible on touch devices. For all interactive surfaces, pair `hover:` with `active:` (e.g. `hover:bg-white/10 active:bg-white/15`). For links and buttons, `active:scale-[0.98]` provides haptic-like feedback.
-
-17. **Avoid 100vw or full-bleed widths without containment** — `w-screen`, `100vw`, and negative margin patterns (`-mx-4`) must be wrapped in `overflow-hidden` on the parent.
-
-18. **Font sizes ≥ 12px** — Never use `text-[Npx]` below 12px in body copy. The `text-[9px]` exception is only for decorative micro-badges (e.g. the tech stack badges on quick-access cards) where the text is non-essential.
-
-19. **SVG/canvas containers must be responsive** — Never set `width={N}` and `height={N}` on SVG elements with fixed pixel values that could clip on mobile. Use `width="100%" height="100%"` inside a container with `max-w-[Npx]` and `aspect-ratio`. See `score-gauge.tsx` as the reference implementation.
-
-20. **Recharts wrappers must use percentage widths** — Use `<ResponsiveContainer width="100%" height={N}>` for all chart wrappers. Never set a fixed pixel width on `ResponsiveContainer`.
-
-21. **Run Playwright mobile tests after every page-level UI change** — Any change to a page component that has a corresponding `e2e/[page]-mobile.spec.ts` file must pass all its mobile tests before committing. Run with `npx playwright test [name]-mobile`.
-
-### When to add a new Playwright mobile spec
-Add `e2e/[page]-mobile.spec.ts` for:
-- Any new page route (copy `home-mobile.spec.ts` as a template)
-- Any major UI refactor of an existing page (new sections, rearranged layout)
-- Any new page that has interactive elements (filters, inputs, toggles, navigation)
-
-Existing e2e specs:
-| File | Page | Tests |
-|------|------|-------|
-| `e2e/pd-cortex-mobile.spec.ts` | `/dashboard/visa-bulletin` | 44 |
-| `e2e/home-mobile.spec.ts` | `/` (home/landing) | 41 |
-
-### Reference implementation patterns
-
-```tsx
-{/* BAD — fixed px width will clip on mobile */}
-<input className="w-[200px]" />
-
-{/* GOOD — full width on mobile, capped on tablet+ */}
-<input className="w-full sm:max-w-[200px]" />
-
-{/* BAD — buttons side-by-side on mobile (no room at 390px) */}
-<div className="flex flex-row gap-3">
-
-{/* GOOD — stack on mobile, row on tablet+ */}
-<div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-
-{/* BAD — pill with tiny touch target */}
-<button className="px-3 py-1 text-xs">EB2</button>
-
-{/* GOOD — adequate touch target on mobile */}
-<button className="px-3 py-2 sm:py-1 text-xs">EB2</button>
-```
+**→ Read [MOBILE_DEVELOPMENT_GUIDE.md](./MOBILE_DEVELOPMENT_GUIDE.md)** for 11 mandatory mobile rules (44px touch targets, responsive grids, no horizontal scroll), Playwright E2E testing patterns for iPhone 14, and responsive implementation examples.
 
 ---
 
@@ -613,336 +502,68 @@ Existing e2e specs:
 - [x] GitHub Actions CI/CD (Milestone 10.61 — 628 tests, 0 lint errors, TypeScript strict)
 - [ ] Data freshness banner
 
----
+## 🧪 Testing & Quality Assurance
 
-## Testing Strategy
+**→ Read [TEST_AUDIT.md](./TEST_AUDIT.md)** for test status (986 tests passing), test organization, execution commands, and live-data test patterns.
 
-- **Framework**: Vitest 4.x + React Testing Library + happy-dom
-- **Coverage**: Every component, utility, and data loader must have tests
-- **Test location**: `src/__tests__/` — colocated by feature
-- **Config**: `vitest.config.mts` (ESM required for Vite 7+)
-- **Run**: `npm test` (single run), `npm run test:watch` (dev), `npm run test:coverage`
-- **Setup**: `src/__tests__/setup.ts` — mocks for matchMedia, IntersectionObserver, localStorage
-- **Mocking**: Mock `framer-motion` for component tests, mock `next/navigation` and `next/link` for routing
-- **Isolation**: localStorage is cleared between tests via `beforeEach`
-- **Current count**: 986 tests across 32 files (all passing)
-- **Live-data tests (MANDATORY pattern)**: Tests that load from `public/data/` (gitignored, absent in CI) MUST use the `DATA_AVAILABLE` guard pattern — NEVER call `readFileSync` at module top level on gitignored paths (it crashes CI before Vitest can skip anything):
-  ```typescript
-  const DATA_AVAILABLE = existsSync(dataPath);
-  if (!DATA_AVAILABLE) console.warn("[test] public/data/ not found — tests will be SKIPPED");
-  describe.skipIf(!DATA_AVAILABLE)("suite name", () => { ... });
-  ```
+**Quick facts:**
+- **986 tests across 32 files** — All passing
+- **Framework**: Vitest 4.x + React Testing Library + Playwright
+- **Run**: `npm test` (unit/component), `npx playwright test` (E2E)
+- **Coverage**: Every component, utility, and data loader tested
+- **CI/CD**: GitHub Actions validates before merge (zero failures required)
 
----
+## 🔒 Security
 
-## Security Principles
+**→ Read [SECURITY_UI_COPY_GUIDE.md](./SECURITY_UI_COPY_GUIDE.md)** for 8 non-negotiable security principles (input sanitization, XSS prevention, prototype pollution defense, route allowlisting, URL sanitization, secure storage, CSP headers, no secrets in client).
 
-1. **Input sanitization** — All user input validated and sanitized before use (`src/lib/security/index.ts`)
-2. **XSS prevention** — `escapeHtml()`, `stripHtml()`, `sanitizeTextInput()` for all user-facing text
-3. **Prototype pollution defense** — `secureSet()` blocks `__proto__` and `constructor` in serialized data
-4. **Route allowlisting** — `isAllowedPath()` prevents open redirect attacks
-5. **URL sanitization** — `sanitizeUrl()` blocks `javascript:`, `data:`, `vbscript:` protocols
-6. **Secure storage** — All localStorage access through `secureGet/Set/Remove/ClearAll` with `compass_` prefix
-7. **CSP headers** — Content-Security-Policy configured for CloudFront deployment (`src/lib/security/headers.ts`)
-8. **No secrets in client** — Zero API keys, tokens, or credentials in the codebase
+**Quick checklist:**
+- Use `sanitizeTextInput()` for user text
+- Use `secureGet/Set/Remove/ClearAll()` for localStorage
+- Use `escapeHtml()` for DOM output
+- Never store API keys or passwords in client code
+- Run `npm test -- security` before commit
 
 ---
 
-## SEO & AI Agent Strategy (MANDATORY for all new pages/routes)
+## 🔍 SEO & AI Agent Discovery
 
-### Per-Page Metadata Requirements
-Every page MUST have a `layout.tsx` (or metadata export in `page.tsx` for server pages) with:
-- **title** — unique, descriptive, keyword-rich
-- **description** — 150-300 chars, includes primary keywords
-- **keywords** — 8-19 relevant terms
-- **canonical URL** — `alternates.canonical` pointing to production URL with trailing slash
-- **Open Graph** — title, description, url, images array with 1200x630 `og-image.png`
-
-### JSON-LD Structured Data
-Add JSON-LD `<script type="application/ld+json">` where applicable:
-- **FAQPage** — for dashboards with natural questions (use 2-5 real questions users would ask)
-- **Dataset** — for dashboards showing tabular data with temporal/spatial coverage
-- **WebApplication** — for interactive tool pages (e.g., `/insights`)
-- **AboutPage** — for `/about`
-- Root layout has `@graph` with WebSite + WebApplication + Organization
-
-### AI Agent Discoverability
-- **`public/llms.txt`** — structured overview of site for LLM ingestion (llmstxt.org standard). Update when adding new pages/features.
-- **`public/robots.txt`** — explicit `Allow: /` for 9 named AI crawlers. Add new crawlers as they emerge.
-- **`public/manifest.webmanifest`** — web app manifest for mobile "Add to Home Screen" and PWA metadata.
-
-### When to Update SEO Files
-| Change | Required update |
-|--------|----------------|
-| **New page route** | Create `layout.tsx` with full metadata. Add to `sitemap.xml`. Add description to `llms.txt`. |
-| **New dashboard** | Add JSON-LD (FAQPage or Dataset). Update `sitemap.xml`. Update `llms.txt` page list. |
-| **Dashboard renamed** | Update title, description, URLs in metadata + sitemap + llms.txt. |
-| **Feature added** | Update featureList in root layout JSON-LD. Update `llms.txt` feature list. |
-| **Page removed** | Remove from sitemap, llms.txt, and any layout.tsx. |
-
-### Multi-Environment Deployment
-Three tiers via `NEXT_PUBLIC_APP_ENV`:
-| Environment | URL | Config |
-|-------------|-----|--------|
-| `dev` | `http://localhost:3000` | `.env.local` |
-| `stage` | `https://d10immmzyp7xgr.cloudfront.net` | `.env.stage` + `scripts/deploy-envs.conf` |
-| `prod` | Custom domain (TBD) | `.env.production` + `scripts/deploy-envs.conf` |
-
-Deploy: `bash scripts/deploy.sh --env stage` or `--env prod`. See `ENVIRONMENTS.md`.
+**→ Read [SEO_STRATEGY.md](./SEO_STRATEGY.md)** for per-page metadata requirements, JSON-LD structured data, AI crawler optimization, and multi-environment deployment strategy.
 
 ---
 
-## Design Editorial — "Apple Quality Standard"
+## 🏗️ Architecture & Decisions
 
-### Visual Bar
-Every pixel must justify its existence. The UI should feel like it was crafted by Apple's design team — precise, intentional, and delightful. Zero clutter, zero noise.
-
-### Key Principles
-- **Clarity over cleverness** — Data should be immediately comprehensible
-- **Generous whitespace** — Let content breathe; never crowd
-- **Purposeful animation** — Every motion communicates state change, never decorative
-- **Dark-first luxury** — The dark theme is the primary experience; it should feel premium
-- **Glass and depth** — Glassmorphic layers create visual hierarchy without heavy borders
-- **Typography hierarchy** — Geist Sans for UI text, Geist Mono for data/numbers; clear size steps
-- **Color restraint** — Use accent colors sparingly and meaningfully; gradient text for headlines only
-
-### Animation Standards
-- Easing: `[0.25, 0.1, 0.25, 1]` (cubic bezier) for all transitions
-- Stagger: 50ms between sequential card reveals
-- Duration: 200ms for micro-interactions, 400ms for page transitions
-- Number tickers: Spring animation for stat counters on viewport entry
-- Never block interaction for animation completion
+**→ Read [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md)** for rationale behind key technical choices, technology stack decisions, data flow patterns, and strategic trade-offs.
 
 ---
 
-### Current File Inventory (as of Milestone 10.73)
+## 📂 Codebase Organization
 
-### Source Files (75+ files)
+**→ Read [CODEBASE_INVENTORY.md](./CODEBASE_INVENTORY.md)** for complete file inventory, directory structure, and quick navigation by feature/type.
 
-**App Pages**
-| File | Purpose |
-|------|------|
-| `src/app/layout.tsx` | Root layout — Geist fonts, ThemeProvider + AppShell wrapper, blocking theme script in `<head>`, suppressHydrationWarning |
-| `src/app/page.tsx` | Landing page — hero, stats, 9 dashboards (neutral catalog), value props |
-| `src/app/globals.css` | Aurora design tokens — CSS custom properties for dark/light, gradients, glassmorphic effects |
-| `src/app/about/page.tsx` | About page — personal story, guiding principles, data sources, pipeline, tech stack, CTA |
-| `src/app/privacy/page.tsx` | Privacy Policy — zero data collection, local storage only, no cookies/tracking |
-| `src/app/terms/page.tsx` | Terms of Use — not legal advice, data accuracy, open source license |
-| `src/app/dashboard/employer/page.tsx` | SRS Dashboard — employer search, score gauge, detail card, trend chart, methodology |
-| `src/app/dashboard/visa-bulletin/page.tsx` | PDI Dashboard — reactive category/country/PD selectors, DFF vs FAD chart, prediction cards, velocity stats, methodology |
-| `src/app/dashboard/wage/page.tsx` | Wage Intelligence Hub — dual-mode search (employer default / role), EmployerProfile drill-down, WageGrowthLeaderboard, SOC stat cards + benchmark tabs |
-| `src/app/dashboard/eb-category/page.tsx` | EB Category Comparison — country pills, DFF/FAD toggle, EB1/EB2/EB3 summary cards, velocity AreaChart, volatility BarChart |
-| `src/app/dashboard/geographic/page.tsx` | Geographic Heatmaps — dataset selector, sort-by metric, KPI cards, top 15 states BarChart, sortable data table |
-| `src/app/dashboard/job-demand/page.tsx` | Occupation Demand — window/source pills, top 15 occupations BarChart, major group summary, searchable detail table |
-| `src/app/dashboard/processing/page.tsx` | Processing Speed — KPI cards, ComposedChart (EB pending + approval rate), throughput BarChart, USCIS forms table |
-| `src/app/dashboard/backlog/page.tsx` | Backlog Visualization — country/chart selectors, summary cards, AreaChart timeline, queue position lookup |
-| `src/app/ask/page.tsx` | Ask page — RAG-powered Q&A with 3-tier search (QA cache + chunks + cloud LLM via Groq), topic filter pills, suggested questions, AI answer button, result cards with expand/collapse |
-| `src/app/insights/page.tsx` | My Insights page — 7-field collapsible profile card, 3 smart panels (Green Card Forecast, Sponsor, Salary), localStorage persistence via secureGet/secureSet |
-
-**Components — Layout**
-| File | Purpose |
-|------|------|
-| `src/components/layout/sidebar.tsx` | Full sidebar nav — 13 items in 6 groups (Main/Insights/Dashboards/Tools/Project/Personal), Insights group promotes PDI + SRS, collapse (240→60px), mobile hamburger + overlay, keyboard escape, aria-current |
-| `src/components/layout/app-shell.tsx` | Root shell — Sidebar + scrollable main with `lg:ml-[240px]`, `max-w-7xl`, Footer after content, FeedbackWidget floating |
-| `src/components/layout/footer.tsx` | Site-wide footer — brand, 3 link columns (Dashboards/Tools/Project), data source badges, copyright |
-| `src/components/layout/index.ts` | Barrel export |
-
-**Components — UI**
-| File | Purpose |
-|------|------|
-| `src/components/ui/glass-card.tsx` | Glassmorphic card — variants: default/elevated/interactive/accent, padding: none/sm/md/lg, Framer Motion fade-in, optional glow |
-| `src/components/ui/number-ticker.tsx` | Animated counter — useSpring + IntersectionObserver viewport trigger, configurable format/prefix/suffix |
-| `src/components/ui/stat-card.tsx` | Stat display — NumberTicker + TrendBadge (up/down/neutral), LucideIcon prop |
-| `src/components/ui/animations.tsx` | StaggerContainer, StaggerItem, FadeIn (up/down/left/right), ScaleIn, GlowPulse |
-| `src/components/ui/theme-toggle.tsx` | 3-way toggle — Sun/Moon/Monitor icons, role="radiogroup", aria-checked |
-| `src/components/ui/feedback-widget.tsx` | Unified FAB (Floating Action Button) — Plus/X rotating trigger, mini-menu with 2 items (Ask NorthStar link + Send Feedback button), glassmorphic feedback dialog with 3 categories (feedback/feature/bug), textarea with char limit, GitHub Issues integration; auto-hides Ask item on /ask page; route-change detection closes menu |
-| `src/components/ui/contact-modal.tsx` | ContactModal — Framer Motion dialog with Name/Email/Subject/Message fields; Formspree submission → email to v.s.rathod@gmail.com; fallback to mailto: if NEXT_PUBLIC_FORMSPREE_ID not set; success/error states; ContactButton self-contained trigger for use in server components |
-| `src/components/ui/index.ts` | Barrel export |
-
-**Components — SRS (Sponsor Reliability Score)**
-| File | Purpose |
-|------|------|
-| `src/components/srs/employer-search.tsx` | Fuzzy search autocomplete — Fuse.js, 150ms debounce, keyboard nav, ARIA combobox, glassmorphic dropdown |
-| `src/components/srs/score-gauge.tsx` | Animated SVG arc gauge — 270° arc, Framer Motion spring, subscore breakdown bars, ML badge |
-| `src/components/srs/employer-detail-card.tsx` | Key metrics grid — approval/denial rates, cases, wage ratio, SOC/site breadth |
-| `src/components/srs/trend-chart.tsx` | Recharts AreaChart — monthly filings/approvals/denials with gradient fills, custom tooltip |
-| `src/components/srs/srs-overview.tsx` | Aggregate stats bar — total/rated employer counts, avg score, tier distribution stacked bar |
-| `src/components/srs/index.ts` | Barrel export |
-
-**Components — PDI (Priority Date Index)**
-| File | Purpose |
-|------|------|
-| `src/components/pdi/pdi-quick-look.tsx` | Interactive PDC widget — category/country/chart selectors, SVG sparkline, velocity stats, loads pd_forecasts.json (342KB). Currently unused; reserved for Visa Bulletin dashboard. |
-| `src/components/pdi/srs-teaser.tsx` | Static SRS teaser card — hardcoded stats (70K employers), decorative gauge, feature checklist, search placeholder. Currently unused; reserved for future use. |
-| `src/components/pdi/priority-date-chart.tsx` | Unified PriorityDateChart — single continuous timeline: historical DFF/FAD (solid lines) + forecast DFF/FAD (dashed lines) + PD reference (green); bridge logic connects last actual point to first forecast; 530 lines |
-| `src/components/pdi/index.ts` | Barrel export |
-
-**Components — Wage Intelligence**
-| File | Purpose |
-|------|------|
-| `src/components/wage/WageIntelligenceHub.tsx` | Main orchestrator — dual-mode search (`employer` default / `role`), two Fuse.js indices, EmptyStateEmployer (Top H-1B quick picks) + EmptyStateRole (popular SOC quick picks), mode-exclusive selection (selectedEmployer XOR selectedSoc), loads `employer_role_profiles.json` (employer-centric 485 employers × top-25 roles) and `employer_role_trends.json` (multi-year percentile data), passes both as props to EmployerProfile |
-| `src/components/wage/EmployerProfile.tsx` | Employer deep-dive — 4-up growth badges (CAGR, YoY, streak, total filings), AreaChart (FY trend), top roles table with search + clickable drill-down; accepts `roleTrends?: EmployerRoleTrend[]` for inline percentile charts; shows expand chevrons when trend data available |
-| `src/components/wage/RolePercentileTrend.tsx` | 5-year salary distribution chart — stacked area bands (p10/p25/median/p75/p90), OEWS reference line, TrendSummary badges (median growth, salary range, filings), rich tooltip with all percentiles |
-| `src/components/wage/WageGrowthLeaderboard.tsx` | "Rising Stars" leaderboard — ranks employers by 5-yr CAGR; currently hidden from render but kept in codebase for future use |
-
-**Components — Geographic**
-| File | Purpose |
-|------|------|
-| `src/components/geo/usa-choropleth.tsx` | Interactive USA choropleth map — react-simple-maps + us-atlas TopoJSON, 9-stop color scale, hover tooltips, click-to-select, color legend, FIPS-to-state mapping, memo-optimized |
-| `src/components/geo/index.ts` | Barrel export |
-
-**Components — About**
-| File | Purpose |
-|------|------|
-| `src/components/about/tech-stack-chip.tsx` | Interactive tech stack chip — Framer Motion hover tooltip revealing 3-4 line explanation of why/where a tech tool is used; responsive tooltip with arrow; accessible aria-labels and keyboard navigation; shows Info icon on hover |
-
-**Components — Providers**
-| File | Purpose |
-|------|------|
-| `src/components/providers/theme-provider.tsx` | ThemeProvider — light/dark/system, localStorage persistence (key: compass_theme), system preference listener, blocking themeScript for `<head>` to prevent FOUC |
-| `src/components/providers/posthog-provider.tsx` | PostHogProvider — initialises posthog-js once, enables session recording (text masked), tracks `$pageview` on every route change via `usePathname`. Wraps the whole app in root layout. |
-
-**Libraries**
-| File | Purpose |
-|------|------|
-| `src/lib/data/loader.ts` | Generic JSON fetcher — loadDashboardData, loadDimensionData, loadModelData, loadRAGData |
-| `src/lib/data/srs.ts` | SRS data loaders — field remapping (efs→srs), filterOverallScores, filterRatedEmployers, mergeMLScores, getEmployerMetrics, getEmployerRisk, computeSrsStats |
-| `src/lib/data/pdi.ts` | PDI + MCRA data loaders — loadPdForecasts, loadPdForecastsRetrograde (NEW), getForecastSeries, getRetrogradeSeries (NEW), computePdi, getVelocitySummary, getRetrogradeRiskSummary (NEW), constants (charts/categories/countries/labels) |
-| `src/lib/data/wage.ts` | Wage data loaders + helpers — loadWageData, getSocBenchmarks, getEmployerRankings, getEmployerTrends, getEmployerList, computeEmployerGrowth, getTopWageGrowers, getEmployerRoles, annotateWithYoy |
-| `src/lib/data/eb-category.ts` | EB Category data loader — loadCategoryMovement, filterMovementSeries, buildCategorySummary, getAvailableCountries, COUNTRY_LABELS, EB_CATEGORIES |
-| `src/lib/data/geographic.ts` | Geographic data loader — loadGeoMetrics, getStateAggregates, getTopStates, getNationalSummary, STATE_NAMES (50+ states) |
-| `src/lib/data/soc-demand.ts` | SOC Demand data loader — loadSocDemand, loadDimSoc, enrichWithTitles, filterDemand, getTopOccupations, getMajorGroupSummary |
-| `src/lib/data/processing.ts` | Processing Speed data loader — loadProcessingTrends, loadUscisApprovals, computeProcessingKpis, aggregateByForm |
-| `src/lib/data/backlog.ts` | Backlog data loader — loadBacklogEstimates, loadQueueDepth, filterBacklog, buildBacklogSummary, getQueuePosition |
-| `src/lib/search/rag-search.ts` | RAG search engine — Fuse.js over 100 chunks + 182 QA pairs, topic filtering, getTopics, getByTopic |
-| `src/lib/search/llm-service.ts` | LLM service — 4 backends: Groq (free cloud, Llama 3.3 70B), OpenAI (prod, reserved), Ollama (local), Mock (fallback); env-var config via NEXT_PUBLIC_GROQ_API_KEY / NEXT_PUBLIC_OPENAI_API_KEY; OpenAI-compatible chat API; off-topic redirect; cached detection; exports getLlmAnswer, detectLlmBackend, getLlmBackend, isLlmEnabled |
-| `src/lib/security/index.ts` | Security module (299 lines) — escapeHtml, stripHtml, sanitizeTextInput, validateDate/CountryCode/Category/Number, secureGet/Set/Remove/ClearAll, isAllowedPath, sanitizeUrl, generateNonce |
-| `src/lib/security/headers.ts` | Security headers for CloudFront — CSP, HSTS, X-Frame-Options, Permissions-Policy |
-| `src/lib/analytics/index.ts` | PostHog analytics helpers — 21 typed event functions (`dashboardViewed`, `filterChanged`, `employerSelected`, `ragQuestionAsked`, `navItemClicked`, `contactSubmitted`, etc.). All tracking goes through `analytics.*`. Never call posthog.capture() directly. |
-| `src/lib/utils/cn.ts` | Tailwind class merger (clsx + tailwind-merge) |
-| `src/lib/utils/format.ts` | Number/date/currency formatting — formatNumber, formatCurrency, formatPercent, formatCompact, formatMonthYear, formatFullDate (UTC), formatWaitTime, srsTierColor/Bg/Hex, srsScoreToTier |
-| `src/lib/utils/index.ts` | Barrel export |
-| `src/types/p2-artifacts.ts` | TypeScript interfaces for all P2 artifact schemas |
-
-**Tests (32 files, 948 tests)**
-| File | Tests | Covers |
-|------|-------|--------|
-| `src/__tests__/setup.ts` | — | Global mocks: matchMedia, IntersectionObserver, localStorage (cleared via beforeEach) |
-| `src/__tests__/cn.test.ts` | 6 | cn() utility |
-| `src/__tests__/format.test.ts` | 33 | All format functions + srsTierColor/Bg/Hex, srsScoreToTier |
-| `src/__tests__/security.test.ts` | 48 | XSS, validation, localStorage, URL safety, nonce |
-| `src/__tests__/security-headers.test.ts` | 11 | Header values |
-| `src/__tests__/loader.test.ts` | 12 | Data loaders with mocked fetch |
-| `src/__tests__/theme-provider.test.tsx` | 6 | Theme state, toggle, persistence |
-| `src/__tests__/theme-toggle.test.tsx` | 4 | Accessibility, aria attributes |
-| `src/__tests__/glass-card.test.tsx` | 6 | Variants, glow, children |
-| `src/__tests__/sidebar.test.tsx` | 8 | Nav items, Insights group (PDI+SRS), active state, mobile |
-| `src/__tests__/landing-page.test.tsx` | 10 | Hero, stats, 9 dashboards (neutral catalog) |
-| `src/__tests__/srs-data.test.ts` | 18 | SRS data helpers + efs→srs remapping |
-| `src/__tests__/srs-components.test.tsx` | 21 | SRS components (search, gauge, detail, chart, overview) |
-| `src/__tests__/pdi-data.test.ts` | 28 + 8 MCRA** | PDI constants, getForecastSeries, computePdi, getVelocitySummary, **getRetrogradeSeries, getRetrogradeRiskSummary** |
-| `src/__tests__/pdi-components.test.tsx` | 19 | PdiQuickLook (11 tests), SrsTeaser (8 tests) |
-| `src/__tests__/visa-bulletin.test.tsx` | 33 + 3 MCRA** | PriorityDateChart (14, incl. 3-way mode selector), VisaBulletinPage |
-| `src/__tests__/site-pages.test.tsx` | 42 | Footer (8 incl. Contact button), ContactModal (7), ContactButton (2), FeedbackWidget (11), AboutPage (7), PrivacyPage (3), TermsPage (3) |
-| `src/__tests__/rag-search.test.ts` | 25 | RagSearchEngine (init, search, topic filter, getTopics, getByTopic, source mapping), LLM service (mock answers, QA priority, dedup) |
-| `src/__tests__/ask-page.test.tsx` | 19 | AskPage loading/error, search bar, clear, suggested questions, topic pills, results, type badges, AI answer, How It Works, stats |
-| `src/__tests__/wage-dashboard.test.tsx` | 52 | WageIntelligenceHub: employer/role modes, EmployerProfile (loading skeleton, auto-collapse), WageGrowthLeaderboard, data loaders, getEmployerRoles (multi-year dedup, IMO pattern, Optum ≥10 baseline, minFilings=1 default) |
-| `src/__tests__/employer-normalization.test.ts` | 23 | Data integrity tests for canonical employer names in public JSON files; JSON spec compliance (no bare NaN); 200-shard sample test |
-| `src/__tests__/insights-page.test.tsx` | 27 | InsightsPage: profile card, field interactions, persistence, Green Card/Sponsor/Salary panels, loading state |
-| `src/__tests__/dashboard-data-loaders.test.ts` | 47 | All 5 new data loaders: eb-category (10), geographic (6), soc-demand (11), processing (8), backlog (12) |
-| `src/__tests__/new-dashboards.test.tsx` | 41 | All 5 new dashboard pages: EB Category (8), Geographic (13 incl. 7 new: choropleth, view toggle, drill-down), Occupation Demand (6), Processing (5), Backlog (9) |
-| `src/__tests__/tech-stack-chip.test.tsx` | 7 | TechStackChip component: render, hover tooltip reveal, unhover hide, accessibility, explanation display |
-| `src/__tests__/optum-regression.test.ts` | 18 | **NEW** — Optum Services live-data regression: baseline count ≥1,928 LCA records, name normalization, metadata integrity, field validation, no 10%+ data shrinkage |
-| `src/__tests__/smart-sort.test.ts` | 27 | Smart-sort regression: all 4 sort functions (employer, SOC, wage-employer, RAG), name-match ranking, volume/SRS tiebreakers, non-alphabetical guarantees, null/NaN handling |
-| `src/__tests__/srs-comprehensive.test.tsx` | 97 | **Comprehensive SRS feature suite**: search rendering (5), accessibility (7), search behavior (6), result layout fields (8), clear (4), selection (3), keyboard nav (7), Optum regression (3), smart-sort edge cases (7), score gauge (8), detail card (13), trend chart (5), overview (4), shard extractors (6), asScores mapping (6), wage/SOC sort extras (4) |
-| `src/__tests__/visa-bulletin-regression.test.ts` | 62 | **Live-data VB/PD regression**: fact_cutoff_trends structure (10), pd_forecasts structure (11), cross-artifact consistency (4), cutoff continuity EB2/IND+EB3/IND+EB2/CHN (9), forecast accuracy bounds (7), computePdi() on real data (9), data freshness (5), getHistoricalSeries (4), getVelocitySummary (2) |
-| `src/__tests__/browser-smoke-test.test.ts` | 8 | **NEW** — Vitest HTTP tests: server accessibility, page loads, dashboard loads, info pages, timing, visa-bulletin modes, employer SRS, homepage sections; skips gracefully when no server running |
-
-### E2E Tests (Playwright — 2 files, 85 tests)
-| File | Tests | Covers |
-|------|-------|--------|
-| `e2e/pd-cortex-mobile.spec.ts` | 44 | PD Cortex (visa-bulletin) at iPhone 14: page load, nav, category/country pills, PD input, forecast mode toggle (role="radio"), MCRA widget, chart rendering, methodology collapsible, scroll reachability, already-current detection |
-| `e2e/home-mobile.spec.ts` | 41 | Home/landing page at iPhone 14: page load, nav, hero CTAs (stacked, 44px touch targets, tap navigation), stats bar (scoped selectors), quick access cards, dashboard grid (all 8 titles + tap navigation), value props, scroll reachability |
-
-### Key Technical Decisions Log
-| Decision | Rationale |
-|----------|----------|
-| happy-dom over jsdom | jsdom's `html-encoding-sniffer` → `@exodus/bytes` is ESM-only but loaded via CJS require(). happy-dom is lighter and ESM-compatible. |
-| ThemeProvider always provides context | Wraps children in context even before mount (visibility:hidden for SSR), preventing useTheme() throws in nested components. |
-| UTC date formatting | All date formatters use `timeZone: 'UTC'` to prevent timezone-dependent test failures. |
-| Exact + prefix path matching | `isAllowedPath()` uses exact match for `/` and prefix match for `/dashboard/` to prevent overly permissive matching. |
-| localStorage cleared in beforeEach | Prevents theme state leaking between tests. |
-| Theme defaults to dark | Dark-first luxury aesthetic per Aurora design system. User can switch to light/system via toggle. |
-| EFS→SRS remap at load boundary | P2 JSON uses `efs`/`efs_tier`/`efs_ml` field names. P3 remaps to `srs`/`srs_tier`/`srs_ml` in data loaders so all downstream code uses consistent SRS naming. |
-| NaN normalization | P2 JSON contains `NaN` values for unrated employers. Remapper normalizes `NaN` to `null` for safe JS comparisons. |
-| PDI loads on homepage | pd_forecasts.json is 342KB — small enough for client-side fetch. SRS data (138MB) uses static teaser instead. |
-| EB2/IND/DFF as PDI defaults | Most common EB immigrant profile — provides immediate value without user configuration. |
-| Blocking theme script | Industry-standard (next-themes, Vercel.com) — reads localStorage and applies CSS class in `<head>` before React hydrates to prevent FOUC. |
-| Feedback via GitHub Issues | No backend needed — FeedbackWidget opens pre-filled GitHub Issues URL. Zero runtime cost, leverages existing GitHub infrastructure. |
-| Mock LLM for local dev | $0 cost; prod would use GPT-4o-mini via CloudFront proxy (~$0.0006/query). Mock uses QA matches or stitches chunk summaries. |
-| Groq free cloud LLM | Groq runs Llama 3.3 70B on custom LPU hardware; free tier: 30 RPM / 14,400 RPD; OpenAI-compatible API; `NEXT_PUBLIC_GROQ_API_KEY` in `.env.local`; for go-live, swap to OpenAI with CloudFront proxy. |
-| QA-first RAG search | 182 pre-computed QA pairs are searched first (Tier 1) — instant, high-quality answers without LLM cost. |
-| 200ms search debounce | Balances responsiveness with Fuse.js search efficiency on /ask page. |
 
 ---
 
-## PostHog Analytics — MANDATORY Rules
+## 📋 Analytics Strategy
 
-**Every UI change must keep PostHog instrumentation in sync.** Broken tracking is a silent bug — it never throws an error but produces misleading data.
-
-### Analytics stack
-- **SDK**: `posthog-js` — initialised in `src/components/providers/posthog-provider.tsx`
-- **Event helpers**: `src/lib/analytics/index.ts` — all tracking calls go through `analytics.*`
-- **Config**: `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` in `.env.local`
-- **Dashboard**: `app.posthog.com` (free cloud, works identically on localhost and AWS/CloudFront)
-
-### When you MUST update analytics
-
-| Change | Required analytics update |
-|--------|--------------------------|
-| **New dashboard page** | Add `analytics.dashboardViewed('your-dashboard-name')` in the data-load `.finally()` block. Add the name to the `DashboardName` union type in `analytics/index.ts`. |
-| **New filter / toggle / pill** | Add `analytics.filterChanged({ dashboard, filter, value })` in the handler or effect. |
-| **New page route** | Add the page name to the `PageName` union type in `analytics/index.ts`. PostHogProvider autocaptures `$pageview` but named pages give cleaner PostHog queries. |
-| **Employer / entity selection** | Add `analytics.employerSelected(...)` or create a new typed event helper. |
-| **New user input that unlocks a panel** | Add `analytics.insightPanelUnlocked(panel)` when the panel becomes visible. |
-| **New RAG/search interaction** | Add `analytics.ragQuestionAsked(...)`. |
-| **New sidebar nav item** | No change needed — `analytics.navItemClicked` fires on all items automatically. |
-| **Rename a dashboard route** | Update the `DashboardName` type and all `dashboardViewed` call sites. |
-| **Remove a feature** | Remove the corresponding `analytics.*` call and update the type union if needed. |
-| **New data file loaded** | Optionally call `analytics.dataLoaded({ source, bytes, loadTimeMs, dashboard })` after fetch to track payload sizes. |
-
-### How to add a new custom event
-
-```ts
-// 1. Add helper to src/lib/analytics/index.ts
-function myNewEvent(params: { foo: string; bar: number }) {
-  capture("my_new_event", { foo: params.foo, bar: params.bar });
-}
-
-// 2. Export it
-export const analytics = {
-  ...,
-  myNewEvent,
-};
-
-// 3. Call it at the right moment
-analytics.myNewEvent({ foo: "value", bar: 42 });
-```
-
-### Never do this
-- **Don't call `posthog.capture()` directly** — always go through `analytics.*` so events stay typed and consistent.
-- **Don't include PII** — no raw user-typed text, no employer names, no priority dates. Use buckets/tiers/counts instead.
-- **Don't add analytics to server components** — PostHog SDK is client-only. Only call `analytics.*` from `"use client"` components or event handlers.
+**→ Read [ANALYTICS_STRATEGY.md](./ANALYTICS_STRATEGY.md)** for analytics stack setup, event types, and when to update tracking for new features.
 
 ---
 
-## Session Workflow Rules (MANDATORY)
+## 📋 Session Workflow & Documentation
 
-These rules apply to **every coding session**, regardless of scope:
+**Key rule:** After completing ANY feature, fix, or milestone:
+1. Update `PROGRESS.md` with a timestamped entry (source of truth)
+2. Update relevant parent docs (ARCHITECTURE.md, PRODUCT_GUIDE.md if applicable)
+3. DO NOT duplicate milestone details in copilot-instructions.md — always reference PROGRESS.md for current status
 
-1. **Update `PROGRESS.md` after every milestone** — Any significant work (new feature, dashboard, component, bug fix batch, refactor) must be logged as a milestone entry with date, objective, what was done, test results, files changed, and next steps. Do NOT wait to be reminded.
-2. **Update `copilot-instructions.md` when inventory changes** — If files are created/deleted or test counts change, update the "Current File Inventory" section.
-3. **Update the Quick Reference table** in `PROGRESS.md` — Keep test count, component count, dashboard count, and phase status current.
-4. **Update the Milestone History table** in `PROGRESS.md` — Add a row for each new milestone.
-5. **Update the Execution Phases** checklists in both `PROGRESS.md` and `copilot-instructions.md` — Mark items `[x]` as completed.
-6. **Update `PRODUCT_GUIDE.md` whenever the UI changes** — Any new page, new dashboard, new chart, new filter, renamed label, removed feature, or updated methodology must be reflected in the corresponding section of `PRODUCT_GUIDE.md` in plain, user-friendly language. Use the same tone as the existing guide (no technical jargon, explain every element as if writing for a non-engineer end user). Sections to update: add a new `##` section for new pages/dashboards; update the relevant section for modified charts/filters; remove or mark deprecated any removed content.
+**Documentation responsibility:** Each specialized file is maintained independently:
+- **TEST_AUDIT.md** — Updated when tests are added/removed
+- **CODEBASE_INVENTORY.md** — Refresh quarterly or after major refactors
+- **UI_DESIGN_PRINCIPLES.md** — Updated when design system changes
+- **MOBILE_DEVELOPMENT_GUIDE.md** — Updated when mobile rules change
+- **ANALYTICS_STRATEGY.md** — Updated when event types change
+- **ARCHITECTURE_DECISIONS.md** — Updated when strategic choices change
+- **SEO_STRATEGY.md** — Updated when pages/routes are added/removed
+- **SECURITY_UI_COPY_GUIDE.md** — Updated when security/copy standards evolve
