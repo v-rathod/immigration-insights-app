@@ -7,6 +7,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Fuse from "fuse.js";
 import { Search, X, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -165,6 +166,10 @@ export function EmployerSearch({
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // SSR guard — portals require document.body (not available on server)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   /** Compute and set dropdown position from the input element (viewport-relative for fixed). */
   const updateDropdownPos = useCallback(() => {
     if (compact && inputRef.current) {
@@ -233,25 +238,20 @@ export function EmployerSearch({
         )}
       </div>
 
-      {/* Results Dropdown */}
-      {isOpen && (
+      {/* Results Dropdown — non-compact: absolute inline; compact: portal into body to escape
+           any ancestor CSS transform (Framer Motion FadeIn sets transform: translateY(0) which
+           hijacks position:fixed without a portal). */}
+      {isOpen && !compact && (
         <ul
           ref={listRef}
           id="employer-search-results"
           role="listbox"
           className={cn(
-            compact && dropdownPos
-              ? "fixed z-[9999] max-h-[360px] overflow-y-auto"
-              : "absolute left-0 right-0 top-full z-50 mt-2 max-h-[400px] overflow-y-auto",
+            "absolute left-0 right-0 top-full z-50 mt-2 max-h-[400px] overflow-y-auto",
             "rounded-xl border border-white/[0.08] bg-[var(--background)]/95 backdrop-blur-2xl",
             "shadow-2xl shadow-black/20",
             "py-1"
           )}
-          style={
-            compact && dropdownPos
-              ? { top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }
-              : undefined
-          }
         >
           {results.map((employer, i) => {
             const isSelected = employer.employer_id === selectedId;
@@ -318,6 +318,73 @@ export function EmployerSearch({
           })}
         </ul>
       )}
+
+      {/* Compact mode dropdown — portalled into document.body so position:fixed reads the
+           actual viewport, not the nearest CSS-transform ancestor (Framer Motion FadeIn). */}
+      {isOpen && compact && mounted && dropdownPos &&
+        createPortal(
+          <ul
+            ref={listRef}
+            id="employer-search-results"
+            role="listbox"
+            className={cn(
+              "fixed z-[9999] max-h-[360px] overflow-y-auto",
+              "rounded-xl border border-white/[0.08] bg-[var(--background)]/95 backdrop-blur-2xl",
+              "shadow-2xl shadow-black/20",
+              "py-1"
+            )}
+            style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          >
+            {results.map((employer, i) => {
+              const isSelected = employer.employer_id === selectedId;
+              return (
+                <li
+                  key={`${employer.employer_id}-${employer.scope}`}
+                  id={`employer-option-${i}`}
+                  role="option"
+                  aria-selected={i === activeIndex}
+                  onClick={() => {
+                    onSelect(employer);
+                    setQuery(employer.employer_name);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors",
+                    i === activeIndex
+                      ? "bg-[var(--accent-blue)]/10"
+                      : "hover:bg-white/[0.03]",
+                    isSelected && "bg-[var(--accent-blue)]/5"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                      employer.srs_tier !== "Unrated"
+                        ? srsTierBg(employer.srs_tier)
+                        : "bg-zinc-500/10"
+                    )}
+                  >
+                    <Building2
+                      className={cn(
+                        "h-4 w-4",
+                        employer.srs_tier !== "Unrated"
+                          ? srsTierColor(employer.srs_tier)
+                          : "text-zinc-400"
+                      )}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-[var(--foreground)]">
+                      {employer.employer_name}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body
+        )}
     </div>
   );
 }
