@@ -1193,8 +1193,8 @@ function ProfileCard({
             transition={{ duration: 0.35, ease: EASE }}
             className="overflow-hidden"
           >
-            {/* ── Compact row: PD | EB | Country (3-col mobile) | Employer (full-width mobile, 2fr desktop) ── */}
-            <div className="grid grid-cols-3 sm:grid-cols-[1fr_1fr_1fr_2fr] gap-x-2.5 gap-y-2.5">
+            {/* ── Compact row: PD(narrow fixed) | EB | Country | Employer (full-width mobile, grows desktop) ── */}
+            <div className="grid grid-cols-3 sm:grid-cols-[112px_1fr_1fr_2fr] gap-x-2.5 gap-y-2.5">
               {/* Priority Date */}
               <div>
                 <FormLabel icon={Calendar}>Priority Date</FormLabel>

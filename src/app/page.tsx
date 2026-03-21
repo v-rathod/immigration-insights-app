@@ -117,7 +117,7 @@ const DASHBOARDS = [
 
 export default function LandingPage() {
   return (
-    <div className="space-y-16 pb-12">
+    <div className="space-y-10 pb-8">
       {/* Returning user banner — only renders if profile exists in localStorage */}
       <WelcomeBackBanner />
 
@@ -130,7 +130,7 @@ export default function LandingPage() {
           <div className="absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-600/8 via-purple-600/8 to-emerald-600/6 blur-3xl" />
         </div>
 
-        <div className="relative z-10 px-6 pt-12 pb-10 sm:pt-16 sm:pb-14">
+        <div className="relative z-10 px-6 pt-8 pb-6 sm:pt-12 sm:pb-10">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
             {/* Left: Headline + CTA */}
             <div className="flex flex-col justify-center">
@@ -239,7 +239,7 @@ export default function LandingPage() {
           ═══════════════════════════════════════════════════════════════════ */}
       <section id="dashboards" aria-label="Explore dashboards">
         <FadeIn>
-          <div className="mb-8 flex items-center gap-3">
+          <div className="mb-5 flex items-center gap-3">
             <Star className="h-5 w-5 text-amber-400" strokeWidth={1.5} />
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
