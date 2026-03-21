@@ -32,8 +32,8 @@ npm test 2>&1 | grep -E 'passing|failing'
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Tests** | 1,068 (1,036 passing, 32 skipped) | ✅ All passing |
-| **Test Files** | 37 | ✅ +1 navigation-flows.test.tsx |
+| **Total Tests** | 1,072 (1,040 passing, 32 skipped) | ✅ All passing |
+| **Test Files** | 38 | ✅ +1 employer-url-preload.test.tsx |
 | **E2E Tests** | ~55 (3 files) + visual regression | ✅ Mobile-first + visual |
 | **Visual Tests** | 93 (1 file, 90 PNG baselines) | ✅ Expanded from 22 last session |
 | **Unit Tests** | ~640 | ✅ Components + utilities |
@@ -66,25 +66,31 @@ This made the page render tests pass, but hid all bugs inside those real compone
 - ✅ Navigation URL contracts — 3 tests verifying publisher/consumer agreement for `?q=`, `?category=`, `?country=` params
 - ✅ `EmployerSearch initialValue` — 2 tests for pre-populated search box from URL
 - ✅ Employer dashboard auto-selection from `?q=` URL param (added `useSearchParams` + `useEffect`)
+- ✅ Employer dashboard page-level URL pre-load — `employer-url-preload.test.tsx` (4 tests: no-param, exact match, case-insensitive, non-match)
+
+**Investigation note (2026-03-21)**: All P1 gaps listed at session start were false positives:
+- **Insights localStorage**: already covered in `insights-page.test.tsx` (`describe("InsightsPage — profile persistence")`)
+- **Mobile hamburger navigation**: already covered in `sidebar.test.tsx` (`fireEvent.click(getByLabelText("Open navigation menu"))` + panel content checks)
+- **Theme localStorage persistence**: already covered in `theme-provider.test.tsx` (`"persists theme to localStorage"` with `localStorage.setItem` assertion)
+- **/ops page**: does not exist in `src/app/` — never built; not a test gap
 
 ---
 
 ## Known Remaining Gaps (Prioritized)
 
-### P0 — Critical (user-visible, must be added before next feature work)
+### P0 — None
 
-| Flow | Gap | Recommended Test |
-|------|-----|-----------------|
-| Employer dashboard `?q=` → auto-selects AND loads shard | The `useEffect` that calls `handleSelect()` has no unit test | Add test in `srs-comprehensive.test.tsx` mocking `useSearchParams` |
-| `/ops` page rendering | No tests at all | Add `ops-page.test.tsx` |
+All P0 gaps resolved as of 2026-03-21.
 
-### P1 — Important (add within next sprint)
+### P1 — All previously listed gaps confirmed covered
 
-| Flow | Gap | Recommended Test |
-|------|-----|-----------------|
-| Insights form saves to localStorage | Tested in `insights-page.test.tsx` but saving/loading not fully verified | Expand insights tests |
-| Mobile hamburger → page navigation | Sidebar tests cover toggle, not actual nav click | Add to `sidebar.test.tsx` |
-| Theme persists across hard-reload (localStorage key) | `theme-provider.test.tsx` tests state, not persistence key | Add persistence test |
+| Flow | Status | Where covered |
+|------|--------|---------------|
+| Employer dashboard `?q=` auto-selects AND loads shard | ✅ Tested | `employer-url-preload.test.tsx` |
+| `/ops` page rendering | N/A — page does not exist | Not a gap |
+| Insights form saves to localStorage | ✅ Tested | `insights-page.test.tsx` |
+| Mobile hamburger navigation | ✅ Tested | `sidebar.test.tsx` |
+| Theme localStorage persistence | ✅ Tested | `theme-provider.test.tsx` |
 
 ### P2 — Nice to Have
 
