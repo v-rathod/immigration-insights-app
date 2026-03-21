@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, Shield } from "lucide-react";
@@ -46,7 +46,16 @@ import { analytics } from "@/lib/analytics";
 // Page Component
 // ---------------------------------------------------------------------------
 
+// Suspense boundary required for static export: useSearchParams() needs it.
 export default function SrsDashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <SrsDashboardPageContent />
+    </Suspense>
+  );
+}
+
+function SrsDashboardPageContent() {
   // Data state
   const [searchEntries, setSearchEntries] = useState<EmployerSearchEntry[]>([]);
   const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
