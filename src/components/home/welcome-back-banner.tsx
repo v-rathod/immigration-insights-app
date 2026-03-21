@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, User } from "lucide-react";
 import { GlassCard } from "@/components/ui";
@@ -45,8 +45,14 @@ function readProfile(): StoredProfile | null {
 // ---------------------------------------------------------------------------
 
 export function WelcomeBackBanner() {
-  // Lazy initializer reads from localStorage once on mount — no useEffect needed
-  const [profile] = useState<StoredProfile | null>(readProfile);
+  // Start with null on server, read from localStorage only after hydration via useEffect
+  // This prevents hydration mismatch (server renders null, client was trying to render banner)
+  const [profile, setProfile] = useState<StoredProfile | null>(null);
+
+  useEffect(() => {
+    const stored = readProfile();
+    setProfile(stored);
+  }, []);
 
   if (!profile) return null;
 

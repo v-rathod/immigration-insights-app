@@ -365,6 +365,29 @@ describe("EmployerSearch", () => {
       expect(screen.getByText("Alpha Inc")).toBeDefined();
     });
   });
+
+  it("pre-populates search box with initialValue (URL parameter case)", async () => {
+    // Simulates home page → employer dashboard redirect with ?q=Google
+    // The dashboard passes initialValue="Google" to EmployerSearch
+    const employers = [
+      makeSrs({ employer_name: "Google LLC", employer_id: "ghi789", n_36m: 35000, srs: 81 }),
+      makeSrs({ employer_name: "Microsoft Corporation", employer_id: "abc123", n_36m: 50000, srs: 76 }),
+    ];
+    const onSelect = vi.fn();
+    
+    render(
+      <EmployerSearch 
+        employers={employers} 
+        onSelect={onSelect}
+        initialValue="Google LLC"
+      />
+    );
+    
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    
+    // Search box should be pre-populated with "Google LLC"
+    expect(input.value).toBe("Google LLC");
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

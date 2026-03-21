@@ -9,6 +9,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, Shield } from "lucide-react";
 import { FadeIn } from "@/components/ui";
@@ -160,6 +161,27 @@ export default function SrsDashboardPage() {
     [mlScores, riskFeatures]
   );
 
+  // Auto-select employer from URL parameter (?q=Google)
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (loading || overallScores.length === 0) return;
+
+    const queryParam = searchParams.get("q");
+    if (!queryParam) return;
+
+    // Find exact match or case-insensitive match
+    const match = overallScores.find(
+      (e) =>
+        e.employer_name.toLowerCase() === queryParam.toLowerCase() ||
+        e.employer_name === queryParam
+    );
+
+    if (match && !selectedEmployer) {
+      // Only auto-select if no employer is already selected
+      handleSelect(match);
+    }
+  }, [loading, overallScores, searchParams, selectedEmployer, handleSelect]);
+
   // Loading state
   if (loading) {
     return (
@@ -237,6 +259,7 @@ export default function SrsDashboardPage() {
             employers={overallScores}
             onSelect={handleSelect}
             selectedId={selectedEmployer?.employer_id}
+            initialValue={searchParams.get("q") ?? undefined}
           />
         </div>
       </FadeIn>

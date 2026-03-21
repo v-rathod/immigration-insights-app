@@ -23,6 +23,8 @@ interface EmployerSearchProps {
   className?: string;
   /** When true, hides case count and SRS tier from results (used in Insights). */
   compact?: boolean;
+  /** Pre-populate search box with employer name (e.g., from URL parameter) */
+  initialValue?: string;
 }
 
 const MAX_RESULTS = 12;
@@ -35,8 +37,9 @@ export function EmployerSearch({
   placeholder = "Search 70,000+ employers…",
   className,
   compact = false,
+  initialValue,
 }: EmployerSearchProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialValue ?? "");
   const [results, setResults] = useState<SponsorReliabilityScore[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);

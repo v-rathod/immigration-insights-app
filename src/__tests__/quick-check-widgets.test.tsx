@@ -108,6 +108,31 @@ describe("EmployerQuickCheck", () => {
       expect(screen.getByPlaceholderText(/Type an employer/i)).toBeInTheDocument();
     });
   });
+
+  it("generates link to employer dashboard with ?q= URL parameter", async () => {
+    // Verifies the home button → employer dashboard flow passes employer name in URL
+    render(<EmployerQuickCheck />);
+    
+    // Wait for data to load and search input to appear
+    const input = await screen.findByPlaceholderText(/Type an employer/i);
+    
+    // Type to find Google
+    fireEvent.change(input, { target: { value: "Google" } });
+    
+    // Wait for "Google LLC" to appear in dropdown
+    await waitFor(() => {
+      expect(screen.getByText("Google LLC")).toBeInTheDocument();
+    });
+    
+    // Click Google to select it
+    fireEvent.click(screen.getByText("Google LLC"));
+    
+    // Verify "Full Report" link is generated with correct URL parameter
+    await waitFor(() => {
+      const fullReportLink = screen.getByText(/Full Report/).closest("a");
+      expect(fullReportLink).toHaveAttribute("href", "/dashboard/employer?q=Google%20LLC");
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
