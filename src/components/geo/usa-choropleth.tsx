@@ -9,7 +9,8 @@
  */
 "use client";
 
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   ComposableMap,
   Geographies,
@@ -213,6 +214,9 @@ export const UsaChoropleth = memo(function UsaChoropleth({
   onStateSelect,
 }: UsaChoroplethProps) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  // Track DOM mount so we can safely use createPortal (avoids SSR mismatch)
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
 
   // Build lookup: stateCode → StateAggregate
   const stateMap = useMemo(() => {
@@ -261,11 +265,10 @@ export const UsaChoropleth = memo(function UsaChoropleth({
 
   const handleMouseMove = useCallback(
     (evt: React.MouseEvent) => {
-      if (tooltip) {
-        setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
-      }
+      // Functional update avoids needing `tooltip` in deps — no stale closure
+      setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
     },
-    [tooltip]
+    [] // empty deps: functional state update never needs tooltip captured
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -348,10 +351,19 @@ export const UsaChoropleth = memo(function UsaChoropleth({
         <ColorLegend metric={metric} min={min} max={max} />
       </div>
 
-      {/* Tooltip */}
-      <AnimatePresence>
-        {tooltip && <MapTooltip tooltip={tooltip} metric={metric} />}
-      </AnimatePresence>
+      {/*
+        Tooltip rendered via portal into document.body.
+        This escapes any ancestor CSS `transform` (e.g. Framer Motion FadeIn
+        leaves transform:translateY(0) after animation, which would make
+        position:fixed children anchor to THAT element instead of the viewport,
+        causing the tooltip to appear far off from the mouse cursor).
+      */}
+      {isMounted && createPortal(
+        <AnimatePresence>
+          {tooltip && <MapTooltip tooltip={tooltip} metric={metric} />}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 });

@@ -4,6 +4,67 @@
 
 ---
 
+## 2026-03-20 — Milestone 11.3: Tooltip Bug Fix + Visual Test Expansion + Performance Tests + SEO
+
+### Objective
+Fix the geographic map tooltip appearing "far right" of the mouse cursor. Expand visual regression baselines from 47 to 90 PNGs (app-wide coverage). Add performance benchmark tests. Update SEO sitemap dates for V2 redesign.
+
+### Root Cause (Tooltip Bug)
+`FadeIn` uses `animate={{ y: 0 }}` via Framer Motion, which leaves `transform: translateY(0px)` on the DOM element indefinitely after the animation completes. Per the CSS spec, any non-`none` `transform` property on an ancestor element creates a new CSS containing block for `position: fixed` descendants. The tooltip inside `UsaChoropleth` used `position: fixed` positioned by `clientX/clientY` (viewport-relative coordinates), but those coordinates were being interpreted relative to the `FadeIn` div's origin — not the viewport — causing the tooltip to appear offset by the distance from the viewport edge to the map card (roughly 240–300px to the right).
+
+Secondary bug: `handleMouseMove` had `[tooltip]` in its `useCallback` dependency array. Since `tooltip` state updates on every mouse move, this created a new function reference on every frame, causing micro-stutters as the Geography SVG paths re-attached event listeners on every render.
+
+### What Was Done
+
+**Geographic Tooltip Fix (`src/components/geo/usa-choropleth.tsx`)**
+- Added `import { createPortal } from "react-dom"` and `useEffect` import  
+- Added `isMounted` state (set via `useEffect`) to guard against SSR mismatch
+- Moved `<AnimatePresence><MapTooltip /></AnimatePresence>` to render via `createPortal(…, document.body)` — escapes the transformed Framer Motion ancestor
+- Fixed `handleMouseMove` stale closure: removed `[tooltip]` dependency (functional state update already doesn't need it) and removed the redundant `if (tooltip)` outer check
+
+**Visual Regression Tests (`e2e/visual.spec.ts`)**
+- Added 8 new `test.describe` groups with 43 new tests:
+  - Employer Dashboard States (search results, employer selected)
+  - Geographic Dashboard States (map/table views, metric changed)
+  - Visa Bulletin Deep States (EB3 India, EB2 China, PD entry)
+  - Wage Dashboard States (default, SOC selected)
+  - EB Category / Processing / Approvals / Backlog / Job-Demand defaults
+  - Insights Profile States (tier 1 filled, tier 2 opened)
+  - Mobile Navigation (hamburger menu open state)
+  - Home Welcome Back Banner (localStorage profile → banner visible)
+  - Home Quick Check Widgets (PD quick-check with EB2 India)
+- Regenerated all baselines: **93 tests pass, 90 PNG baselines** (was 50 tests / 47 PNGs)
+
+**Performance Benchmark Tests (`e2e/performance.spec.ts` + `playwright.perf.config.ts`)**
+- New Playwright performance test file with 5 `test.describe` groups:
+  - **Page Load Timings**: TTFB / DOM ready / window load for all 12 pages
+  - **Bundle Size**: Total JS transfer budget (< 2MB), no single chunk > 500KB
+  - **Data Fetch Times**: Employer, geographic, and forecast data files
+  - **Long Tasks (Jank)**: PerformanceObserver detects main-thread blocking > 500ms
+  - **Core Web Vitals Proxy**: LCP < 4000ms and FCP < 3000ms via PerformanceObserver
+- New `playwright.perf.config.ts` for targeted perf runs
+- Run: `npx playwright test --config=playwright.perf.config.ts`
+
+**SEO Sitemap (`public/sitemap.xml`)**
+- Updated all `lastmod` dates to `2026-03-20` for pages changed in V2 redesign
+- Corrected `/ask/` priority from 0.8 → 0.6 (deferred feature, lower crawl priority)
+- Legal pages (`/privacy/`, `/terms/`) retain `2026-03-18` (unchanged)
+
+### Results
+- **Unit tests:** 1,017 passing | 32 skipped | 0 failing (36 files)
+- **TypeScript:** Strict mode, 0 errors
+- **Visual tests:** 93 passing, 90 PNG baselines (90 total PNGs, up from 47)
+- **Performance tests:** New file — runs via `npx playwright test --config=playwright.perf.config.ts`
+
+### Files Modified
+- `src/components/geo/usa-choropleth.tsx` — tooltip portal fix + handleMouseMove dep fix
+- `e2e/visual.spec.ts` — 43 new visual regression tests + 43 new PNG baselines
+- `e2e/performance.spec.ts` — new file, performance benchmark suite
+- `playwright.perf.config.ts` — new file, Playwright config for perf tests
+- `public/sitemap.xml` — updated lastmod dates
+
+---
+
 ## 2026-03-20 — Milestone 11.2: Profile Form 60/40 Layout + CountryPicker + Sidebar Auto-Collapse
 
 ### Objective

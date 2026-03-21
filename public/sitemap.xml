@@ -4,22 +4,100 @@
   <!-- Core pages -->
   <url>
     <loc>https://d10immmzyp7xgr.cloudfront.net/</loc>
-    <lastmod>2026-03-18</lastmod>
+    <lastmod>2026-03-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://d10immmzyp7xgr.cloudfront.net/insights/</loc>
-    <lastmod>2026-03-18</lastmod>
+    <lastmod>2026-03-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://d10immmzyp7xgr.cloudfront.net/ask/</loc>
-    <lastmod>2026-03-18</lastmod>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/about/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Dashboards -->
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/visa-bulletin/</loc>
+    <lastmod>2026-03-20</lastmod>
     <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/employer/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/wage/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/eb-category/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/geographic/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/job-demand/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/processing/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/backlog/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/dashboard/approvals/</loc>
+    <lastmod>2026-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Legal pages -->
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/privacy/</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://d10immmzyp7xgr.cloudfront.net/terms/</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>
   <url>
     <loc>https://d10immmzyp7xgr.cloudfront.net/about/</loc>
     <lastmod>2026-03-18</lastmod>
