@@ -274,45 +274,58 @@ function CountryPicker({
   const isExtended = EXTENDED_COUNTRIES.some((c) => c.code === value);
   const extendedLabel = EXTENDED_COUNTRIES.find((c) => c.code === value)?.label;
 
+  const showExtendedRow = showMore || isExtended;
+
   return (
-    <div className="flex flex-wrap gap-1">
-      {PRIMARY_COUNTRIES.map(({ code, label }) => (
-        <Pill key={code} active={value === code} onClick={() => onChange(code)} color="purple">
-          {label}
-        </Pill>
-      ))}
-      <button
-        type="button"
-        onClick={() => setShowMore((v) => !v)}
-        className={cn(
-          "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-150",
-          isExtended
-            ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
-            : "text-[var(--muted-foreground)] border-white/[0.06] hover:border-white/[0.18] hover:text-[var(--foreground)]"
-        )}
-        aria-label={showMore ? "Hide more countries" : "More countries"}
-      >
-        {isExtended ? extendedLabel : (showMore ? "Less" : "More")}
-      </button>
+    <div className="space-y-0.5">
+      {/* Row 1: always exactly 3 items — India | China | More/Less toggle */}
+      <div className="flex gap-0.5">
+        {PRIMARY_COUNTRIES.map(({ code, label }) => (
+          <SmallPill key={code} active={value === code} onClick={() => onChange(code)} color="purple">
+            {label}
+          </SmallPill>
+        ))}
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className={cn(
+            "flex-1 min-w-0 px-1 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-150 truncate",
+            isExtended
+              ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
+              : showMore
+              ? "text-[var(--muted-foreground)] border-white/[0.12] hover:border-white/[0.22] hover:text-[var(--foreground)]"
+              : "text-[var(--muted-foreground)] border-white/[0.06] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+          )}
+          aria-label={showMore ? "Hide more countries" : "More countries"}
+        >
+          {isExtended ? extendedLabel : (showMore ? "Less" : "More")}
+        </button>
+      </div>
+
+      {/* Row 2: ROW | PHL | MEX — animates in when expanded */}
       <AnimatePresence>
-        {(showMore || isExtended) &&
-          EXTENDED_COUNTRIES.map(({ code, label }) => (
-            <motion.div
-              key={code}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ duration: 0.12 }}
-            >
-              <Pill
-                active={value === code}
-                onClick={() => { onChange(code); setShowMore(false); }}
-                color="purple"
-              >
-                {label}
-              </Pill>
-            </motion.div>
-          ))}
+        {showExtendedRow && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden"
+          >
+            <div className="flex gap-0.5 pt-0.5">
+              {EXTENDED_COUNTRIES.map(({ code, label }) => (
+                <SmallPill
+                  key={code}
+                  active={value === code}
+                  onClick={() => { onChange(code); setShowMore(false); }}
+                  color="purple"
+                >
+                  {label}
+                </SmallPill>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -392,6 +405,42 @@ function Pill({
       onClick={onClick}
       className={cn(
         "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+        active
+          ? activeClasses[color]
+          : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Compact pill for the CountryPicker 3-column rows.
+ * Slightly tighter than Pill so all three fit in a narrow field.
+ */
+function SmallPill({
+  active,
+  onClick,
+  children,
+  color = "blue",
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  color?: "blue" | "purple" | "emerald";
+}) {
+  const activeClasses = {
+    blue: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+    purple: "bg-violet-500/20 text-violet-300 border-violet-500/40",
+    emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex-1 min-w-0 px-1 py-0.5 rounded-full text-[10px] font-medium border transition-all truncate",
         active
           ? activeClasses[color]
           : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"

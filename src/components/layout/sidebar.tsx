@@ -67,6 +67,13 @@ export function Sidebar({
   const internalToggle = useCallback(() => setInternalCollapsed((c) => !c), []);
   const toggleCollapse = onToggleProp ?? internalToggle;
 
+  // Hover-expand: when collapsed, hovering the desktop rail shows full sidebar as floating overlay
+  const [hoverExpanded, setHoverExpanded] = useState(false);
+  // "visually expanded" = fully expanded OR hover-overlay expanded
+  const isVisuallyExpanded = !collapsed || hoverExpanded;
+  // "floating" = the expansion is an overlay (not shifting main content)
+  const isFloating = collapsed && hoverExpanded;
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
@@ -112,7 +119,7 @@ export function Sidebar({
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">
           <Compass className="h-4 w-4 text-white" strokeWidth={2} />
         </div>
-        {!collapsed && (
+        {isVisuallyExpanded && (
           <span className="text-sm font-semibold tracking-tight text-[var(--foreground)] truncate">
             Compass
           </span>
@@ -126,7 +133,7 @@ export function Sidebar({
       >
         {Object.entries(groups).map(([groupName, items]) => (
           <div key={groupName} className="mb-4">
-            {!collapsed && groupName !== "Main" && (
+            {isVisuallyExpanded && groupName !== "Main" && (
               <span className="mb-1 block px-3 text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
                 {groupName}
               </span>
@@ -137,7 +144,6 @@ export function Sidebar({
                   <button
                     onClick={() => {
                       analytics.navItemClicked(item.label, item.href);
-                      // Hard refresh using window.location for full page reload
                       window.location.href = item.href;
                     }}
                     aria-current={isActive(item.href) ? "page" : undefined}
@@ -146,9 +152,9 @@ export function Sidebar({
                       isActive(item.href)
                         ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] font-medium"
                         : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
-                      collapsed && "justify-center px-2"
+                      !isVisuallyExpanded && "justify-center px-2"
                     )}
-                    title={collapsed ? item.label : undefined}
+                    title={!isVisuallyExpanded ? item.label : undefined}
                   >
                     <item.icon
                       className={cn(
@@ -159,7 +165,7 @@ export function Sidebar({
                       )}
                       strokeWidth={1.5}
                     />
-                    {!collapsed && (
+                    {isVisuallyExpanded && (
                       <span className="truncate">{item.label}</span>
                     )}
                   </button>
@@ -172,8 +178,8 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="border-t border-[var(--sidebar-border)] px-3 py-3">
-        <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between")}>
-          {!collapsed && <ThemeToggle />}
+        <div className={cn("flex items-center", !isVisuallyExpanded ? "justify-center" : "justify-between")}>
+          {isVisuallyExpanded && <ThemeToggle />}
           <button
             onClick={toggleCollapse}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -342,11 +348,16 @@ export function Sidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]",
+          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] overflow-hidden",
+          "transition-[width] duration-200 ease-out",
           // Desktop
           "hidden lg:flex",
-          collapsed ? "w-[60px]" : "w-[240px]",
+          isVisuallyExpanded ? "w-[240px]" : "w-[60px]",
+          // Floating shadow when hover-expanded over content (doesn't shift layout)
+          isFloating && "shadow-2xl shadow-black/30",
         )}
+        onMouseEnter={() => { if (collapsed) setHoverExpanded(true); }}
+        onMouseLeave={() => setHoverExpanded(false)}
       >
         {navContent}
       </aside>

@@ -129,6 +129,65 @@ test.describe("Visual Regression — Dashboard Interaction States", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Sidebar interaction states
+// ---------------------------------------------------------------------------
+
+test.describe("Visual Regression — Sidebar States", () => {
+  test("home page: sidebar collapsed (icon-only rail)", async ({ page }) => {
+    await visit(page, "/");
+    const sidebar = page.locator("aside.lg\\:flex").first();
+    if (await sidebar.isVisible()) {
+      await expect(sidebar).toHaveScreenshot("sidebar-collapsed.png");
+    }
+  });
+
+  test("home page: sidebar hover-expanded (floating overlay)", async ({ page }) => {
+    await visit(page, "/");
+    // Hover over the collapsed sidebar to trigger the floating expansion
+    const sidebar = page.locator("aside.lg\\:flex").first();
+    if (await sidebar.isVisible()) {
+      await sidebar.hover();
+      // Wait for the 200ms width transition to complete
+      await page.waitForTimeout(300);
+      await expect(sidebar).toHaveScreenshot("sidebar-hover-expanded.png");
+    }
+  });
+
+  test("insights page: sidebar fully expanded", async ({ page }) => {
+    await visit(page, "/insights");
+    const sidebar = page.locator("aside.lg\\:flex").first();
+    if (await sidebar.isVisible()) {
+      await expect(sidebar).toHaveScreenshot("sidebar-expanded.png");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Insights page — profile form
+// ---------------------------------------------------------------------------
+
+test.describe("Visual Regression — Insights Page", () => {
+  test("profile form: collapsed state (no data)", async ({ page }) => {
+    await visit(page, "/insights");
+    // Wait for form to render
+    await page.waitForSelector('[data-testid="insights-page"]', { timeout: 5000 }).catch(() => {});
+    await expect(page).toHaveScreenshot("insights-form-empty.png", { fullPage: true });
+  });
+
+  test("profile form: CountryPicker expanded (3+3 rows)", async ({ page }) => {
+    await visit(page, "/insights");
+    // Click the "More countries" button to expand the second row
+    const moreBtn = page.getByRole("button", { name: /more countries/i }).first();
+    if (await moreBtn.isVisible()) {
+      await moreBtn.click();
+      await page.waitForTimeout(200);
+    }
+    const form = page.locator('[class*="grid-cols-3"]').first();
+    await expect(page).toHaveScreenshot("insights-country-picker-expanded.png", { fullPage: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Theme toggle — light vs dark
 // ---------------------------------------------------------------------------
 
