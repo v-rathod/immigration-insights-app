@@ -4,6 +4,77 @@
 
 ---
 
+## 2026-03-21 — Milestone 11.5: Stage Deploy + All 42 Smoke Tests Passing
+
+### Objective
+Deploy current HEAD to stage (S3 + CloudFront). Fix all data issues discovered during post-deploy smoke tests.
+
+### Root Causes
+
+**1. Build Failure: useSearchParams() without Suspense**
+`src/app/dashboard/employer/page.tsx` called `useSearchParams()` directly in the page component. Next.js 16 static export requires `useSearchParams()` to be inside a `<Suspense>` boundary. Build failed with exit code 1.
+
+**2. Monolithic File Deletion Bug**
+`consolidate_employer_shards()` in `sync_p2_data.py` reads `employer_salary_trend.json`, `employer_role_profiles.json`, `employer_friendliness_scores.json`, `employer_monthly_metrics.json` to embed data into 94K shards, then **deletes those files** as "monolithic files" to save disk space. When consolidation is re-run (e.g. after a sync restart), those files are already gone — the function writes empty `_search.json` (`[]`) and zeros-out `srs_overview.json`.
+
+**3. _search.json Corrupt (2 bytes)**
+Built from `employer_friendliness_scores.json` (deleted) → wrote `[]` (2 bytes).
+
+**4. srs_overview.json All Zeros**
+Built from `employer_friendliness_scores.json` (deleted) → all tier counts = 0.
+
+**5. Optum Shard Missing wage_roles + srs**
+`employer_role_profiles.json` (deleted) → `wage_roles` not embedded.
+`employer_friendliness_scores.json` (deleted) → `srs` and `srs_monthly` not embedded.
+
+### What Was Done
+
+**Build Fix**
+- `src/app/dashboard/employer/page.tsx`: Wrapped page content in `<Suspense fallback={null}>` outer component; moved `useSearchParams()` to inner `SrsDashboardPageContent` component.
+- Committed as `42311f9`.
+
+**Data Regeneration Sequence**
+1. `python3 /tmp/full_regen.py` — runs `sync_dashboards('employer')` + `sync_wage_dashboard()` in sequence to recreate all 6 deleted monolithic files from P2 parquet, then runs `consolidate_employer_shards()` (94,843 shards enriched with wage + SRS data).
+2. `python3 scripts/_regen_search.py` — rebuilds `_search.json` (102,225 employers, 14.8MB) since consolidation writes empty one.
+3. `python3 /tmp/fix_srs_overview.py` — rebuilds `srs_overview.json` (67,694 employers) since consolidation zeros it.
+
+> **Important**: After any run of `consolidate_employer_shards()`, ALWAYS re-run `_regen_search.py` and `fix_srs_overview.py` to fix the files it zeros out.
+
+**S3 Uploads**
+- `public/data/employers/_search.json` → S3 (14.8MB) ✓
+- `public/data/dashboards/employer/srs_overview.json` → S3 ✓
+- `aws s3 sync public/data/employers/ ...` (825MB, ~94K shards) — run twice: once with wage_trend only, then again with wage_roles + srs + srs_monthly.
+
+**CloudFront Invalidations**
+- `IBVAHCOYKAF412AW6RDNT6CSV0` — `/data/employers/*` `/data/dashboards/employer/*` ✓
+- `I5ILO1MLQRWXRXDJ1U84NF0U2V` — `/data/employers/*` `/data/dashboards/employer/*` ✓
+
+### Results
+- **Smoke tests**: 42/42 PASSED ✓ (was 40/42 before data fixes)
+- **Optum shard**: `wage_trend(11)`, `wage_roles(25)`, `srs(approval_rate_36m=0.962, n_36m=522)`, `srs_monthly(56)` ✓
+- **SRS overview**: `totalEmployers=67,694`, correct tier distribution ✓
+- **_search.json**: 102,225 employers, 14.8MB ✓
+- **Unit tests**: 1,069 passing / 1,072 total (3 skipped) ✓
+- **TypeScript**: 0 errors ✓
+- **ESLint**: 0 errors ✓
+
+### Files Modified
+- `src/app/dashboard/employer/page.tsx` — Suspense wrapper fix
+- `public/data/employers/_search.json` — regenerated
+- `public/data/dashboards/employer/srs_overview.json` — regenerated
+- `public/data/employers/*.json` (94,843 shards) — re-consolidated
+
+### Fix Scripts Created (in /tmp)
+- `/tmp/full_regen.py` — regenerates all 6 deleted monolithic files + runs consolidation
+- `/tmp/fix_srs_overview.py` — regenerates srs_overview.json from P2 parquet
+- `/tmp/regen_role_profiles.py` — regenerates employer_role_profiles.json from P2 parquet
+
+### Commits
+- `42311f9` — fix: Wrap employer page useSearchParams in Suspense for static export
+- (docs: Milestone 11.5) — this entry
+
+---
+
 ## 2026-03-21 — Milestone 11.4: Test Gap Closure + Employer URL Pre-load Fix
 
 ### Objective
