@@ -210,7 +210,7 @@ export default function BacklogDashboardPage() {
                   <div>
                     <p className="text-[var(--muted-foreground)]">Years to Clear</p>
                     <p className="text-2xl font-bold font-mono text-[var(--foreground)]">
-                      {s.backlogYears !== null ? s.backlogYears : "—"}
+                      {s.backlogYears !== null ? s.backlogYears : "–"}
                     </p>
                   </div>
                   <div>
@@ -218,13 +218,13 @@ export default function BacklogDashboardPage() {
                     <p className="text-2xl font-bold font-mono text-[var(--foreground)]">
                       {s.backlogMonths !== null
                         ? formatNumber(s.backlogMonths, 0)
-                        : "—"}
+                        : "–"}
                     </p>
                   </div>
                   <div>
                     <p className="text-[var(--muted-foreground)]">12m Inflow Est.</p>
                     <p className="font-mono text-sm text-[var(--foreground)]">
-                      {s.inflow12m !== null ? formatNumber(s.inflow12m) : "—"}
+                      {s.inflow12m !== null ? formatNumber(s.inflow12m) : "–"}
                     </p>
                   </div>
                   <div>
@@ -232,7 +232,7 @@ export default function BacklogDashboardPage() {
                     <p className="font-mono text-sm text-[var(--foreground)]">
                       {s.advancementDays !== null
                         ? `${formatNumber(s.advancementDays, 1)} d/mo`
-                        : "—"}
+                        : "–"}
                     </p>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export default function BacklogDashboardPage() {
                       fontSize: 12,
                     }}
                     formatter={(value: string | number) => [
-                      typeof value === "number" ? `${value} years` : "—",
+                      typeof value === "number" ? `${value} years` : "–",
                     ]}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} verticalAlign="top" height={36} />
@@ -399,7 +399,7 @@ export default function BacklogDashboardPage() {
                   <p className="text-lg font-bold font-mono text-[var(--foreground)]">
                     {queueResult.est_wait_years !== null
                       ? `${formatNumber(queueResult.est_wait_years, 1)} yr`
-                      : "—"}
+                      : "–"}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">

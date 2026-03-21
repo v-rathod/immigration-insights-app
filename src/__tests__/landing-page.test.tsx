@@ -22,6 +22,28 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+// Mock the VisaBulletinPulse component (loads data async)
+vi.mock("@/components/home/visa-bulletin-pulse", () => ({
+  VisaBulletinPulse: () => <div data-testid="visa-bulletin-pulse">Visa Bulletin Pulse</div>,
+}));
+
+// Mock intent interceptor widgets
+vi.mock("@/components/home/employer-quick-check", () => ({
+  EmployerQuickCheck: () => <div data-testid="employer-quick-check">Employer Quick Check</div>,
+}));
+
+vi.mock("@/components/home/pd-quick-check", () => ({
+  PdQuickCheck: () => <div data-testid="pd-quick-check">PD Quick Check</div>,
+}));
+
+vi.mock("@/components/home/featured-employers", () => ({
+  FeaturedEmployers: () => <div data-testid="featured-employers">Featured Employers</div>,
+}));
+
+vi.mock("@/components/home/welcome-back-banner", () => ({
+  WelcomeBackBanner: () => <div data-testid="welcome-back-banner">Welcome Back</div>,
+}));
+
 // Mock framer-motion
 vi.mock("framer-motion", async () => {
   const React = await import("react");
@@ -87,32 +109,42 @@ function renderLanding() {
 }
 
 describe("Landing Page", () => {
-  it("renders the hero headline", async () => {
+  it("renders the data-first hero headline", async () => {
     renderLanding();
     expect(
-      await screen.findByText("Navigate Your", { exact: false })
+      await screen.findByText("Your green card timeline.", { exact: false })
     ).toBeInTheDocument();
   });
 
-  it("renders the immigration journey gradient text", async () => {
+  it("renders the gradient salary text", async () => {
     renderLanding();
     expect(
-      await screen.findByText("Immigration Journey")
+      await screen.findByText("Your salary rank.")
     ).toBeInTheDocument();
   });
 
-  it("renders the Get Started CTA", async () => {
+  it("renders Check My Situation CTA", async () => {
     renderLanding();
     expect(
-      await screen.findByText("Get Started")
+      await screen.findByText("Check My Situation")
     ).toBeInTheDocument();
   });
 
-  it("renders the Explore Dashboards CTA", async () => {
+  it("renders Look Up an Employer CTA", async () => {
     renderLanding();
     expect(
-      await screen.findByText("Explore Dashboards")
+      await screen.findByText("Look Up an Employer")
     ).toBeInTheDocument();
+  });
+
+  it("renders the live data badge", async () => {
+    renderLanding();
+    expect(await screen.findByText("Live data")).toBeInTheDocument();
+  });
+
+  it("renders the VisaBulletinPulse widget", () => {
+    renderLanding();
+    expect(screen.getByTestId("visa-bulletin-pulse")).toBeInTheDocument();
   });
 
   it("renders stat cards", async () => {
@@ -127,7 +159,7 @@ describe("Landing Page", () => {
     renderLanding();
     const dashboards = [
       "Visa Bulletin Trends",
-      "Sponsor Reliability Score",
+      "Employer Sponsor Score",
       "EB Category Comparison",
       "Geographic Heatmaps",
       "Wage Competitiveness",
@@ -141,24 +173,22 @@ describe("Landing Page", () => {
     }
   });
 
-  it("renders value propositions", async () => {
-    renderLanding();
-    expect(await screen.findByText("Real-Time Data")).toBeInTheDocument();
-    expect(await screen.findByText("Privacy First")).toBeInTheDocument();
-    expect(await screen.findByText("AI-Powered")).toBeInTheDocument();
-  });
-
   it("has accessible section labels", async () => {
     renderLanding();
     expect(screen.getByLabelText("Key statistics")).toBeInTheDocument();
-    expect(screen.getByLabelText("Dashboards")).toBeInTheDocument();
-    expect(screen.getByLabelText("Why Compass")).toBeInTheDocument();
+    expect(screen.getByLabelText("Explore dashboards")).toBeInTheDocument();
   });
 
-  it("links Get Started to /insights", async () => {
+  it("links Check My Situation to /insights", async () => {
     renderLanding();
-    const link = await screen.findByText("Get Started");
+    const link = await screen.findByText("Check My Situation");
     expect(link.closest("a")).toHaveAttribute("href", "/insights");
+  });
+
+  it("links Look Up an Employer to /dashboard/employer", async () => {
+    renderLanding();
+    const link = await screen.findByText("Look Up an Employer");
+    expect(link.closest("a")).toHaveAttribute("href", "/dashboard/employer");
   });
 
   it("links dashboard cards to correct routes", async () => {
@@ -168,5 +198,29 @@ describe("Landing Page", () => {
       "href",
       "/dashboard/visa-bulletin/"
     );
+  });
+
+  it("renders Explore the Full Dataset heading", async () => {
+    renderLanding();
+    expect(
+      await screen.findByText("Explore the Full Dataset")
+    ).toBeInTheDocument();
+  });
+
+  it("renders the quick-check widgets section", () => {
+    renderLanding();
+    expect(screen.getByTestId("employer-quick-check")).toBeInTheDocument();
+    expect(screen.getByTestId("pd-quick-check")).toBeInTheDocument();
+  });
+
+  it("has accessible quick check section label", () => {
+    renderLanding();
+    expect(screen.getByLabelText("Quick check tools")).toBeInTheDocument();
+  });
+
+  it("renders the featured employers section", () => {
+    renderLanding();
+    expect(screen.getByTestId("featured-employers")).toBeInTheDocument();
+    expect(screen.getByLabelText("Featured employers")).toBeInTheDocument();
   });
 });

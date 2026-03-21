@@ -46,7 +46,7 @@ find src/__tests__ -name "*.test.*" | wc -l  # Update test file count
 | Path | Purpose | Status |
 |------|---------|--------|
 | `src/app/layout.tsx` | Root layout — Geist fonts, ThemeProvider, AppShell, blocking theme script | ✅ Stable |
-| `src/app/page.tsx` | Landing page — hero, stats, 9 dashboards, value props | ✅ Stable |
+| `src/app/page.tsx` | Landing page — data-first hero, visa bulletin pulse, quick-check widgets, featured employers, stats | ✅ Active |
 | `src/app/globals.css` | Aurora design tokens — CSS custom properties, dark/light, gradients | ✅ Stable |
 | `src/app/about/page.tsx` | About — personal story, principles, data sources, tech stack | ✅ Stable |
 | `src/app/privacy/page.tsx` | Privacy Policy — zero data collection, localStorage only | ✅ Stable |
@@ -68,10 +68,22 @@ find src/__tests__ -name "*.test.*" | wc -l  # Update test file count
 
 | Path | Purpose | Lines | Status |
 |------|---------|-------|--------|
-| `src/components/layout/sidebar.tsx` | Full nav — 13 items, 6 groups, collapse, mobile toggle | 230 | ✅ Stable |
+| `src/components/layout/sidebar.tsx` | Full nav — My Insights first, Core Tools, Explore groups, collapse, mobile toggle | 230 | ✅ Stable |
 | `src/components/layout/app-shell.tsx` | Root shell — sidebar + main + footer + widget | 45 | ✅ Stable |
 | `src/components/layout/footer.tsx` | Footer — links, data sources, copyright | 80 | ✅ Stable |
 | `src/components/layout/index.ts` | Barrel export | 3 | — |
+
+---
+
+## Components — Home (5 files, V2 redesign)
+
+| Path | Purpose | Lines | Status |
+|------|---------|-------|--------|
+| `src/components/home/visa-bulletin-pulse.tsx` | Live cutoff table — EB1/2/3 × IND/CHN/ROW, velocity, color-coded | ~120 | ✅ V2 |
+| `src/components/home/employer-quick-check.tsx` | Fuzzy employer search — inline SRS preview, links to dashboard | ~130 | ✅ V2 |
+| `src/components/home/pd-quick-check.tsx` | PD quick check — category/country toggles, current cutoff + velocity | ~110 | ✅ V2 |
+| `src/components/home/featured-employers.tsx` | Top 6 employer spotlight — SRS scores, tier badges, filing count | ~100 | ✅ V2 |
+| `src/components/home/welcome-back-banner.tsx` | Returning user banner — detects saved profile, session-dismissible | ~60 | ✅ V2 |
 
 ---
 

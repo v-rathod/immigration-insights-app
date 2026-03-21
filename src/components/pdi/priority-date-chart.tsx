@@ -35,7 +35,7 @@ import type { PdForecast } from "@/types/p2-artifacts";
 // Types
 // ---------------------------------------------------------------------------
 
-export type ForecastMode = "optimistic" | "realistic" | "mcra";
+export type ForecastMode = "optimistic" | "mcra";
 
 export interface PriorityDateChartProps {
   /** Historical DFF cutoff records (status_flag=D, sorted chronologically) */
@@ -67,13 +67,11 @@ export interface PriorityDateChartProps {
 
 const MODE_LABELS: Record<ForecastMode, string> = {
   optimistic: "Optimistic",
-  realistic: "Realistic",
   mcra: "Risk-Adjusted",
 };
 
 const MODE_COLORS: Record<ForecastMode, { bg: string; text: string; border: string; dot: string }> = {
   optimistic: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30", dot: "bg-blue-400" },
-  realistic: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30", dot: "bg-amber-400" },
   mcra: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30", dot: "bg-emerald-400" },
 };
 
@@ -217,7 +215,7 @@ export function PriorityDateChart({
   className,
 }: PriorityDateChartProps) {
   // Resolve effective mode: new prop takes precedence over legacy boolean
-  const effectiveMode: ForecastMode = forecastModeProp ?? (isOptimistic === false ? "realistic" : "optimistic");
+  const effectiveMode: ForecastMode = forecastModeProp ?? "optimistic";
 
   // -----------------------------------------------------------------------
   // Merge all data sources into a single sorted timeline
@@ -406,7 +404,7 @@ export function PriorityDateChart({
               role="radiogroup"
               aria-label="Forecast model"
             >
-              {(["optimistic", "realistic", "mcra"] as const).map((mode) => {
+              {(["optimistic", "mcra"] as const).map((mode) => {
                 const active = effectiveMode === mode;
                 const c = MODE_COLORS[mode];
                 return (

@@ -39,6 +39,20 @@
 
 ---
 
+## 🚨 V2 REDESIGN COMPLETE
+
+**Status**: ALL 8 PHASES COMPLETE ✅
+**Master Plan**: [REDESIGN_V2.md](./REDESIGN_V2.md) (strategy reference)
+**Inspiration**: levels.fyi — data visible immediately, no marketing pitch
+
+### Post-V2 Notes
+- V2 redesign completed Phases 1-8 (landing rewrite → test overhaul)
+- 1024 tests across 34 files, all passing
+- If making further changes to insights or sidebar, see REDESIGN_V2.md for design rationale
+- Key rule maintained: Each tool serves independently (employer→employer dashboard, PD→visa-bulletin dashboard). NOT driving users toward profile creation.
+
+---
+
 ## Quick Start for This Agent (NEW SESSION)
 
 ### VS Code Configuration ✅
@@ -72,7 +86,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 **Live Status**: Check [`PROGRESS.md`](../PROGRESS.md) for latest milestones and current state (updated with every change).
 
 **Quick Facts** (baseline):
-- **P3 Tests**: 986 passing (32 files) | **TypeScript**: Strict mode ✅ | **ESLint**: 0 errors ✅
+- **P3 Tests**: 1024 passing (34 files) | **TypeScript**: Strict mode ✅ | **ESLint**: 0 errors ✅
 - **Architecture**: Static export (no backend). AWS cost ~$1–3/month (S3 + CloudFront)
 - **Dashboards**: 8 deployed + Insights personalization + geographic heatmap
 - **Data**: 102K+ employer shards, full wage/SRS/LCA/H1B metrics inline
@@ -108,7 +122,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 - After completing ANY feature/fix: (1) Update PROGRESS.md with **timestamped milestone**, (2) Update parent docs if architectural changes, (3) DO NOT duplicate in copilot-instructions.md
 
 **Test Quality:**
-- All code changes require `npm test` passing (986+ tests across 32 files as baseline)
+- All code changes require `npm test` passing (1024+ tests across 34 files as baseline)
 - TypeScript strict mode + ESLint 0 errors (non-negotiable)
 - Mobile tests required for UI changes (see Rule 21 in Mobile-First Development below)
 

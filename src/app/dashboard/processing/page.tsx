@@ -123,7 +123,7 @@ export default function ProcessingDashboardPage() {
               value:
                 kpis.latestApprovalRate !== null
                   ? `${formatNumber(kpis.latestApprovalRate * 100, 1)}%`
-                  : "—",
+                  : "–",
               color: "text-emerald-400",
             },
             {
@@ -132,7 +132,7 @@ export default function ProcessingDashboardPage() {
               value:
                 kpis.latestPending !== null
                   ? formatNumber(kpis.latestPending)
-                  : "—",
+                  : "–",
               color: "text-amber-400",
             },
             {
@@ -141,7 +141,7 @@ export default function ProcessingDashboardPage() {
               value:
                 kpis.latestBacklogMonths !== null
                   ? formatNumber(kpis.latestBacklogMonths, 1)
-                  : "—",
+                  : "–",
               color: "text-rose-400",
             },
             {
@@ -150,7 +150,7 @@ export default function ProcessingDashboardPage() {
               value:
                 kpis.avgThroughput !== null
                   ? formatNumber(kpis.avgThroughput)
-                  : "—",
+                  : "–",
               sub: "cases/qtr",
               color: "text-blue-400",
             },
@@ -241,7 +241,7 @@ export default function ProcessingDashboardPage() {
                     fontSize: 12,
                   }}
                   formatter={(value: string | number, name: string) => {
-                    if (typeof value !== "number") return ["—", name];
+                    if (typeof value !== "number") return ["–", name];
                     if (name === "approvalRate" || name === "Approval Rate")
                       return [`${formatNumber(value, 1)}%`, "Approval Rate"];
                     return [formatNumber(value), name === "ebPending" ? "EB Pending" : name];
@@ -310,7 +310,7 @@ export default function ProcessingDashboardPage() {
                     fontSize: 12,
                   }}
                   formatter={(value: string | number) => [
-                    typeof value === "number" ? formatNumber(value) : "—",
+                    typeof value === "number" ? formatNumber(value) : "–",
                     "Throughput",
                   ]}
                 />

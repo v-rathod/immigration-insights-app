@@ -659,29 +659,17 @@ describe("VisaBulletinPage", () => {
     });
   });
 
-  it("switching to Realistic shows realistic badges on cards", async () => {
-    mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
-    render(<VisaBulletinPage />);
-    // Enter PD to reveal prediction cards first
-    await screen.findByText("Your PD");
-    const dateInput = document.querySelector(
-      'input[type="date"]'
-    ) as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: "2015-06-01" } });
-    await screen.findByText("File I-485 (Adjustment of Status)");
-    // Now click Realistic
-    fireEvent.click(screen.getByRole("radio", { name: "Realistic" }));
-    await waitFor(() => {
-      expect(screen.getByRole("radio", { name: "Realistic" })).toHaveAttribute("aria-checked", "true");
-    });
-    await waitFor(() => {
-      const badges = screen.getAllByText("Realistic");
-      expect(badges.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
   it("both prediction cards visible when PD entered, persist through mode change", async () => {
-    mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
+    const forecasts = buildFullForecasts();
+    mockLoadPdForecasts.mockResolvedValue(forecasts);
+    // Provide MCRA data so switching to Risk-Adjusted still shows cards
+    const mcraData = forecasts.map((f) => ({
+      ...f,
+      retrograde_prob: 0.01,
+      expected_setback_days: 30,
+      risk_adjusted_velocity: f.velocity_days_per_month * 0.99,
+    }));
+    mockLoadPdForecastsRetrograde.mockResolvedValue(mcraData);
     render(<VisaBulletinPage />);
     // Enter PD to reveal prediction cards
     await screen.findByText("Your PD");
@@ -693,11 +681,13 @@ describe("VisaBulletinPage", () => {
     await screen.findByText("File I-485 (Adjustment of Status)");
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
     // Switch mode — cards persist
-    const realisticRadio = screen.getByRole("radio", { name: "Realistic" });
-    fireEvent.click(realisticRadio);
-    expect(
-      screen.getByText("File I-485 (Adjustment of Status)")
-    ).toBeInTheDocument();
+    const mcraRadio = screen.getByRole("radio", { name: "Risk-Adjusted" });
+    fireEvent.click(mcraRadio);
+    await waitFor(() => {
+      expect(
+        screen.getByText("File I-485 (Adjustment of Status)")
+      ).toBeInTheDocument();
+    });
     expect(screen.getByText("Green Card Approval")).toBeInTheDocument();
   });
 

@@ -624,23 +624,23 @@ function PetitionHistoryTab({
                   </td>
                   {hasLca && (
                     <td className="px-4 py-3 text-right tabular-nums font-semibold text-blue-400/90">
-                      {row.lca_count != null ? row.lca_count.toLocaleString() : "—"}
+                      {row.lca_count != null ? row.lca_count.toLocaleString() : "–"}
                     </td>
                   )}
                   {hasUscis && (
                     <>
                       <td className="px-4 py-3 text-right tabular-nums text-emerald-400/80 hidden md:table-cell">
-                        {row.uscis ? row.uscis.initial_approvals.toLocaleString() : (isRecentNoUscis ? <span className="text-[var(--muted-foreground)]/40 text-xs">discontinued</span> : "—")}
+                        {row.uscis ? row.uscis.initial_approvals.toLocaleString() : (isRecentNoUscis ? <span className="text-[var(--muted-foreground)]/40 text-xs">discontinued</span> : "–")}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-emerald-400/50 hidden md:table-cell">
-                        {row.uscis ? row.uscis.continuing_approvals.toLocaleString() : "—"}
+                        {row.uscis ? row.uscis.continuing_approvals.toLocaleString() : "–"}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-purple-400/80 font-medium">
                         {row.uscis
                           ? row.uscis.total_petitions.toLocaleString()
                           : isRecentNoUscis
                           ? <span className="text-[var(--muted-foreground)]/40 text-xs italic">n/a</span>
-                          : "—"}
+                          : "–"}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {approvalPct != null ? (
@@ -657,7 +657,7 @@ function PetitionHistoryTab({
                             {approvalPct.toFixed(1)}%
                           </span>
                         ) : (
-                          <span className="text-[var(--muted-foreground)]/30 text-xs">—</span>
+                          <span className="text-[var(--muted-foreground)]/30 text-xs">–</span>
                         )}
                       </td>
                     </>
@@ -684,7 +684,7 @@ function PetitionHistoryTab({
                       {totalUscis.toLocaleString()}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--muted-foreground)]">
-                      {totalUscis > 0 ? ((totalUscisApp / totalUscis) * 100).toFixed(1) + "%" : "—"}
+                      {totalUscis > 0 ? ((totalUscisApp / totalUscis) * 100).toFixed(1) + "%" : "–"}
                     </td>
                   </>
                 )}

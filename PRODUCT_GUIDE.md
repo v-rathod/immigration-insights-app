@@ -3,7 +3,7 @@
 > **Document Purpose:** This is the living user manual for NorthStar Compass. It explains every page, every chart, and every interactive element in plain, user-friendly language. It is maintained alongside the codebase — any UI change must be reflected here.
 >
 > **Last Updated:** March 2026
-> **Version:** Milestone 10.21
+> **Version:** Compass V2 (Data-First Redesign)
 
 ---
 
@@ -59,19 +59,18 @@ The sidebar is your primary navigation tool. It is present on every page. On des
 
 | Section | Links |
 |---------|-------|
-| **Main** | Home |
-| **Insights** | Priority Date Cortex, Sponsor Score, Approvals |
-| **Dashboards** | EB Categories, Geographic, Wages, Occupations, Processing, Backlog |
-| **Project** | About |
-| **Personal** | My Insights |
+| *(ungrouped, top)* | My Insights |
+| **Core Tools** | Priority Date Cortex, Employer Sponsor Score, Wage Intelligence |
+| **Explore** | EB Categories, Geographic, Occupation Demand, Processing, Approvals |
+| **App** | About |
 
-Clicking any item navigates you to that page. The currently active page is highlighted in blue. On smaller screens, the sidebar can be toggled open/closed.
+There is no "Home" link in the sidebar. Clicking the Compass logo in the sidebar header navigates home. The currently active page is highlighted in blue. On smaller screens, the sidebar can be toggled open/closed.
 
 ### Collapse Button
 On desktop, a small arrow button on the sidebar lets you collapse it to icon-only mode (saving screen space), or expand it back to show full labels.
 
 ### Theme Toggle
-In the bottom-left of the sidebar, there are three icons — Sun (light mode), Moon (dark mode), and Monitor (follow your system setting). Click any to switch. Your preference is saved locally and remembered on your next visit.
+In the bottom-left of the sidebar, there are three icons: Sun (light mode), Moon (dark mode), and Monitor (follow your system setting). Click any to switch. Your preference is saved locally and remembered on your next visit.
 
 ### Feedback Button
 A floating button in the bottom-right corner of every page. Click it to:
@@ -83,38 +82,44 @@ A floating button in the bottom-right corner of every page. Click it to:
 
 **Route:** `/`
 
-The home page is your entry point to the app. It introduces what Compass does and provides quick links to all 9 dashboards.
+The home page is a data-first entry point inspired by levels.fyi. Rather than pitching the product, it surfaces live immigration data immediately so users start consuming useful information from the moment they land.
 
-### Hero Section
-A large headline with a gradient blue-to-purple treatment introduces the app: *"Navigate Your Immigration Journey with Confidence."* Below it is a short description and a call-to-action button linking to My Insights.
+### Welcome Back Banner
+If you have previously saved a profile (via My Insights), a compact banner appears at the top with your category, country, and current cutoff. Click it to go directly to your personal dashboard. The banner can be dismissed for the session.
+
+### Hero Section (Split Layout)
+The hero uses a two-column layout:
+
+**Left column:**
+- Headline: *"Your green card timeline. Your employer's record. Your salary rank."*
+- A "Live data" badge with a green indicator dot
+- A brief description referencing 18.5M+ official records
+- Two CTA buttons: "Check My Situation" (links to My Insights) and "Look Up an Employer" (links to Employer Dashboard)
+
+**Right column:**
+- **Live Visa Bulletin Pulse** widget showing the latest cutoff dates for 6 key series (EB1/EB2/EB3 for India, China, and Rest of World). Each row shows the cutoff date, monthly velocity (days/month), and a color-coded momentum indicator: green (advancing >60 days/mo), amber (0-60 days/mo), red (retrogression). The bulletin month is labeled at the top. A skeleton loading state is shown while data loads.
+
+### Quick-Check Widgets
+Two interactive widgets in a 2-column grid that let users get instant answers without navigating away:
+
+- **Employer Quick Check:** A fuzzy search input over 102K+ employers. When you type an employer name, matching results appear instantly. Selecting an employer shows an inline score preview with SRS tier, score, and a link to the full Employer Dashboard.
+- **Priority Date Quick Check:** Toggle buttons for category (EB1/EB2/EB3) and country (India/China/ROW). Shows the current cutoff date and movement velocity for your selection, with a link to the full Visa Bulletin Dashboard.
+
+### Featured Employers
+A spotlight section showing the top 6 sponsors by filing volume. Each card displays the employer name, SRS score and tier badge, and filing count. Links lead to the full Employer Dashboard.
 
 ### Key Statistics Bar
-Four animated number cards appear when the page loads, each counting up to its final value:
+Four animated number cards:
 
 | Stat | What It Means |
 |------|--------------|
-| **18.5M+ Data Points** | The total number of individual records processed across all government datasets |
-| **243K+ Employers** | The number of unique employers in the database who have filed PERM or H-1B applications |
-| **15+ Years of History** | The historical depth of data — from 2009 to the present |
-| **9 Dashboards** | The number of interactive analytics dashboards available |
+| **18.5M+ Data Points** | Total records processed across all government datasets |
+| **243K+ Employers Tracked** | Unique employers with PERM or H-1B filing history |
+| **249 Countries** | Countries of chargeability tracked |
+| **56 Forecast Series** | Priority date prediction models (EB categories × countries) |
 
-These numbers are static indicators of data scale — they do not respond to filters.
-
-### Dashboard Grid
-Nine cards arranged in a grid, one per dashboard. Each card shows:
-- A colored icon representing the dashboard topic
-- The dashboard name
-- A one-line description of what it analyzes
-- A link that navigates to that dashboard
-
-This grid is the quickest way to jump to any specific dashboard.
-
-### Value Propositions
-Three feature cards at the bottom of the page:
-
-- **Real-Time Data** — Highlights that the data is regularly refreshed from government sources
-- **Privacy First** — Explains that nothing you enter is ever sent to a server
-- **AI-Powered** — Notes that forecasts are generated by machine learning models
+### Explore the Full Dataset
+Eight dashboard cards arranged in a responsive grid (4 columns on desktop, 2 on mobile). Each card shows a colored gradient accent bar, the dashboard name, a description, and a hover arrow. This section is for browsing, not the primary content.
 
 ---
 

@@ -58,11 +58,11 @@ function LeaderRow({
     mode === "cagr"
       ? stat.cagr_5yr != null
         ? `+${stat.cagr_5yr}%`
-        : "—"
+        : "–"
       : mode === "yoy"
       ? stat.yoy_latest != null
         ? `${stat.yoy_latest > 0 ? "+" : ""}${stat.yoy_latest}%`
-        : "—"
+        : "–"
       : formatCompact(stat.total_filings);
 
   const rawValue =

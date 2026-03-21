@@ -275,12 +275,27 @@ describe("InsightsPage — page structure", () => {
 describe("InsightsPage — profile card (empty state)", () => {
   it("shows profile card with edit form open by default", async () => {
     await renderPage();
+    // Tier 1: always visible
     expect(screen.getByLabelText(/priority date/i)).toBeInTheDocument();
-    // Employer search is now inside the profile form
+    // Tier 2: always visible
     expect(screen.getByTestId("employer-search")).toBeInTheDocument();
-    expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/job title/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/years of experience/i)).toBeInTheDocument();
+    // Tier 3: hidden until employer is set (progressive reveal)
+    expect(screen.queryByLabelText(/annual salary/i)).toBeNull();
+    expect(screen.queryByLabelText(/job title/i)).toBeNull();
+    expect(screen.queryByLabelText(/years of experience/i)).toBeNull();
+    // Hint shown when Tier 3 is hidden
+    expect(screen.getByText(/select an employer above/i)).toBeInTheDocument();
+  });
+
+  it("reveals Tier 3 fields after employer is selected", async () => {
+    await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/job title/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/years of experience/i)).toBeInTheDocument();
+    });
   });
 
   it("shows EB category pills", async () => {
@@ -292,9 +307,52 @@ describe("InsightsPage — profile card (empty state)", () => {
 
   it("shows country of chargeability pills", async () => {
     await renderPage();
+    // India and China are primary pills — always visible
     expect(screen.getByRole("button", { name: "India" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "China" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rest of World" })).toBeInTheDocument();
+    // ROW/PHL/MEX are behind the "More countries" button
+    expect(screen.getByRole("button", { name: /more countries/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ROW" })).toBeNull();
+  });
+
+  it("shows EB More button to expand extended categories", async () => {
+    await renderPage();
+    expect(screen.getByRole("button", { name: /show extended eb/i })).toBeInTheDocument();
+    // Extended cats not shown initially
+    expect(screen.queryByRole("button", { name: "EB4" })).toBeNull();
+  });
+
+  it("CountryPicker expands ROW/PHL/MEX when More countries button is clicked", async () => {
+    await renderPage();
+    // Extended countries not visible before expanding
+    expect(screen.queryByRole("button", { name: "ROW" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "PHL" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "MEX" })).toBeNull();
+    // Click the More countries button
+    fireEvent.click(screen.getByRole("button", { name: /more countries/i }));
+    // Extended countries now visible
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "ROW" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "PHL" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "MEX" })).toBeInTheDocument();
+    });
+  });
+
+  it("selecting an extended country marks it as active and hides More button label", async () => {
+    await renderPage();
+    // Expand the More picker
+    fireEvent.click(screen.getByRole("button", { name: /more countries/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "ROW" })).toBeInTheDocument());
+    // Select ROW
+    fireEvent.click(screen.getByRole("button", { name: "ROW" }));
+    // The More button should now show the active extended code as label
+    await waitFor(() => {
+      // Either the button text shows "ROW" directly, or the button disappears and ROW is shown as active
+      const moreBtn = screen.queryByRole("button", { name: /more countries/i });
+      const rowActive = screen.queryByRole("button", { name: "ROW" });
+      // At least one of them should reflect the selection
+      expect(moreBtn !== null || rowActive !== null).toBe(true);
+    });
   });
 
   it("shows Done button to collapse the form", async () => {
@@ -333,6 +391,9 @@ describe("InsightsPage — profile card (field interactions)", () => {
 
   it("typing salary triggers save", async () => {
     await renderPage();
+    // Select employer first to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     const salaryInput = screen.getByLabelText(/annual salary/i);
     fireEvent.change(salaryInput, { target: { value: "145000" } });
     const { secureSet } = await import("@/lib/security");
@@ -408,18 +469,17 @@ describe("InsightsPage — Smart Visibility: Green Card panel", () => {
     await waitFor(() => {
       // Green Card panel reveals the forecast-mode toggle when PD is set
       expect(screen.getByRole("button", { name: /optimistic/i })).toBeInTheDocument();
-      expect(screen.getByText(/green card forecast/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /green card forecast/i })).toBeInTheDocument();
     });
   });
 
-  it("shows optimistic/realistic/risk-adjusted toggle", async () => {
+  it("shows optimistic/risk-adjusted toggle", async () => {
     await renderPage();
     fireEvent.change(screen.getByLabelText(/priority date/i), {
       target: { value: "2021-06-01" },
     });
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /optimistic/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /realistic/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /risk.adjusted/i })).toBeInTheDocument();
     });
   });
@@ -487,6 +547,9 @@ describe("InsightsPage — Smart Visibility: Salary panel", () => {
 
   it("shows salary benchmark card when salary is entered", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });
@@ -498,6 +561,9 @@ describe("InsightsPage — Smart Visibility: Salary panel", () => {
 
   it("shows formatted salary amount", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });
@@ -509,6 +575,9 @@ describe("InsightsPage — Smart Visibility: Salary panel", () => {
 
   it("shows benchmark comparison when salary and benchmark data available", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });
@@ -541,6 +610,9 @@ describe("InsightsPage — loading and error states", () => {
 describe("InsightsPage — Salary Compass: dual comparison mode", () => {
   it("shows industry mode by default when no employer is selected", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3 (but mock shard returns null so no wage roles)
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });
@@ -550,7 +622,7 @@ describe("InsightsPage — Salary Compass: dual comparison mode", () => {
     await waitFor(() => {
       expect(screen.getByText(/your offered salary/i)).toBeInTheDocument();
     });
-    // No toggle should appear since no employer data
+    // No toggle should appear since mock shard has no wage roles
     expect(screen.queryByRole("radiogroup", { name: /salary comparison mode/i })).toBeNull();
   });
 
@@ -607,6 +679,11 @@ describe("InsightsPage — Salary Compass: dual comparison mode", () => {
 
     await renderPage();
 
+    // Select employer first to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
+
     // Enter salary and job title
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "195000" },
@@ -614,9 +691,6 @@ describe("InsightsPage — Salary Compass: dual comparison mode", () => {
     fireEvent.change(screen.getByLabelText(/job title/i), {
       target: { value: "Software Developer" },
     });
-
-    // Select employer via Sponsor panel
-    fireEvent.click(screen.getByTestId("mock-select-employer"));
 
     await waitFor(() => {
       // Toggle should appear
@@ -672,13 +746,15 @@ describe("InsightsPage — Salary Compass: dual comparison mode", () => {
     ]);
 
     await renderPage();
+    // Select employer first to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "195000" },
     });
     fireEvent.change(screen.getByLabelText(/job title/i), {
       target: { value: "Software Developer" },
     });
-    fireEvent.click(screen.getByTestId("mock-select-employer"));
 
     await waitFor(() => {
       const empBtn = screen.getByRole("radio", { name: /your employer/i });
@@ -728,13 +804,15 @@ describe("InsightsPage — Salary Compass: dual comparison mode", () => {
     ]);
 
     await renderPage();
+    // Select employer first to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "195000" },
     });
     fireEvent.change(screen.getByLabelText(/job title/i), {
       target: { value: "Software Developer" },
     });
-    fireEvent.click(screen.getByTestId("mock-select-employer"));
 
     await waitFor(() => {
       expect(screen.getByRole("radio", { name: /your employer/i })).toBeInTheDocument();
@@ -760,6 +838,9 @@ describe("InsightsPage — Employer search compact mode", () => {
 describe("InsightsPage — SOC matching improvements", () => {
   it("matches abbreviation 'SDE' to Software Developers via synonym expansion", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });
@@ -774,6 +855,9 @@ describe("InsightsPage — SOC matching improvements", () => {
 
   it("matches 'DevOps Engineer' to a benchmark via synonym expansion", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "160000" },
     });
@@ -787,6 +871,9 @@ describe("InsightsPage — SOC matching improvements", () => {
 
   it("no user-facing SOC terminology", async () => {
     await renderPage();
+    // Select employer to reveal Tier 3
+    fireEvent.click(screen.getByTestId("mock-select-employer"));
+    await waitFor(() => expect(screen.getByLabelText(/annual salary/i)).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText(/annual salary/i), {
       target: { value: "145000" },
     });

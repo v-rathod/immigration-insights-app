@@ -126,7 +126,7 @@ function VelocityChart({
             fontSize: 11,
           }}
           formatter={(value: string | number) => [
-            typeof value === "number" ? `${formatNumber(value, 1)} d/mo` : "—",
+            typeof value === "number" ? `${formatNumber(value, 1)} d/mo` : "–",
           ]}
         />
         <Legend wrapperStyle={{ fontSize: 10 }} verticalAlign="top" height={28} />
@@ -185,13 +185,13 @@ function SummaryRow({
                 <div>
                   <p className="text-[var(--muted-foreground)]">12m avg</p>
                   <p className="font-mono text-sm text-[var(--foreground)]">
-                    {s.avgAdvancement !== null ? `${formatNumber(s.avgAdvancement, 1)} d/mo` : "—"}
+                    {s.avgAdvancement !== null ? `${formatNumber(s.avgAdvancement, 1)} d/mo` : "–"}
                   </p>
                 </div>
                 <div>
                   <p className="text-[var(--muted-foreground)]">10yr avg</p>
                   <p className="font-mono text-sm text-[var(--foreground)]">
-                    {s.netVelocity !== null ? `${formatNumber(s.netVelocity, 1)} d/mo` : "—"}
+                    {s.netVelocity !== null ? `${formatNumber(s.netVelocity, 1)} d/mo` : "–"}
                   </p>
                 </div>
               </div>

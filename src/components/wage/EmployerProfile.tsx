@@ -320,7 +320,7 @@ export function EmployerProfile({
               <GrowthBadge
                 label="5-Yr Growth"
                 value={
-                  stats.cagr_5yr != null ? `${stats.cagr_5yr > 0 ? "+" : ""}${stats.cagr_5yr}%` : "—"
+                  stats.cagr_5yr != null ? `${stats.cagr_5yr > 0 ? "+" : ""}${stats.cagr_5yr}%` : "–"
                 }
                 color={cagrColor}
                 icon={TrendingUp}
@@ -332,7 +332,7 @@ export function EmployerProfile({
                 value={
                   stats.yoy_latest != null
                     ? `${stats.yoy_latest > 0 ? "+" : ""}${stats.yoy_latest}%`
-                    : "—"
+                    : "–"
                 }
                 color={yoyColor}
                 icon={YoyIcon}
@@ -341,7 +341,7 @@ export function EmployerProfile({
             <StaggerItem>
               <GrowthBadge
                 label="Raise Streak"
-                value={stats.streak > 0 ? `${stats.streak}yr` : "—"}
+                value={stats.streak > 0 ? `${stats.streak}yr` : "–"}
                 color={stats.streak >= 3 ? "text-amber-400" : "text-[var(--muted-foreground)]"}
                 icon={Flame}
               />
@@ -578,7 +578,7 @@ export function EmployerProfile({
                               <span className="text-xs font-mono font-semibold text-[rgba(255,255,255,0.6)]">
                                 {(role as unknown as Record<string, unknown>).prior_year_median_salary
                                   ? formatCurrency((role as unknown as Record<string, unknown>).prior_year_median_salary as number)
-                                  : "—"}
+                                  : "–"}
                               </span>
                             </div>
                             <span className="text-sm font-mono font-bold text-[var(--foreground)] shrink-0 w-24 text-right">

@@ -28,15 +28,16 @@ npm test 2>&1 | grep -E 'passing|failing'
 
 ---
 
-## Test Status (Updated 2026-03-20 14:35)
+## Test Status (Updated 2026-03-20)
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Tests** | 986 | ✅ All passing |
-| **Test Files** | 32 | ✅ Comprehensive coverage |
-| **E2E Tests** | 85 (2 files) | ✅ Mobile-first |
-| **Unit Tests** | ~600 | ✅ Components + utilities |
-| **Integration Tests** | ~300+ | ✅ Data loaders + features |
+| **Total Tests** | 1,049 (1,017 passing, 32 skipped) | ✅ All passing |
+| **Test Files** | 36 | ✅ Comprehensive coverage |
+| **E2E Tests** | ~55 (3 files) + visual regression | ✅ Mobile-first + visual |
+| **Visual Tests** | 22 (1 file) | ✅ Playwright screenshots |
+| **Unit Tests** | ~620 | ✅ Components + utilities |
+| **Integration Tests** | ~310+ | ✅ Data loaders + features |
 | **TypeScript Coverage** | Strict mode | ✅ No `any` types |
 | **ESLint Compliance** | 0 errors | ✅ Clean |
 | **Coverage Target** | 80%+ | ✅ Codepaths verified |
@@ -73,6 +74,10 @@ npm test -- srs-components
 # E2E tests (Playwright)
 npx playwright test
 npx playwright test [name]-mobile  # Mobile tests only
+
+# Visual regression tests
+npm run test:visual                # Compare against baselines
+npm run test:visual:update         # Update baselines after intentional UI changes
 ```
 
 ---
@@ -102,7 +107,7 @@ npx playwright test [name]-mobile  # Mobile tests only
 | `theme-provider.test.tsx` | 6 | Theme state, toggle, persistence |
 | `theme-toggle.test.tsx` | 4 | Accessibility, aria |
 | `glass-card.test.tsx` | 6 | Variants, glow effects |
-| `sidebar.test.tsx` | 8 | Nav items, active state, mobile |
+| `sidebar.test.tsx` | 14 | Nav items, active state, V2 groups, mobile 44px touch, Explore collapse |
 | `srs-components.test.tsx` | 21 | Search, gauge, detail, chart |
 | `srs-comprehensive.test.tsx` | 97 | Complete SRS feature suite |
 | `pdi-components.test.tsx` | 19 | PdiQuickLook, SrsTeaser |
@@ -111,12 +116,19 @@ npx playwright test [name]-mobile  # Mobile tests only
 
 | File | Tests | Coverage |
 |------|-------|----------|
-| `landing-page.test.tsx` | 10 | Hero, stats, dashboard grid |
+| `landing-page.test.tsx` | 16 | V2 hero, stats, dashboard grid, quick-check mocks |
 | `visa-bulletin.test.tsx` | 33 | PriorityDateChart, VisaBulletinPage |
-| `insights-page.test.tsx` | 27 | Profile card, panels, persistence |
+| `insights-page.test.tsx` | 38 | Profile card (3-tier form), panels, persistence, SOC matching |
 | `site-pages.test.tsx` | 42 | Footer, Contact, Feedback, About, Privacy, Terms |
 | `ask-page.test.tsx` | 19 | RAG search, results, AI answer |
 | `wage-dashboard.test.tsx` | 52 | Hub orchestration, profiles, loaders |
+
+### V2 Home Widget Tests (2 files, ~26 tests)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `visa-bulletin-pulse.test.tsx` | 13 | Live bulletin table, skeleton, velocity, color coding |
+| `quick-check-widgets.test.tsx` | 13 | Employer fuzzy search, PD quick check, inline previews |
 
 ### Dashboard Tests (3 files, ~100 tests)
 
@@ -137,12 +149,29 @@ npx playwright test [name]-mobile  # Mobile tests only
 
 ---
 
-## E2E Tests (Playwright, 2 files, 85 tests)
+## E2E Tests (Playwright, 3 files + visual regression)
 
 | File | Tests | Scope |
 |------|-------|-------|
 | `pd-cortex-mobile.spec.ts` | 44 | `/dashboard/visa-bulletin` on iPhone 14 |
-| `home-mobile.spec.ts` | 41 | `/` landing page on iPhone 14 |
+| `home-mobile.spec.ts` | ~34 | `/` landing page on iPhone 14 (V2 updated) |
+| `dropdown-alignment.spec.ts` | ~5 | Dropdown positioning tests |
+
+### Visual Regression Tests (Playwright, 1 file)
+
+| File | Tests | Scope |
+|------|-------|-------|
+| `visual.spec.ts` | 22 | Full-page screenshots for all 13 pages (Desktop + Mobile), component-level hero/stats/grid, interaction states, theme toggle |
+
+**Config**: `playwright.visual.config.ts` — dedicated config with `maxDiffPixelRatio: 0.01`, animations disabled
+
+**Commands:**
+```bash
+npm run test:visual              # Compare against baselines
+npm run test:visual:update       # Update baseline screenshots
+```
+
+**Baselines**: Stored in `e2e/visual.spec.ts-snapshots/` — first run creates them, subsequent runs compare
 
 ---
 

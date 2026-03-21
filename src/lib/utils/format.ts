@@ -24,7 +24,7 @@ export function formatNumber(
   n: number | null | undefined,
   decimals?: number
 ): string {
-  if (n == null || isNaN(n)) return "—";
+  if (n == null || isNaN(n)) return "–";
   if (decimals !== undefined) {
     return new Intl.NumberFormat("en-US", {
       minimumFractionDigits: decimals,
@@ -36,25 +36,25 @@ export function formatNumber(
 
 /** Format as currency: 125000 → "$125,000" */
 export function formatCurrency(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return "—";
+  if (n == null || isNaN(n)) return "–";
   return currencyFormatter.format(n);
 }
 
 /** Format as percentage: 0.892 → "89.2%" */
 export function formatPercent(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return "—";
+  if (n == null || isNaN(n)) return "–";
   return percentFormatter.format(n);
 }
 
 /** Format as compact: 1234567 → "1.2M" */
 export function formatCompact(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return "—";
+  if (n == null || isNaN(n)) return "–";
   return compactFormatter.format(n);
 }
 
 /** Format an ISO date string as "Mar 2025" */
 export function formatMonthYear(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "–";
   try {
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", {
@@ -69,7 +69,7 @@ export function formatMonthYear(dateStr: string | null | undefined): string {
 
 /** Format an ISO date string as "March 15, 2025" */
 export function formatFullDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "–";
   try {
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", {
@@ -85,7 +85,7 @@ export function formatFullDate(dateStr: string | null | undefined): string {
 
 /** Format days into human-readable duration: 730 → "2 years", 45 → "1.5 months" */
 export function formatWaitTime(days: number | null | undefined): string {
-  if (days == null || isNaN(days)) return "—";
+  if (days == null || isNaN(days)) return "–";
   if (days < 0) return "Current";
   if (days < 30) return `${days} days`;
   if (days < 365) {

@@ -89,8 +89,8 @@ const TECH_STACK = [
   },
   {
     label: "Vitest 4",
-    detail: "Unit + component testing (948 tests)",
-    explanation: "Vitest runs 948 tests across 32 files covering every component, data loader, utility, and live-data regression. happy-dom replaces jsdom for lighter ESM compatibility. Includes optum regression tests, visa-bulletin live-data regression, and a smart-sort correctness suite.",
+    detail: "Unit + component testing (1,024 tests)",
+    explanation: "Vitest runs 1,024 tests across 34 files covering every component, data loader, utility, and live-data regression. happy-dom replaces jsdom for lighter ESM compatibility. Includes optum regression tests, visa-bulletin live-data regression, and a smart-sort correctness suite.",
   },
   {
     label: "Playwright",

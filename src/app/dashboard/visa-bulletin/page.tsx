@@ -4,7 +4,7 @@
  * Interactive timeline explorer for EB visa cutoff forecasts.
  * Users select category + country + priority date via reactive pill selectors
  * (no submit button). Chart always shows both DFF + FAD projections.
- * Optimistic/Realistic toggle controls velocity assumption for predictions.
+ * Optimistic/Risk-Adjusted toggle controls velocity assumption for predictions.
  *
  * Route: /dashboard/visa-bulletin/
  */
@@ -56,9 +56,6 @@ const DISPLAY_COUNTRIES = ["IND", "CHN", "ROW", "PHL", "MEX"] as const;
 
 const DEFAULT_CATEGORY = "EB2";
 const DEFAULT_COUNTRY = "IND";
-
-/** Velocity multiplier for realistic mode (65% of data-driven velocity) */
-const REALISTIC_VELOCITY_MULTIPLIER = 0.65;
 
 /** Easing for all animations */
 const EASE = [0.25, 0.1, 0.25, 1] as const;
@@ -134,8 +131,8 @@ export default function VisaBulletinPage() {
   const [showExtended, setShowExtended] = useState(false);
   const [forecastMode, setForecastMode] = useState<ForecastMode>("optimistic");
 
-  // Velocity multiplier: Optimistic 1.0, Realistic 0.65, MCRA uses its own data
-  const velocityMultiplier = forecastMode === "realistic" ? REALISTIC_VELOCITY_MULTIPLIER : 1.0;
+  // Velocity multiplier: Optimistic 1.0; MCRA uses its own velocity data
+  const velocityMultiplier = 1.0;
 
   // For MCRA mode, use retrograde forecasts; otherwise use base
   const activeForecastSource = forecastMode === "mcra" ? retrogradeForecasts : forecasts;
@@ -621,10 +618,6 @@ export default function VisaBulletinPage() {
                 rolling).
               </li>
               <li>
-                <strong>Realistic:</strong> 65% velocity multiplier applied to account
-                for policy uncertainty and bureaucratic friction.
-              </li>
-              <li>
                 <strong>Risk-Adjusted (MCRA):</strong> 2,000 Monte Carlo simulations
                 where each month carries a calibrated retrograde probability from 10 years
                 of weighted Visa Bulletin history. The P50 path is the central forecast;
@@ -678,13 +671,11 @@ interface PredictionCardProps {
 
 const PREDICTION_MODE_STYLE: Record<ForecastMode, { bg: string; text: string }> = {
   optimistic: { bg: "bg-blue-500/10", text: "text-blue-400" },
-  realistic: { bg: "bg-amber-500/10", text: "text-amber-400" },
   mcra: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
 };
 
 const PREDICTION_MODE_LABEL: Record<ForecastMode, string> = {
   optimistic: "Optimistic",
-  realistic: "Realistic",
   mcra: "Risk-Adjusted",
 };
 

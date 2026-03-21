@@ -94,16 +94,19 @@ import { analytics } from "@/lib/analytics";
 const EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 const STORAGE_KEY = "user_profile";
 
-const EB_CATEGORIES = ["EB1", "EB2", "EB3", "EB3-Other", "EB4", "EB5"] as const;
-const DISPLAY_COUNTRIES = [
+const PRIMARY_EB_CATEGORIES = ["EB1", "EB2", "EB3"] as const;
+const EXTENDED_EB_CATEGORIES = ["EB3-Other", "EB4", "EB5"] as const;
+const EB_CATEGORIES = [...PRIMARY_EB_CATEGORIES, ...EXTENDED_EB_CATEGORIES] as const;
+const PRIMARY_COUNTRIES = [
   { code: "IND", label: "India" },
   { code: "CHN", label: "China" },
-  { code: "ROW", label: "Rest of World" },
-  { code: "PHL", label: "Philippines" },
-  { code: "MEX", label: "Mexico" },
 ] as const;
-
-const REALISTIC_MULTIPLIER = 0.65;
+const EXTENDED_COUNTRIES = [
+  { code: "ROW", label: "ROW" },
+  { code: "PHL", label: "PHL" },
+  { code: "MEX", label: "MEX" },
+] as const;
+const DISPLAY_COUNTRIES = [...PRIMARY_COUNTRIES, ...EXTENDED_COUNTRIES] as const;
 
 /** Title-level prefixes to ignore when matching job titles to SOC categories */
 const TITLE_LEVEL_WORDS = new Set([
@@ -259,6 +262,113 @@ function findBestBenchmark(
 // Sub-components
 // ---------------------------------------------------------------------------
 
+/** Country picker: shows India/China primary + expandable More for ROW/PHL/MEX */
+function CountryPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (code: string) => void;
+}) {
+  const [showMore, setShowMore] = useState(false);
+  const isExtended = EXTENDED_COUNTRIES.some((c) => c.code === value);
+  const extendedLabel = EXTENDED_COUNTRIES.find((c) => c.code === value)?.label;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {PRIMARY_COUNTRIES.map(({ code, label }) => (
+        <Pill key={code} active={value === code} onClick={() => onChange(code)} color="purple">
+          {label}
+        </Pill>
+      ))}
+      <button
+        type="button"
+        onClick={() => setShowMore((v) => !v)}
+        className={cn(
+          "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-150",
+          isExtended
+            ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
+            : "text-[var(--muted-foreground)] border-white/[0.06] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+        )}
+        aria-label={showMore ? "Hide more countries" : "More countries"}
+      >
+        {isExtended ? extendedLabel : (showMore ? "Less" : "More")}
+      </button>
+      <AnimatePresence>
+        {(showMore || isExtended) &&
+          EXTENDED_COUNTRIES.map(({ code, label }) => (
+            <motion.div
+              key={code}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.12 }}
+            >
+              <Pill
+                active={value === code}
+                onClick={() => { onChange(code); setShowMore(false); }}
+                color="purple"
+              >
+                {label}
+              </Pill>
+            </motion.div>
+          ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** EB Category picker: shows EB1/EB2/EB3 + expandable More for EB3-Other/EB4/EB5 */
+function EbCategoryPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (cat: string) => void;
+}) {
+  const [showMore, setShowMore] = useState(false);
+  const isExtended = EXTENDED_EB_CATEGORIES.includes(value as typeof EXTENDED_EB_CATEGORIES[number]);
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {PRIMARY_EB_CATEGORIES.map((cat) => (
+        <Pill key={cat} active={value === cat} onClick={() => onChange(cat)} color="blue">
+          {cat}
+        </Pill>
+      ))}
+      <button
+        type="button"
+        onClick={() => setShowMore((v) => !v)}
+        className={cn(
+          "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all duration-150",
+          isExtended
+            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+            : "text-[var(--muted-foreground)] border-white/[0.06] hover:border-white/[0.18] hover:text-[var(--foreground)]"
+        )}
+        aria-label={showMore ? "Hide extended EB categories" : "Show extended EB categories"}
+      >
+        {isExtended ? value : (showMore ? "Less" : "More")}
+      </button>
+      <AnimatePresence>
+        {(showMore || isExtended) &&
+          EXTENDED_EB_CATEGORIES.map((cat) => (
+            <motion.div
+              key={cat}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.12 }}
+            >
+              <Pill active={value === cat} onClick={() => { onChange(cat); setShowMore(false); }} color="blue">
+                {cat}
+              </Pill>
+            </motion.div>
+          ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /** Pill selector button — matches PDI/SRS page aesthetic */
 function Pill({
   active,
@@ -281,7 +391,7 @@ function Pill({
       type="button"
       onClick={onClick}
       className={cn(
-        "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+        "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
         active
           ? activeClasses[color]
           : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
@@ -295,20 +405,33 @@ function Pill({
 /** Label + small icon for form rows */
 function FormLabel({ icon: Icon, children }: { icon: typeof Calendar; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+    <label className="flex items-center gap-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
       <Icon className="h-3.5 w-3.5" />
       {children}
     </label>
   );
 }
 
+/** Tier step indicator for progressive form */
+function TierLabel({ number, label, unlocks }: { number: number; label: string; unlocks: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/15 text-[10px] font-bold text-violet-400">
+        {number}
+      </span>
+      <span className="text-xs font-semibold text-[var(--foreground)]">{label}</span>
+      <span className="text-[10px] text-[var(--muted-foreground)]">· unlocks {unlocks}</span>
+    </div>
+  );
+}
+
 /** Padlock-style empty-state CTA */
 function PanelCTA({ icon: Icon, title, body }: { icon: typeof Target; title: string; body: string }) {
   return (
-    <GlassCard padding="lg" className="border-dashed border-violet-500/[0.15]">
-      <div className="flex flex-col items-center py-6 text-center gap-2">
-        <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-1">
-          <Icon className="h-5 w-5 text-violet-400/70" />
+    <GlassCard padding="sm" className="border-dashed border-violet-500/[0.15]">
+      <div className="flex flex-col items-center py-3 text-center gap-1.5">
+        <div className="h-8 w-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-violet-400/70" />
         </div>
         <p className="text-sm font-semibold text-[var(--foreground)]">{title}</p>
         <p className="text-xs text-[var(--muted-foreground)] max-w-xs leading-relaxed">{body}</p>
@@ -321,7 +444,7 @@ function PanelCTA({ icon: Icon, title, body }: { icon: typeof Target; title: str
 // Panel A: Green Card Forecast
 // ---------------------------------------------------------------------------
 
-type GCForecastMode = "optimistic" | "realistic" | "mcra";
+type GCForecastMode = "optimistic" | "mcra";
 
 function GreenCardPanel({
   profile,
@@ -335,7 +458,7 @@ function GreenCardPanel({
   trends: CutoffTrendRecord[];
 }) {
   const [forecastMode, setForecastMode] = useState<GCForecastMode>("optimistic");
-  const multiplier = forecastMode === "realistic" ? REALISTIC_MULTIPLIER : 1.0;
+  const multiplier = 1.0;
   const activeForecastSource: PdForecast[] =
     forecastMode === "mcra" ? retroForecasts : forecasts;
 
@@ -417,16 +540,16 @@ function GreenCardPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-8">
+      <div className="space-y-4">
         {sectionHeader}
 
-        {/* Forecast mode toggle: Optimistic / Realistic / Risk-Adjusted */}
+        {/* Forecast mode toggle: Optimistic / Risk-Adjusted */}
         <div className="flex items-center gap-2 justify-end flex-wrap">
           <span className="text-[10px] text-[var(--muted-foreground)]">Forecast mode:</span>
           <button
             onClick={() => setForecastMode("optimistic")}
             className={cn(
-              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+              "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
               forecastMode === "optimistic"
                 ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
@@ -436,20 +559,9 @@ function GreenCardPanel({
             Optimistic
           </button>
           <button
-            onClick={() => setForecastMode("realistic")}
-            className={cn(
-              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
-              forecastMode === "realistic"
-                ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
-                : "text-[var(--muted-foreground)] border-white/[0.08]"
-            )}
-          >
-            Realistic
-          </button>
-          <button
             onClick={() => setForecastMode("mcra")}
             className={cn(
-              "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+              "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
               forecastMode === "mcra"
                 ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                 : "text-[var(--muted-foreground)] border-white/[0.08]"
@@ -658,7 +770,7 @@ function SponsorPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {sectionHeader}
 
         {/* Score + details — hidden until employer selected (Smart Visibility) */}
@@ -867,7 +979,7 @@ function SalaryPanel({
 
   return (
     <FadeIn>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {sectionHeader}
 
         {/* Compare mode toggle — only shown when employer data is available */}
@@ -879,7 +991,7 @@ function SalaryPanel({
               aria-checked={compareMode === "employer"}
               onClick={() => setCompareModeOverride("employer")}
               className={cn(
-                "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+                "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
                 compareMode === "employer"
                   ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
                   : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
@@ -893,7 +1005,7 @@ function SalaryPanel({
               aria-checked={compareMode === "industry"}
               onClick={() => setCompareModeOverride("industry")}
               className={cn(
-                "px-3 py-2 sm:py-1 rounded-full text-xs font-medium border transition-all",
+                "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
                 compareMode === "industry"
                   ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
                   : "text-[var(--muted-foreground)] border-white/[0.08] hover:border-white/[0.18] hover:text-[var(--foreground)]"
@@ -1039,9 +1151,9 @@ function ProfileCard({
   const filled = isProfileFilled(profile);
 
   return (
-    <GlassCard variant="elevated" padding="lg">
+    <GlassCard variant="elevated" padding="md">
       {/* Card header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-violet-400" />
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Your Profile</h2>
@@ -1081,7 +1193,8 @@ function ProfileCard({
             transition={{ duration: 0.35, ease: EASE }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5 pt-2">
+            {/* ── Compact row: PD | EB | Country (3-col mobile) | Employer (full-width mobile, 2fr desktop) ── */}
+            <div className="grid grid-cols-3 sm:grid-cols-[1fr_1fr_1fr_2fr] gap-x-2.5 gap-y-2.5">
               {/* Priority Date */}
               <div>
                 <FormLabel icon={Calendar}>Priority Date</FormLabel>
@@ -1089,48 +1202,31 @@ function ProfileCard({
                   type="date"
                   value={profile.priorityDate}
                   onChange={(e) => onChange({ priorityDate: e.target.value })}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  placeholder="YYYY-MM-DD"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-xs text-[var(--foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   aria-label="Priority date"
                 />
               </div>
 
-              {/* EB Category */}
+              {/* EB Category — EB1/EB2/EB3 + expandable More */}
               <div>
                 <FormLabel icon={Briefcase}>EB Category</FormLabel>
-                <div className="flex flex-wrap gap-1.5">
-                  {EB_CATEGORIES.map((cat) => (
-                    <Pill
-                      key={cat}
-                      active={profile.category === cat}
-                      onClick={() => onChange({ category: cat })}
-                      color="blue"
-                    >
-                      {cat}
-                    </Pill>
-                  ))}
-                </div>
+                <EbCategoryPicker
+                  value={profile.category}
+                  onChange={(cat) => onChange({ category: cat })}
+                />
               </div>
 
-              {/* Country */}
+              {/* Country — India/China + expandable More */}
               <div>
-                <FormLabel icon={MapPin}>Country of Chargeability</FormLabel>
-                <div className="flex flex-wrap gap-1.5">
-                  {DISPLAY_COUNTRIES.map(({ code, label }) => (
-                    <Pill
-                      key={code}
-                      active={profile.country === code}
-                      onClick={() => onChange({ country: code })}
-                      color="purple"
-                    >
-                      {label}
-                    </Pill>
-                  ))}
-                </div>
+                <FormLabel icon={MapPin}>Country</FormLabel>
+                <CountryPicker
+                  value={profile.country}
+                  onChange={(code) => onChange({ country: code })}
+                />
               </div>
 
-              {/* Employer */}
-              <div className="col-span-full">
+              {/* Employer — full width on mobile, 2fr on desktop */}
+              <div className="col-span-3 sm:col-span-1">
                 <FormLabel icon={Building2}>Employer</FormLabel>
                 <EmployerSearch
                   employers={overallScores}
@@ -1138,54 +1234,82 @@ function ProfileCard({
                     onChange({ employerName: e.employer_name });
                     onEmployerSelect(e);
                   }}
-                  placeholder={profile.employerName || "Search 70,000+ employers…"}
+                  placeholder={profile.employerName || "Search employers…"}
                   compact
                 />
               </div>
-
-              {/* Annual Salary */}
-              <div>
-                <FormLabel icon={DollarSign}>Annual Salary Offered (USD)</FormLabel>
-                <input
-                  type="number"
-                  value={profile.wageOffered}
-                  onChange={(e) => onChange({ wageOffered: e.target.value })}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  placeholder="e.g. 145000"
-                  min="0"
-                  aria-label="Annual salary"
-                />
-              </div>
-
-              {/* Job Title */}
-              <div>
-                <FormLabel icon={Briefcase}>Job Title</FormLabel>
-                <input
-                  type="text"
-                  value={profile.jobTitle}
-                  onChange={(e) => onChange({ jobTitle: e.target.value })}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  placeholder="e.g. Software Engineer"
-                  aria-label="Job title"
-                />
-              </div>
-
-              {/* Years of Experience */}
-              <div>
-                <FormLabel icon={Clock}>Years of Experience</FormLabel>
-                <input
-                  type="number"
-                  value={profile.yearsOfExperience}
-                  onChange={(e) => onChange({ yearsOfExperience: e.target.value })}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  placeholder="e.g. 8"
-                  min="0"
-                  max="50"
-                  aria-label="Years of experience"
-                />
-              </div>
             </div>
-            <p className="mt-4 text-[10px] text-[var(--muted-foreground)] flex items-center gap-1.5">
+
+            {/* ── Tier 3: Salary & Role (reveals when employer is set) ─ */}
+            <AnimatePresence>
+              {!!profile.employerName && (
+                <motion.div
+                  key="tier3"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.4, ease: EASE }}
+                  className="overflow-hidden"
+                >
+                  <div className="h-px bg-white/[0.06] my-3" />
+                  <div className="space-y-2">
+                    <TierLabel number={3} label="Salary & Role" unlocks="Salary Compass" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3">
+                      {/* Annual Salary */}
+                      <div>
+                        <FormLabel icon={DollarSign}>Annual Salary Offered (USD)</FormLabel>
+                        <input
+                          type="number"
+                          value={profile.wageOffered}
+                          onChange={(e) => onChange({ wageOffered: e.target.value })}
+                          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                          placeholder="e.g. 145000"
+                          min="0"
+                          aria-label="Annual salary"
+                        />
+                      </div>
+
+                      {/* Job Title */}
+                      <div>
+                        <FormLabel icon={Briefcase}>Job Title</FormLabel>
+                        <input
+                          type="text"
+                          value={profile.jobTitle}
+                          onChange={(e) => onChange({ jobTitle: e.target.value })}
+                          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                          placeholder="e.g. Software Engineer"
+                          aria-label="Job title"
+                        />
+                      </div>
+
+                      {/* Years of Experience */}
+                      <div>
+                        <FormLabel icon={Clock}>Years of Experience</FormLabel>
+                        <input
+                          type="number"
+                          value={profile.yearsOfExperience}
+                          onChange={(e) => onChange({ yearsOfExperience: e.target.value })}
+                          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                          placeholder="e.g. 8"
+                          min="0"
+                          max="50"
+                          aria-label="Years of experience"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Hint when Tier 3 is hidden */}
+            {!profile.employerName && (
+              <p className="mt-2 text-center text-[10px] text-[var(--muted-foreground)]">
+                Select an employer above to add salary and role details
+              </p>
+            )}
+
+            <p className="mt-2 text-[10px] text-[var(--muted-foreground)] flex items-center gap-1.5">
               <ArrowUpRight className="h-3 w-3" />
               Saved automatically · stays in your browser, never sent to any server
             </p>
@@ -1443,18 +1567,18 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-16 pb-12" data-testid="insights-page">
+    <div className="space-y-4 pb-6" data-testid="insights-page">
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <FadeIn>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-400 shrink-0">
-            <User className="h-5 w-5 text-white" strokeWidth={2} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-400 shrink-0">
+            <User className="h-4.5 w-4.5 text-white" strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+            <h1 className="text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl">
               My Insights
             </h1>
-            <p className="text-sm text-[var(--muted-foreground)]">
+            <p className="text-xs text-[var(--muted-foreground)]">
               Personalized immigration intelligence, built around your situation
             </p>
           </div>
@@ -1474,7 +1598,7 @@ export default function InsightsPage() {
       </FadeIn>
 
       {/* ── Panels ───────────────────────────────────────────────────────── */}
-      <StaggerContainer className="space-y-16">
+      <StaggerContainer className="space-y-8">
         {/* Divider */}
         <StaggerItem>
           <div className="flex items-center gap-3">

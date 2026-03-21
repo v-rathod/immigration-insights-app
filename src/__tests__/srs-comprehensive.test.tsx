@@ -1184,7 +1184,7 @@ describe("EmployerDetailCard — Comprehensive", () => {
         employer={makeSrs({ wage_ratio_med: null as unknown as number })}
       />
     );
-    expect(screen.getByText("—")).toBeDefined();
+    expect(screen.getByText("–")).toBeDefined();
   });
 
   it("displays Job Category breadth with 'categories' suffix", () => {

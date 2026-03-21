@@ -9,12 +9,12 @@ import {
   TrendingUp,
   ArrowRight,
   Star,
-  Sparkles,
-  Shield,
-  Zap,
   CalendarClock,
   Briefcase,
   DollarSign,
+  Activity,
+  Clock,
+  CheckCircle,
 } from "lucide-react";
 import {
   GlassCard,
@@ -24,6 +24,11 @@ import {
   FadeIn,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { VisaBulletinPulse } from "@/components/home/visa-bulletin-pulse";
+import { EmployerQuickCheck } from "@/components/home/employer-quick-check";
+import { PdQuickCheck } from "@/components/home/pd-quick-check";
+import { FeaturedEmployers } from "@/components/home/featured-employers";
+import { WelcomeBackBanner } from "@/components/home/welcome-back-banner";
 
 // ---------------------------------------------------------------------------
 // Data
@@ -37,9 +42,7 @@ const HERO_STATS = [
 ];
 
 /**
- * All 8 dashboards — presented equally as an informational catalog.
- * PDI (Visa Bulletin) and SRS (Employer) are promoted in sidebar navigation.
- * (Backlog hidden for now, will be worked on in later phases.)
+ * All dashboards for the explore grid at the bottom.
  */
 const DASHBOARDS = [
   {
@@ -48,13 +51,15 @@ const DASHBOARDS = [
       "Historical cutoff progression, retrogression patterns, and priority date forecasts",
     href: "/dashboard/visa-bulletin/",
     gradient: "from-blue-500 to-cyan-400",
+    icon: CalendarClock,
   },
   {
-    title: "Sponsor Reliability Score",
+    title: "Employer Sponsor Score",
     description:
       "Search any employer and see their SRS: approval rates, wage competitiveness, and risk signals",
     href: "/dashboard/employer/",
     gradient: "from-emerald-500 to-teal-400",
+    icon: Building2,
   },
   {
     title: "EB Category Comparison",
@@ -62,6 +67,7 @@ const DASHBOARDS = [
       "EB2 vs EB3 movement velocity, volatility, and wait time analysis",
     href: "/dashboard/eb-category/",
     gradient: "from-purple-500 to-violet-400",
+    icon: BarChart3,
   },
   {
     title: "Geographic Heatmaps",
@@ -69,6 +75,7 @@ const DASHBOARDS = [
       "Sponsorship hotspots, filing density, and wage competitiveness by region",
     href: "/dashboard/geographic/",
     gradient: "from-amber-500 to-orange-400",
+    icon: Globe2,
   },
   {
     title: "Wage Competitiveness",
@@ -76,6 +83,7 @@ const DASHBOARDS = [
       "See how your salary offer compares to market pay ranges and what top employers actually pay by role and location",
     href: "/dashboard/wage/",
     gradient: "from-rose-500 to-pink-400",
+    icon: DollarSign,
   },
   {
     title: "Occupation Demand",
@@ -83,6 +91,7 @@ const DASHBOARDS = [
       "High-demand job types, hiring trends, and wage premiums by occupation",
     href: "/dashboard/job-demand/",
     gradient: "from-indigo-500 to-blue-400",
+    icon: Briefcase,
   },
   {
     title: "Processing Speed",
@@ -90,6 +99,7 @@ const DASHBOARDS = [
       "Case processing velocity, I-485 approval trends, and center backlog",
     href: "/dashboard/processing/",
     gradient: "from-teal-500 to-emerald-400",
+    icon: Clock,
   },
   {
     title: "Approval & Denial Trends",
@@ -97,52 +107,7 @@ const DASHBOARDS = [
       "19-year PERM approval pulse, administration effects, cross-track comparison, and YoY velocity",
     href: "/dashboard/approvals/",
     gradient: "from-green-500 to-emerald-400",
-  },
-];
-
-const VALUE_PROPS = [
-  {
-    icon: Zap,
-    title: "Real-Time Data",
-    description: "Powered by 18.5M+ records from DOL, DOS, USCIS, BLS, and DHS",
-  },
-  {
-    icon: Shield,
-    title: "Privacy First",
-    description: "Your data stays in your browser. No accounts, no tracking, no servers",
-  },
-  {
-    icon: Sparkles,
-    title: "AI-Powered",
-    description: "Pre-computed ML models for forecasts, scores, and recommendations",
-  },
-];
-
-/** Three flagship tools surfaced as quick-access cards in the hero area */
-const QUICK_ACCESS = [
-  {
-    icon: CalendarClock,
-    title: "Priority Date Forecast",
-    description: "See when your EB category may become current based on historical trends",
-    href: "/dashboard/visa-bulletin",
-    gradient: "from-blue-500 to-cyan-400",
-    badge: "Most Popular",
-  },
-  {
-    icon: Briefcase,
-    title: "Employer Score (SRS)",
-    description: "Look up any sponsor's approval rate, wage compliance, and risk signals",
-    href: "/dashboard/employer",
-    gradient: "from-emerald-500 to-teal-400",
-    badge: "243K Employers",
-  },
-  {
-    icon: DollarSign,
-    title: "Wage Benchmarks",
-    description: "Compare your salary offer against real LCA filings for your role and location",
-    href: "/dashboard/wage",
-    gradient: "from-amber-500 to-orange-400",
-    badge: "9.6M Filings",
+    icon: CheckCircle,
   },
 ];
 
@@ -152,69 +117,102 @@ const QUICK_ACCESS = [
 
 export default function LandingPage() {
   return (
-    <div className="space-y-20 pb-12">
+    <div className="space-y-16 pb-12">
+      {/* Returning user banner — only renders if profile exists in localStorage */}
+      <WelcomeBackBanner />
+
       {/* ═══════════════════════════════════════════════════════════════════
-          HERO SECTION
+          HERO SECTION — Data-First Split Layout
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative -mx-4 -mt-6 sm:-mx-6 lg:-mx-8 overflow-hidden">
         {/* Ambient gradient backdrop */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-600/8 via-purple-600/8 to-emerald-600/6 blur-3xl" />
-          <div className="absolute top-20 right-0 h-[300px] w-[400px] rounded-full bg-gradient-to-l from-rose-600/5 to-transparent blur-3xl" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center px-6 pt-20 pb-16 text-center sm:pt-28 sm:pb-20">
-          {/* Badge */}
-          <FadeIn delay={0}>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--muted)]/30 px-4 py-1.5 backdrop-blur-sm">
-              <Compass className="h-3.5 w-3.5 text-[var(--accent-blue)]" strokeWidth={2} />
-              <span className="font-mono text-[11px] tracking-widest uppercase text-[var(--muted-foreground)]">
-                NorthStar Compass
-              </span>
-            </div>
-          </FadeIn>
+        <div className="relative z-10 px-6 pt-12 pb-10 sm:pt-16 sm:pb-14">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+            {/* Left: Headline + CTA */}
+            <div className="flex flex-col justify-center">
+              <FadeIn delay={0}>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--muted)]/30 px-4 py-1.5 backdrop-blur-sm">
+                  <Activity className="h-3 w-3 text-emerald-400" strokeWidth={2.5} />
+                  <span className="font-mono text-[11px] tracking-widest uppercase text-[var(--muted-foreground)]">
+                    Live data
+                  </span>
+                </div>
+              </FadeIn>
 
-          {/* Headline */}
+              <FadeIn delay={0.1}>
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                  Your green card timeline.{" "}
+                  <span className="text-[var(--muted-foreground)]">
+                    Your employer&apos;s record.
+                  </span>{" "}
+                  <span className="gradient-text">Your salary rank.</span>
+                </h1>
+              </FadeIn>
+
+              <FadeIn delay={0.2}>
+                <p className="mt-4 max-w-lg text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
+                  Priority date forecasts, employer scores, and wage benchmarks
+                  from{" "}
+                  <span className="font-mono font-medium text-[var(--foreground)]">
+                    18.5M+
+                  </span>{" "}
+                  official DOL, USCIS, and DOS records. No accounts required.
+                </p>
+              </FadeIn>
+
+              <FadeIn delay={0.3}>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:gap-4">
+                  <Link
+                    href="/insights"
+                    className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Check My Situation
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </Link>
+                  <Link
+                    href="/dashboard/employer"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)]/50 px-6 py-2.5 text-sm font-medium text-[var(--foreground)] backdrop-blur-sm transition-all duration-300 hover:bg-[var(--muted)]/50 hover:border-[var(--muted-foreground)]/30"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    Look Up an Employer
+                  </Link>
+                </div>
+              </FadeIn>
+            </div>
+
+            {/* Right: Live Visa Bulletin Pulse */}
+            <FadeIn delay={0.2}>
+              <VisaBulletinPulse />
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          QUICK-CHECK WIDGETS
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section aria-label="Quick check tools">
+        <div className="grid gap-4 sm:grid-cols-2">
           <FadeIn delay={0.1}>
-            <h1 className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl">
-              Navigate Your{" "}
-              <span className="gradient-text">Immigration Journey</span>
-              <br />
-              <span className="text-[var(--muted-foreground)]">with Confidence</span>
-            </h1>
+            <EmployerQuickCheck />
           </FadeIn>
-
-          {/* Subheadline */}
           <FadeIn delay={0.2}>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--muted-foreground)] sm:text-lg">
-              Personalized insights powered by{" "}
-              <span className="font-mono font-medium text-[var(--foreground)]">
-                18.5M+
-              </span>{" "}
-              data points from official government sources. Priority date forecasts, employer scores, and salary benchmarks, all in one place.
-            </p>
-          </FadeIn>
-
-          {/* CTAs */}
-          <FadeIn delay={0.3}>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Link
-                href="/insights"
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 px-7 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </Link>
-              <a
-                href="#dashboards"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)]/50 px-7 py-3 text-sm font-medium text-[var(--foreground)] backdrop-blur-sm transition-all duration-300 hover:bg-[var(--muted)]/50 hover:border-[var(--muted-foreground)]/30"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Explore Dashboards
-              </a>
-            </div>
+            <PdQuickCheck />
           </FadeIn>
         </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          FEATURED EMPLOYERS
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section aria-label="Featured employers">
+        <FadeIn>
+          <FeaturedEmployers />
+        </FadeIn>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -237,83 +235,18 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          QUICK ACCESS — 3 flagship tools
+          EXPLORE THE FULL DATASET
           ═══════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Quick access to top tools">
-        <FadeIn>
-          <div className="mb-6 flex items-center gap-3">
-            <TrendingUp className="h-5 w-5 text-blue-400" strokeWidth={1.5} />
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Start Here</h2>
-              <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-                The three tools most useful to anyone navigating the U.S. green card process
-              </p>
-            </div>
-          </div>
-        </FadeIn>
-
-        <StaggerContainer className="grid gap-4 sm:grid-cols-3">
-          {QUICK_ACCESS.map((item) => (
-            <StaggerItem key={item.href}>
-              <Link href={item.href} className="block h-full">
-                <GlassCard
-                  variant="interactive"
-                  padding="md"
-                  className="group relative h-full overflow-hidden"
-                >
-                  {/* Top gradient strip */}
-                  <div
-                    className={cn(
-                      "mb-4 h-0.5 w-full rounded-full bg-gradient-to-r opacity-60 transition-opacity duration-300 group-hover:opacity-100",
-                      item.gradient
-                    )}
-                  />
-                  {/* Icon */}
-                  <div
-                    className={cn(
-                      "mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br",
-                      item.gradient,
-                      "opacity-90"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 text-white" strokeWidth={1.5} />
-                  </div>
-                  {/* Badge */}
-                  <span
-                    className={cn(
-                      "mb-2 inline-block rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest",
-                      "bg-white/[0.05] text-[var(--muted-foreground)]"
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                  <h3 className="mb-1.5 text-sm font-semibold text-[var(--foreground)]">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
-                    {item.description}
-                  </p>
-                  <ArrowRight className="absolute right-4 bottom-4 h-4 w-4 text-[var(--muted-foreground)] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0.5" />
-                </GlassCard>
-              </Link>
-            </StaggerItem>
-          ))}
-        </StaggerContainer>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          DASHBOARD GRID
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section id="dashboards" aria-label="Dashboards">
+      <section id="dashboards" aria-label="Explore dashboards">
         <FadeIn>
           <div className="mb-8 flex items-center gap-3">
             <Star className="h-5 w-5 text-amber-400" strokeWidth={1.5} />
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
-                8 Interactive Dashboards
+                Explore the Full Dataset
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Explore every dimension of the U.S. immigration system
+                8 interactive dashboards covering every dimension of U.S. employment immigration
               </p>
             </div>
           </div>
@@ -344,37 +277,6 @@ export default function LandingPage() {
                   <ArrowRight className="absolute right-4 bottom-4 h-4 w-4 text-[var(--muted-foreground)] opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0.5" />
                 </GlassCard>
               </Link>
-            </StaggerItem>
-          ))}
-        </StaggerContainer>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          VALUE PROPOSITIONS
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section aria-label="Why Compass">
-        <FadeIn>
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Built Different
-            </h2>
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              No accounts. No tracking. Your data never leaves your browser.
-            </p>
-          </div>
-        </FadeIn>
-        <StaggerContainer className="grid gap-6 sm:grid-cols-3">
-          {VALUE_PROPS.map((prop) => (
-            <StaggerItem key={prop.title}>
-              <GlassCard variant="elevated" padding="lg" className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                  <prop.icon className="h-6 w-6 text-[var(--accent-blue)]" strokeWidth={1.5} />
-                </div>
-                <h3 className="mb-2 text-base font-semibold">{prop.title}</h3>
-                <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
-                  {prop.description}
-                </p>
-              </GlassCard>
             </StaggerItem>
           ))}
         </StaggerContainer>

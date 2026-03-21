@@ -761,7 +761,7 @@ export function WageIntelligenceHub() {
                 <StatCard
                   label="Market Median"
                   value={latestMarket?.market_median ?? 0}
-                  displayValue={latestMarket?.market_median ? formatCurrency(latestMarket.market_median) : "—"}
+                  displayValue={latestMarket?.market_median ? formatCurrency(latestMarket.market_median) : "–"}
                   icon={DollarSign}
                   trend={yoyGrowth !== null ? { value: yoyGrowth, label: "YoY" } : undefined}
                 />
@@ -770,7 +770,7 @@ export function WageIntelligenceHub() {
                 <StatCard
                   label="Top Quartile (P75)"
                   value={latestMarket?.market_p75 ?? 0}
-                  displayValue={latestMarket?.market_p75 ? formatCurrency(latestMarket.market_p75) : "—"}
+                  displayValue={latestMarket?.market_p75 ? formatCurrency(latestMarket.market_p75) : "–"}
                   icon={TrendingUp}
                 />
               </StaggerItem>
@@ -778,7 +778,7 @@ export function WageIntelligenceHub() {
                 <StatCard
                   label="YoY Wage Growth"
                   value={yoyGrowth !== null ? Math.abs(yoyGrowth) : 0}
-                  displayValue={yoyGrowth !== null ? `${yoyGrowth >= 0 ? "+" : ""}${yoyGrowth.toFixed(1)}%` : "—"}
+                  displayValue={yoyGrowth !== null ? `${yoyGrowth >= 0 ? "+" : ""}${yoyGrowth.toFixed(1)}%` : "–"}
                   icon={yoyGrowth !== null && yoyGrowth >= 0 ? TrendingUp : TrendingDown}
                 />
               </StaggerItem>

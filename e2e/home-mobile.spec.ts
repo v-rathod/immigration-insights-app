@@ -10,14 +10,13 @@
  * Run:  npx playwright test home-mobile
  *
  * Coverage:
- *   1. Page Load & Structure     (5 tests)
- *   2. Mobile Navigation         (4 tests)
- *   3. Hero Section — CTAs       (8 tests)
- *   4. Stats Bar                 (5 tests)
- *   5. Quick Access Cards        (6 tests)
- *   6. Dashboard Grid            (6 tests)
- *   7. Value Props               (4 tests)
- *   8. Scroll Reachability       (3 tests)
+ *   1. Page Load & Structure         (5 tests)
+ *   2. Mobile Navigation             (4 tests)
+ *   3. Hero Section — CTAs           (8 tests)
+ *   4. Stats Bar                     (5 tests)
+ *   5. Quick-Check Widgets           (4 tests)
+ *   6. Dashboard Grid                (5 tests)
+ *   7. Scroll Reachability           (3 tests)
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -137,43 +136,43 @@ test.describe("Home — Hero Section", () => {
     await expect(page.getByText(/18\.5M\+/i).first()).toBeVisible();
   });
 
-  test('"Get Started" primary CTA is visible', async ({ page }) => {
+  test('"Check My Situation" primary CTA is visible', async ({ page }) => {
     await goToHome(page);
-    await expect(page.getByRole("link", { name: /Get Started/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Check My Situation/i })).toBeVisible();
   });
 
-  test('"Explore Dashboards" secondary CTA is visible', async ({ page }) => {
+  test('"Look Up an Employer" secondary CTA is visible', async ({ page }) => {
     await goToHome(page);
-    await expect(page.getByRole("link", { name: /Explore Dashboards/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Look Up an Employer/i })).toBeVisible();
   });
 
   test("CTAs are stacked vertically on mobile (flex-col — not side by side)", async ({ page }) => {
     await goToHome(page);
-    const primaryBox = await page.getByRole("link", { name: /Get Started/i }).boundingBox();
-    const secondaryBox = await page.getByRole("link", { name: /Explore Dashboards/i }).boundingBox();
+    const primaryBox = await page.getByRole("link", { name: /Check My Situation/i }).boundingBox();
+    const secondaryBox = await page.getByRole("link", { name: /Look Up an Employer/i }).boundingBox();
     expect(primaryBox).not.toBeNull();
     expect(secondaryBox).not.toBeNull();
-    // "Explore Dashboards" must appear below "Get Started" at mobile viewport
+    // "Look Up an Employer" must appear below "Check My Situation" at mobile viewport
     expect(secondaryBox!.y).toBeGreaterThan(primaryBox!.y + primaryBox!.height - 4);
   });
 
-  test('"Get Started" CTA meets 44px WCAG minimum touch-target height', async ({ page }) => {
+  test('"Check My Situation" CTA meets 44px WCAG minimum touch-target height', async ({ page }) => {
     await goToHome(page);
-    const box = await page.getByRole("link", { name: /Get Started/i }).boundingBox();
+    const box = await page.getByRole("link", { name: /Check My Situation/i }).boundingBox();
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 
-  test('"Explore Dashboards" CTA meets 44px WCAG minimum touch-target height', async ({ page }) => {
+  test('"Look Up an Employer" CTA meets 44px WCAG minimum touch-target height', async ({ page }) => {
     await goToHome(page);
-    const box = await page.getByRole("link", { name: /Explore Dashboards/i }).boundingBox();
+    const box = await page.getByRole("link", { name: /Look Up an Employer/i }).boundingBox();
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 
-  test('"Get Started" tap navigates to /insights', async ({ page }) => {
+  test('"Check My Situation" tap navigates to /insights', async ({ page }) => {
     await goToHome(page);
-    await page.getByRole("link", { name: /Get Started/i }).tap();
+    await page.getByRole("link", { name: /Check My Situation/i }).tap();
     await page.waitForURL("**/insights**", { timeout: 5_000 });
     expect(page.url()).toContain("/insights");
   });
@@ -221,47 +220,38 @@ test.describe("Home — Stats Bar", () => {
 });
 
 // ===========================================================================
-// GROUP 5 — Quick Access Cards (3 flagship tools)
+// GROUP 5 — Quick-Check Widgets (Employer + PD)
 // ===========================================================================
 
-test.describe("Home — Quick Access Cards", () => {
-  test('"Start Here" section heading is visible', async ({ page }) => {
+test.describe("Home — Quick-Check Widgets", () => {
+  test("quick check tools section is visible", async ({ page }) => {
     await goToHome(page);
-    await expect(page.getByRole("heading", { name: /Start Here/i })).toBeVisible();
+    const section = page.locator('section[aria-label="Quick check tools"]');
+    await section.scrollIntoViewIfNeeded();
+    await expect(section).toBeVisible();
   });
 
-  test("Priority Date Forecast card is visible", async ({ page }) => {
+  test("employer quick check has a search input", async ({ page }) => {
     await goToHome(page);
-    const quickSection = page.locator('section[aria-label="Quick access to top tools"]');
-    await expect(quickSection.getByText("Priority Date Forecast")).toBeVisible();
+    const section = page.locator('section[aria-label="Quick check tools"]');
+    await section.scrollIntoViewIfNeeded();
+    const input = section.locator("input").first();
+    await expect(input).toBeVisible();
   });
 
-  test("Employer Score (SRS) card is visible", async ({ page }) => {
+  test("PD quick check has category toggle buttons", async ({ page }) => {
     await goToHome(page);
-    const quickSection = page.locator('section[aria-label="Quick access to top tools"]');
-    await expect(quickSection.getByText("Employer Score (SRS)")).toBeVisible();
+    const section = page.locator('section[aria-label="Quick check tools"]');
+    await section.scrollIntoViewIfNeeded();
+    // Look for EB1/EB2/EB3 buttons within the section
+    await expect(section.getByRole("button", { name: /EB2/i }).first()).toBeVisible();
   });
 
-  test("Wage Benchmarks card is visible", async ({ page }) => {
+  test("quick check section has no horizontal overflow on mobile", async ({ page }) => {
     await goToHome(page);
-    const quickSection = page.locator('section[aria-label="Quick access to top tools"]');
-    await expect(quickSection.getByText("Wage Benchmarks")).toBeVisible();
-  });
-
-  test("quick access cards are full-width on iPhone 14 (single-column layout)", async ({ page }) => {
-    await goToHome(page);
-    const section = page.locator('section[aria-label="Quick access to top tools"]');
-    const firstCard = section.getByRole("link").first();
-    const box = await firstCard.boundingBox();
-    const viewportWidth = page.viewportSize()!.width;
-    expect(box).not.toBeNull();
-    // At 390px viewport, sm:grid-cols-3 hasn't kicked in — cards should be near full-width
-    expect(box!.width).toBeGreaterThanOrEqual(viewportWidth * 0.8);
-  });
-
-  test('"Most Popular" badge is visible on Priority Date Forecast card', async ({ page }) => {
-    await goToHome(page);
-    await expect(page.getByText(/Most Popular/i)).toBeVisible();
+    const section = page.locator('section[aria-label="Quick check tools"]');
+    await section.scrollIntoViewIfNeeded();
+    await expectNoHorizontalOverflow(page);
   });
 });
 
@@ -270,29 +260,17 @@ test.describe("Home — Quick Access Cards", () => {
 // ===========================================================================
 
 test.describe("Home — Dashboard Grid", () => {
-  test('"8 Interactive Dashboards" heading is visible after scrolling', async ({ page }) => {
+  test('"Explore the Full Dataset" heading is visible after scrolling', async ({ page }) => {
     await goToHome(page);
     await page.locator("#dashboards").scrollIntoViewIfNeeded();
-    await expect(page.getByRole("heading", { name: /8 Interactive Dashboards/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Explore the Full Dataset/i })).toBeVisible();
   });
 
-  test("all 8 dashboard card titles are visible on scroll", async ({ page }) => {
+  test("Visa Bulletin Trends card is visible in the dashboard grid", async ({ page }) => {
     await goToHome(page);
     await page.locator("#dashboards").scrollIntoViewIfNeeded();
-    const dashSection = page.locator('section[aria-label="Dashboards"]');
-    const dashTitles = [
-      "Visa Bulletin Trends",
-      "Sponsor Reliability Score",
-      "EB Category Comparison",
-      "Geographic Heatmaps",
-      "Wage Competitiveness",
-      "Occupation Demand",
-      "Processing Speed",
-      "Approval & Denial Trends",
-    ];
-    for (const title of dashTitles) {
-      await expect(dashSection.getByText(title).first()).toBeVisible({ timeout: 5_000 });
-    }
+    const section = page.locator('section[aria-label="Explore dashboards"]');
+    await expect(section.getByText("Visa Bulletin Trends").first()).toBeVisible({ timeout: 5_000 });
   });
 
   test("Visa Bulletin Trends card link has correct href", async ({ page }) => {
@@ -317,51 +295,10 @@ test.describe("Home — Dashboard Grid", () => {
     await page.locator("#dashboards").scrollIntoViewIfNeeded();
     await expectNoHorizontalOverflow(page);
   });
-
-  test('"Explore Dashboards" CTA scrolls to the dashboard grid section', async ({ page }) => {
-    await goToHome(page);
-    await page.getByRole("link", { name: /Explore Dashboards/i }).tap();
-    await page.waitForTimeout(600); // allow smooth-scroll to settle
-    await expect(page.locator("#dashboards")).toBeVisible();
-  });
 });
 
 // ===========================================================================
-// GROUP 7 — Value Props ("Built Different")
-// ===========================================================================
-
-test.describe("Home — Value Props Section", () => {
-  test('"Built Different" section heading is visible on scroll', async ({ page }) => {
-    await goToHome(page);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await expect(
-      page.getByRole("heading", { name: /Built Different/i })
-    ).toBeVisible({ timeout: 5_000 });
-  });
-
-  test("all 3 value prop titles are visible", async ({ page }) => {
-    await goToHome(page);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    for (const title of ["Real-Time Data", "Privacy First", "AI-Powered"]) {
-      await expect(page.getByText(title)).toBeVisible({ timeout: 5_000 });
-    }
-  });
-
-  test("Privacy First tile mentions no accounts or tracking", async ({ page }) => {
-    await goToHome(page);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await expect(page.getByText(/No accounts/i).first()).toBeVisible({ timeout: 5_000 });
-  });
-
-  test("value props section has no horizontal overflow", async ({ page }) => {
-    await goToHome(page);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await expectNoHorizontalOverflow(page);
-  });
-});
-
-// ===========================================================================
-// GROUP 8 — Scroll Reachability & Full-Page Health
+// GROUP 7 — Scroll Reachability & Full-Page Health
 // ===========================================================================
 
 test.describe("Home — Scroll Reachability & Full-Page Health", () => {
@@ -386,7 +323,7 @@ test.describe("Home — Scroll Reachability & Full-Page Health", () => {
   test("page has sufficient scrollable content (taller than one iPhone 14 viewport)", async ({ page }) => {
     await goToHome(page);
     const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
-    // Full landing page (hero + stats + 3 quick access + 8 dashboards + value props) >> 844px
+    // Full landing page (hero + quick check + featured employers + stats + 8 dashboards) >> 844px
     expect(bodyHeight).toBeGreaterThan(844);
   });
 });

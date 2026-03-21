@@ -25,9 +25,9 @@ describe("formatNumber", () => {
   });
 
   it("returns em-dash for null/undefined/NaN", () => {
-    expect(formatNumber(null)).toBe("—");
-    expect(formatNumber(undefined)).toBe("—");
-    expect(formatNumber(NaN)).toBe("—");
+    expect(formatNumber(null)).toBe("–");
+    expect(formatNumber(undefined)).toBe("–");
+    expect(formatNumber(NaN)).toBe("–");
   });
 
   it("handles zero", () => {
@@ -41,7 +41,7 @@ describe("formatCurrency", () => {
   });
 
   it("returns em-dash for null", () => {
-    expect(formatCurrency(null)).toBe("—");
+    expect(formatCurrency(null)).toBe("–");
   });
 });
 
@@ -51,7 +51,7 @@ describe("formatPercent", () => {
   });
 
   it("returns em-dash for NaN", () => {
-    expect(formatPercent(NaN)).toBe("—");
+    expect(formatPercent(NaN)).toBe("–");
   });
 });
 
@@ -65,7 +65,7 @@ describe("formatCompact", () => {
   });
 
   it("returns em-dash for null", () => {
-    expect(formatCompact(null)).toBe("—");
+    expect(formatCompact(null)).toBe("–");
   });
 });
 
@@ -79,8 +79,8 @@ describe("formatMonthYear", () => {
   });
 
   it("returns em-dash for null/empty", () => {
-    expect(formatMonthYear(null)).toBe("—");
-    expect(formatMonthYear("")).toBe("—");
+    expect(formatMonthYear(null)).toBe("–");
+    expect(formatMonthYear("")).toBe("–");
   });
 });
 
@@ -90,7 +90,7 @@ describe("formatFullDate", () => {
   });
 
   it("returns em-dash for null", () => {
-    expect(formatFullDate(null)).toBe("—");
+    expect(formatFullDate(null)).toBe("–");
   });
 });
 
@@ -116,8 +116,8 @@ describe("formatWaitTime", () => {
   });
 
   it("returns em-dash for null/NaN", () => {
-    expect(formatWaitTime(null)).toBe("—");
-    expect(formatWaitTime(NaN)).toBe("—");
+    expect(formatWaitTime(null)).toBe("–");
+    expect(formatWaitTime(NaN)).toBe("–");
   });
 });
 

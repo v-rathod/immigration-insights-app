@@ -260,7 +260,7 @@ export function EmployerWageTable({
                             { label: "25th pct", value: formatCurrency(row.p25_salary) },
                             { label: "75th pct", value: formatCurrency(row.p75_salary) },
                             { label: "Filings", value: formatNumber(row.n_filings) },
-                            { label: "State", value: row.worksite_state_top ?? "—" },
+                            { label: "State", value: row.worksite_state_top ?? "–" },
                             { label: "Required Min.", value: formatCurrency(row.prevailing_wage_median) },
                             { label: "Market Median", value: formatCurrency(row.oews_national_median) },
                           ].map(({ label, value }) => (

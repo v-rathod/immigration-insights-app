@@ -82,7 +82,7 @@ export function EmployerDetailCard({
       label: "H-1B Filings (36m)",
       value: employer.lca_filings_36m != null && !isNaN(employer.lca_filings_36m)
         ? formatNumber(employer.lca_filings_36m)
-        : "—",
+        : "–",
       icon: BarChart2,
       color: "text-violet-400",
       tooltip: "DOL LCA (H-1B) filings in the last 36 months",
@@ -91,7 +91,7 @@ export function EmployerDetailCard({
       label: "H-1B per GC Filing",
       value: employer.lca_to_perm_ratio != null && !isNaN(employer.lca_to_perm_ratio)
         ? `${employer.lca_to_perm_ratio.toFixed(1)}×`
-        : "—",
+        : "–",
       icon: Award,
       color:
         employer.lca_to_perm_ratio != null && !isNaN(employer.lca_to_perm_ratio)
@@ -115,7 +115,7 @@ export function EmployerDetailCard({
       value:
         employer.wage_ratio_med != null && !isNaN(employer.wage_ratio_med)
           ? `${(employer.wage_ratio_med * 100).toFixed(0)}%`
-          : "—",
+          : "–",
       icon: DollarSign,
       color:
         employer.wage_ratio_med >= 1.0

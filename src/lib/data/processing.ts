@@ -116,8 +116,8 @@ export function aggregateByForm(
           g.approvals + g.denials > 0
             ? g.approvals / (g.approvals + g.denials)
             : 0,
-        fyMin: sortedFy[0] ?? "—",
-        fyMax: sortedFy[sortedFy.length - 1] ?? "—",
+        fyMin: sortedFy[0] ?? "–",
+        fyMax: sortedFy[sortedFy.length - 1] ?? "–",
         fyCount: g.years.size,
       };
     })

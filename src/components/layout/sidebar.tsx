@@ -13,6 +13,7 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   Calendar,
@@ -36,17 +37,15 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Home", icon: Compass },
-  { href: "/dashboard/visa-bulletin", label: "Priority Date Cortex", icon: Calendar, group: "Analytics" },
-  { href: "/dashboard/employer", label: "Sponsor Score", icon: Shield, group: "Analytics" },
-  { href: "/dashboard/wage", label: "Wage Intelligence", icon: DollarSign, group: "Analytics" },
-  { href: "/insights", label: "My Insights", icon: User, group: "Personal" },
-  { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Dashboards" },
-  { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Dashboards" },
-  { href: "/dashboard/job-demand", label: "Occupation Demand", icon: Briefcase, group: "Dashboards" },
-  { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Dashboards" },
-  { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Dashboards" },
-  // { href: "/dashboard/backlog", label: "Backlog", icon: Layers, group: "Dashboards" }, // Hidden for now, work on in later phases
+  { href: "/insights", label: "My Insights", icon: User },
+  { href: "/dashboard/visa-bulletin", label: "Priority Date Cortex", icon: Calendar, group: "Core Tools" },
+  { href: "/dashboard/employer", label: "Employer Sponsor Score", icon: Shield, group: "Core Tools" },
+  { href: "/dashboard/wage", label: "Wage Intelligence", icon: DollarSign, group: "Core Tools" },
+  { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Explore" },
+  { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Explore" },
+  { href: "/dashboard/job-demand", label: "Occupation Demand", icon: Briefcase, group: "Explore" },
+  { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Explore" },
+  { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Explore" },
   { href: "/about", label: "About", icon: Compass, group: "App" }
 ];
 
@@ -54,11 +53,23 @@ const NAV_ITEMS: NavItem[] = [
 // Sidebar Component
 // ---------------------------------------------------------------------------
 
-export function Sidebar() {
+export function Sidebar({
+  collapsed: collapsedProp,
+  onToggle: onToggleProp,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  // If controlled externally, use props; otherwise manage internally
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = collapsedProp !== undefined ? collapsedProp : internalCollapsed;
+  const internalToggle = useCallback(() => setInternalCollapsed((c) => !c), []);
+  const toggleCollapse = onToggleProp ?? internalToggle;
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
 
   // Close mobile nav on route change (React-recommended derived state pattern)
   if (pathname !== prevPathname) {
@@ -75,7 +86,6 @@ export function Sidebar() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const toggleCollapse = useCallback(() => setCollapsed((c) => !c), []);
   const toggleMobile = useCallback(() => setMobileOpen((o) => !o), []);
 
   // Group nav items
@@ -180,6 +190,131 @@ export function Sidebar() {
     </>
   );
 
+  // Mobile-specific nav with 44px touch targets, card-style My Insights CTA, collapsible Explore
+  const mobileNavContent = (
+    <>
+      {/* Header with logo + close */}
+      <div className="flex items-center justify-between px-5 py-5">
+        <button
+          onClick={() => { window.location.href = "/"; setMobileOpen(false); }}
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          aria-label="Go to home page"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-500">
+            <Compass className="h-4.5 w-4.5 text-white" strokeWidth={2} />
+          </div>
+          <span className="text-base font-semibold tracking-tight text-[var(--foreground)]">
+            Compass
+          </span>
+        </button>
+        <button
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation"
+          className="rounded-lg p-2.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* My Insights CTA card */}
+      <div className="px-4 mb-4">
+        <button
+          onClick={() => {
+            analytics.navItemClicked("My Insights", "/insights");
+            window.location.href = "/insights";
+          }}
+          className={cn(
+            "w-full flex items-center gap-3 rounded-2xl px-4 min-h-[56px] transition-all cursor-pointer border",
+            isActive("/insights")
+              ? "bg-violet-500/15 border-violet-500/30 text-violet-300"
+              : "bg-white/[0.04] border-white/[0.08] text-[var(--foreground)] hover:bg-violet-500/10 hover:border-violet-500/20"
+          )}
+          aria-current={isActive("/insights") ? "page" : undefined}
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-400 shrink-0">
+            <User className="h-4 w-4 text-white" />
+          </div>
+          <div className="text-left">
+            <span className="text-sm font-semibold">My Insights</span>
+            <p className="text-[10px] text-[var(--muted-foreground)]">Your personalized dashboard</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Nav groups */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Mobile navigation">
+        {Object.entries(groups).map(([groupName, items]) => {
+          // Skip "Main" group (My Insights) — already rendered as CTA card above
+          if (groupName === "Main") return null;
+          const isExplore = groupName === "Explore";
+          const isGroupOpen = isExplore ? mobileExploreOpen : true;
+
+          return (
+            <div key={groupName} className="mb-3">
+              {isExplore ? (
+                <button
+                  onClick={() => setMobileExploreOpen((v) => !v)}
+                  className="flex items-center justify-between w-full px-3 py-1 mb-1 cursor-pointer"
+                  aria-expanded={mobileExploreOpen}
+                  aria-controls="mobile-explore-group"
+                >
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
+                    {groupName}
+                  </span>
+                  <ChevronDown className={cn(
+                    "h-3 w-3 text-[var(--muted-foreground)] transition-transform duration-200",
+                    mobileExploreOpen && "rotate-180"
+                  )} />
+                </button>
+              ) : (
+                <span className="mb-1 block px-3 text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
+                  {groupName}
+                </span>
+              )}
+              {isGroupOpen && (
+                <ul className="space-y-0.5" id={isExplore ? "mobile-explore-group" : undefined}>
+                  {items.map((item) => (
+                    <li key={item.href}>
+                      <button
+                        onClick={() => {
+                          analytics.navItemClicked(item.label, item.href);
+                          window.location.href = item.href;
+                        }}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                        className={cn(
+                          "group w-full flex items-center gap-3 rounded-lg px-3 min-h-[44px] text-sm transition-all duration-200 text-left cursor-pointer",
+                          isActive(item.href)
+                            ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] font-medium"
+                            : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]"
+                        )}
+                      >
+                        <item.icon
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-colors",
+                            isActive(item.href)
+                              ? "text-[var(--accent-blue)]"
+                              : "text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]"
+                          )}
+                          strokeWidth={1.5}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-[var(--sidebar-border)] px-4 py-3">
+        <ThemeToggle />
+      </div>
+    </>
+  );
+
   return (
     <>
       {/* Mobile hamburger */}
@@ -195,7 +330,7 @@ export function Sidebar() {
         )}
       </button>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — full-screen glassmorphic */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
@@ -216,14 +351,14 @@ export function Sidebar() {
         {navContent}
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar — full-width glassmorphic overlay */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] lg:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-0 z-40 flex h-screen w-full flex-col bg-[var(--sidebar)]/95 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] lg:hidden",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       >
-        {navContent}
+        {mobileNavContent}
       </aside>
     </>
   );
