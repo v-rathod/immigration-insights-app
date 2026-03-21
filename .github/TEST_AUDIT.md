@@ -28,19 +28,73 @@ npm test 2>&1 | grep -E 'passing|failing'
 
 ---
 
-## Test Status (Updated 2026-03-20)
+## Test Status (Updated 2026-03-21)
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Tests** | 1,049 (1,017 passing, 32 skipped) | ✅ All passing |
-| **Test Files** | 36 | ✅ Comprehensive coverage |
+| **Total Tests** | 1,068 (1,036 passing, 32 skipped) | ✅ All passing |
+| **Test Files** | 37 | ✅ +1 navigation-flows.test.tsx |
 | **E2E Tests** | ~55 (3 files) + visual regression | ✅ Mobile-first + visual |
-| **Visual Tests** | 22 (1 file) | ✅ Playwright screenshots |
-| **Unit Tests** | ~620 | ✅ Components + utilities |
-| **Integration Tests** | ~310+ | ✅ Data loaders + features |
+| **Visual Tests** | 93 (1 file, 90 PNG baselines) | ✅ Expanded from 22 last session |
+| **Unit Tests** | ~640 | ✅ Components + utilities |
+| **Integration / Navigation Flow Tests** | ~330+ | ✅ Data loaders + cross-page flows |
 | **TypeScript Coverage** | Strict mode | ✅ No `any` types |
 | **ESLint Compliance** | 0 errors | ✅ Clean |
 | **Coverage Target** | 80%+ | ✅ Codepaths verified |
+
+---
+
+## ⚠️ Test Gap History — Root Causes & Lessons
+
+### Root Cause: Component Mocking Hides Real Bugs
+
+**Found 2026-03-21**: Employer URL pre-load was broken for weeks.
+`landing-page.test.tsx` mocked `WelcomeBackBanner` and `FeaturedEmployers` as static `<div>` stubs.
+This made the page render tests pass, but hid all bugs inside those real components.
+
+**Lesson**: Page-level tests that mock child components only verify page structure, not functionality.
+
+**Rule added**: Critical user-facing home components must have their own dedicated real test (not just a mock stub at page level). See `navigation-flows.test.tsx`.
+
+### What Failed in Production
+1. `WelcomeBackBanner` — SSR hydration mismatch (localStorage in `useState` initializer) caused PostHog "1 Issue" debug alert
+2. `FeaturedEmployers` / `EmployerQuickCheck` — "Full Report" link generated correct URL but employer dashboard didn't read `?q=` param on load → no pre-selection
+
+### Gaps Fixed This Session
+- ✅ `WelcomeBackBanner` — 6 real component tests covering show/hide behavior, profile summary, link target
+- ✅ `FeaturedEmployers` — 5 tests covering URL format, loading state, empty state, tile content
+- ✅ Navigation URL contracts — 3 tests verifying publisher/consumer agreement for `?q=`, `?category=`, `?country=` params
+- ✅ `EmployerSearch initialValue` — 2 tests for pre-populated search box from URL
+- ✅ Employer dashboard auto-selection from `?q=` URL param (added `useSearchParams` + `useEffect`)
+
+---
+
+## Known Remaining Gaps (Prioritized)
+
+### P0 — Critical (user-visible, must be added before next feature work)
+
+| Flow | Gap | Recommended Test |
+|------|-----|-----------------|
+| Employer dashboard `?q=` → auto-selects AND loads shard | The `useEffect` that calls `handleSelect()` has no unit test | Add test in `srs-comprehensive.test.tsx` mocking `useSearchParams` |
+| `/ops` page rendering | No tests at all | Add `ops-page.test.tsx` |
+
+### P1 — Important (add within next sprint)
+
+| Flow | Gap | Recommended Test |
+|------|-----|-----------------|
+| Insights form saves to localStorage | Tested in `insights-page.test.tsx` but saving/loading not fully verified | Expand insights tests |
+| Mobile hamburger → page navigation | Sidebar tests cover toggle, not actual nav click | Add to `sidebar.test.tsx` |
+| Theme persists across hard-reload (localStorage key) | `theme-provider.test.tsx` tests state, not persistence key | Add persistence test |
+
+### P2 — Nice to Have
+
+| Flow | Gap | Note |
+|------|-----|------|
+| Geographic dashboard tooltip position | Portal fix has no unit test (only visual regression) | Hard to unit test; visual baseline covers it |
+| Visa bulletin → URL params preserved on initial load | `?category=&country=` read on mount? | Visual test covers this |
+| `new-dashboards.test.tsx` depth | Tests only verify page header renders | Very shallow — needs interaction testing |
+
+---
 
 ---
 
@@ -123,12 +177,20 @@ npm run test:visual:update         # Update baselines after intentional UI chang
 | `ask-page.test.tsx` | 19 | RAG search, results, AI answer |
 | `wage-dashboard.test.tsx` | 52 | Hub orchestration, profiles, loaders |
 
-### V2 Home Widget Tests (2 files, ~26 tests)
+### V2 Home Widget Tests (2 files, ~31 tests)
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `visa-bulletin-pulse.test.tsx` | 13 | Live bulletin table, skeleton, velocity, color coding |
-| `quick-check-widgets.test.tsx` | 13 | Employer fuzzy search, PD quick check, inline previews |
+| File | Tests | Coverage | Notes |
+|------|-------|----------|-------|
+| `visa-bulletin-pulse.test.tsx` | 13 | Live bulletin table, skeleton, velocity, color coding | |
+| `quick-check-widgets.test.tsx` | 14 | Employer fuzzy search, PD quick check, inline previews, URL param generation | +1 URL param test 2026-03-21 |
+
+### Navigation Flow Tests (1 file, 17 tests) — NEW 2026-03-21
+
+| File | Tests | Coverage | Notes |
+|------|-------|----------|-------|
+| `navigation-flows.test.tsx` | 17 | WelcomeBackBanner (6), FeaturedEmployers (5), URL contracts (3), EmployerSearch initialValue (2) | Added after employer pre-load bug found |
+
+**Why this file exists**: Mocking child components at page level (as done in `landing-page.test.tsx`) hides bugs in those components. These tests cover the REAL component logic — `WelcomeBackBanner` localStorage/hydration behavior, `FeaturedEmployers` URL generation, cross-page URL parameter contracts.
 
 ### Dashboard Tests (3 files, ~100 tests)
 
