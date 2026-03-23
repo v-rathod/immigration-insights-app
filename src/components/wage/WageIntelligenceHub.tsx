@@ -386,7 +386,9 @@ export function WageIntelligenceHub() {
         // Enrich with wage data for smart sorting
         const enriched = fuseResults.map((r) => {
           const name = r.item;
-          const empData = searchEntries.find((e) => e.employer_name === name);
+          // CRITICAL: Use normalizeEmployerName to handle variants like "Ernst Young U S" vs "Ernst Young US"
+          const normalizedName = normalizeEmployerName(name);
+          const empData = searchEntries.find((e) => normalizeEmployerName(e.employer_name) === normalizedName);
           return {
             item: {
               employer_name: name,

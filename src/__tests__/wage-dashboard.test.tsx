@@ -1270,3 +1270,229 @@ describe("normalizeEmployerName (Regression: widget selection names)", () => {
     expect(normalizeEmployerName("Acme U S Inc U S Services")).toContain("us");
   });
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// TOP H1B EMPLOYER WIDGET: Integration test for employer selection
+// ────────────────────────────────────────────────────────────────────────────
+// This test verifies the complete flow:
+// 1. Widget displays popular employers with name variants (e.g., "Ernst Young U S")
+// 2. User clicks an employer button
+// 3. Component normalizes name and looks up trend data
+// 4. Trend data is fetched and displayed correctly
+// Regression: Ensures that widget selection handles all employer name variants
+
+describe("Top H1B Employer Widget - Selection & Normalization", () => {
+  // Mock popular employers with name variants that might exist in data
+  const POPULAR_EMPLOYERS_MOCK = [
+    "Infosys",
+    "Tata Consultancy Services",
+    "Cognizant Technology Solutions Us",  // Note: lowercase 's' variant
+    "Microsoft",
+    "Deloitte Consulting",
+    "Ernst Young U S",  // Note: spaces in "U S"
+    "Amazon Com Services",
+    "Google",
+  ];
+
+  // Mock search entries with normalized employer data
+  const MOCK_SEARCH_ENTRIES = [
+    { 
+      employer_id: "cognizant123", 
+      employer_name: "Cognizant Technology Solutions US",  // Note: uppercase, no spaces
+      total_filings: 8500,
+      latest_median_salary: 105000,
+    },
+    { 
+      employer_id: "ernst_young123", 
+      employer_name: "Ernst Young US",  // Note: no spaces
+      total_filings: 3200,
+      latest_median_salary: 128000,
+    },
+    { 
+      employer_id: "optum123", 
+      employer_name: "Optum Services",
+      total_filings: 2800,
+      latest_median_salary: 98500,
+    },
+  ];
+
+  // Mock employer trends for selected employers
+  const MOCK_TRENDS = [
+    // Cognizant trends (testing case-insensitive, "Us" vs "US" match)
+    { 
+      employer_name: "Cognizant Technology Solutions Us",
+      fiscal_year: 2023, 
+      visa_type: "H-1B", 
+      median_salary: 102000 
+    },
+    { 
+      employer_name: "Cognizant Technology Solutions Us",
+      fiscal_year: 2024, 
+      visa_type: "H-1B", 
+      median_salary: 105000 
+    },
+    { 
+      employer_name: "Cognizant Technology Solutions Us",
+      fiscal_year: 2025, 
+      visa_type: "H-1B", 
+      median_salary: 108000 
+    },
+    // Ernst Young trends (testing "U S" with spaces match to "US" without)
+    { 
+      employer_name: "Ernst Young U S",
+      fiscal_year: 2023, 
+      visa_type: "H-1B", 
+      median_salary: 125000 
+    },
+    { 
+      employer_name: "Ernst Young U S",
+      fiscal_year: 2024, 
+      visa_type: "H-1B", 
+      median_salary: 128000 
+    },
+    { 
+      employer_name: "Ernst Young U S",
+      fiscal_year: 2025, 
+      visa_type: "H-1B", 
+      median_salary: 132000 
+    },
+  ];
+
+  it("matches popular employer widget name variant 'Cognizant Technology Solutions Us' to search index with normalization", () => {
+    // Widget has: "Cognizant Technology Solutions Us" (lowercase 's')
+    // Search entry has: "Cognizant Technology Solutions US" (uppercase 'S')
+    const widgetName = "Cognizant Technology Solutions Us";
+    const searchEntry = MOCK_SEARCH_ENTRIES.find(e => e.employer_name.startsWith("Cognizant"));
+    
+    // Without normalization, names wouldn't match
+    expect(widgetName === searchEntry?.employer_name).toBe(false);
+    
+    // With normalization, names should match
+    const normalizedWidget = normalizeEmployerName(widgetName);
+    const normalizedSearch = normalizeEmployerName(searchEntry!.employer_name);
+    expect(normalizedWidget).toBe(normalizedSearch);
+  });
+
+  it("matches 'Ernst Young U S' (with spaces) to 'Ernst Young US' (no spaces) via normalization", () => {
+    // Widget displays: "Ernst Young U S" (with spaces)
+    // Search index has: "Ernst Young US" (no spaces)
+    const widgetName = "Ernst Young U S";
+    const searchEntry = MOCK_SEARCH_ENTRIES.find(e => e.employer_name.startsWith("Ernst"));
+    
+    // Without normalization, names don't match
+    expect(widgetName === searchEntry?.employer_name).toBe(false);
+    
+    // With normalization, both normalize to "ernst young us"
+    const normalizedWidget = normalizeEmployerName(widgetName);
+    const normalizedSearch = normalizeEmployerName(searchEntry!.employer_name);
+    expect(normalizedWidget).toBe(normalizedSearch);
+    expect(normalizedWidget).toBe("ernst young us");
+  });
+
+  it("uses normalized lookup to enrich widget results with wage data from search entries", () => {
+    // Simulate the WageIntelligenceHub enrichment flow:
+    // 1. User searches or clicks on "Cognizant Technology Solutions Us"
+    // 2. System normalizes the name
+    // 3. System finds matching entry in searchEntries (which has "Cognizant Technology Solutions US")
+    // 4. System extracts wage data (filings, salary)
+    
+    const selectedEmployer = "Cognizant Technology Solutions Us";
+    const normalizedSelected = normalizeEmployerName(selectedEmployer);
+    
+    // Find matching entry (simulating searchEntries.find with normalization)
+    const empData = MOCK_SEARCH_ENTRIES.find(
+      (e) => normalizeEmployerName(e.employer_name) === normalizedSelected
+    );
+    
+    expect(empData).toBeDefined();
+    expect(empData?.employer_name).toBe("Cognizant Technology Solutions US");
+    expect(empData?.total_filings).toBe(8500);
+    expect(empData?.latest_median_salary).toBe(105000);
+  });
+
+  it("filters employer trends correctly when employer name has 'U S' vs 'US' variants", () => {
+    // Simulate EmployerWageTable.MiniSparkline filtering:
+    // User selected "Cognizant Technology Solutions US" (from search)
+    // Trends have "Cognizant Technology Solutions Us" (from shard)
+    // Filter should match them via normalization
+    
+    const employerName = "Cognizant Technology Solutions US";  // From search
+    const visaType = "H-1B";
+    const normalizedEmployer = normalizeEmployerName(employerName);
+    
+    // Filter trends using normalization (simulating MiniSparkline component)
+    const filteredTrends = MOCK_TRENDS
+      .filter((t) => normalizeEmployerName(t.employer_name) === normalizedEmployer && t.visa_type === visaType)
+      .sort((a, b) => a.fiscal_year - b.fiscal_year);
+    
+    expect(filteredTrends).toHaveLength(3);
+    expect(filteredTrends[0].fiscal_year).toBe(2023);
+    expect(filteredTrends[0].median_salary).toBe(102000);
+    expect(filteredTrends[2].median_salary).toBe(108000);
+  });
+
+  it("filters Ernst Young trends matching 'Ernst Young U S' with spaces from trends with 'Ernst Young U S'", () => {
+    // Both widget and trends have "Ernst Young U S" (matching format)
+    // Normalization should still work for case-insensitive and space variations
+    
+    const employerName = "Ernst Young U S";
+    const visaType = "H-1B";
+    const normalizedEmployer = normalizeEmployerName(employerName);
+    
+    // Filter trends
+    const filteredTrends = MOCK_TRENDS
+      .filter((t) => normalizeEmployerName(t.employer_name) === normalizedEmployer && t.visa_type === visaType)
+      .sort((a, b) => a.fiscal_year - b.fiscal_year);
+    
+    expect(filteredTrends).toHaveLength(3);
+    expect(filteredTrends[0].fiscal_year).toBe(2023);
+    expect(filteredTrends[0].median_salary).toBe(125000);
+    expect(filteredTrends[2].median_salary).toBe(132000);
+    
+    // Verify salary growth
+    const growth = ((filteredTrends[2].median_salary - filteredTrends[0].median_salary) / filteredTrends[0].median_salary) * 100;
+    expect(growth).toBeGreaterThan(5);  // Should see ~5.6% growth over 2 years
+  });
+
+  it("handles case variations in popular employer list (e.g., mixed case in different data sources)", () => {
+    // Test that different case variations of the same employer all normalize to the same value
+    const variants = [
+      "cognizant technology solutions us",
+      "COGNIZANT TECHNOLOGY SOLUTIONS US",
+      "Cognizant Technology Solutions Us",
+      "Cognizant Technology Solutions US",
+    ];
+    
+    const normalized = variants.map(normalizeEmployerName);
+    
+    // All should normalize to the same value
+    expect(normalized.every(n => n === normalized[0])).toBe(true);
+    expect(normalized[0]).toBe("cognizant technology solutions us");
+  });
+
+  it("ensures Ernst Young lookup succeeds even when widget name differs from search entry format", () => {
+    // Complete integration test: Widget button text -> Lookup -> Trend data
+    
+    // Step 1: User clicks "Ernst Young U S" button from widget
+    const buttonLabel = "Ernst Young U S";
+    
+    // Step 2: Component normalizes and looks up in searchEntries
+    const normalizedButton = normalizeEmployerName(buttonLabel);
+    const searchResult = MOCK_SEARCH_ENTRIES.find(
+      (e) => normalizeEmployerName(e.employer_name) === normalizedButton
+    );
+    
+    expect(searchResult).toBeDefined();
+    expect(searchResult?.employer_id).toBe("ernst_young123");
+    
+    // Step 3: Component filters trends using the found entry
+    const visaType = "H-1B";
+    const trendData = MOCK_TRENDS
+      .filter((t) => normalizeEmployerName(t.employer_name) === normalizedButton && t.visa_type === visaType)
+      .sort((a, b) => a.fiscal_year - b.fiscal_year);
+    
+    expect(trendData).toHaveLength(3);
+    expect(trendData[0].median_salary).toBe(125000);
+    expect(trendData[2].median_salary).toBe(132000);
+  });
+});

@@ -12,7 +12,7 @@ import { ChevronDown, TrendingUp, TrendingDown, Award, AlertTriangle, ArrowUpDow
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";
 import type { EmployerWageRanking, EmployerSalaryTrend } from "@/lib/data/wage";
-import { WAGE_SANITY } from "@/lib/data/wage";
+import { WAGE_SANITY, normalizeEmployerName } from "@/lib/data/wage";
 import {
   ResponsiveContainer,
   LineChart,
@@ -41,15 +41,16 @@ function SparklineTooltip({ active, payload }: { active?: boolean; payload?: Arr
 }
 
 function MiniSparkline({ employerName, trends, visaType }: { employerName: string; trends: EmployerSalaryTrend[]; visaType: string }) {
-  const data = useMemo(() =>
-    trends
-      .filter((t) => t.employer_name === employerName && t.visa_type === visaType)
+  const data = useMemo(() => {
+    // CRITICAL: Use normalizeEmployerName to handle variants like "Ernst Young U S" vs "Ernst Young US"
+    const normalizedEmployer = normalizeEmployerName(employerName);
+    return trends
+      .filter((t) => normalizeEmployerName(t.employer_name) === normalizedEmployer && t.visa_type === visaType)
       .sort((a, b) => a.fiscal_year - b.fiscal_year)
       // Exclude years with implausible salary values before computing trend
       .filter((t) => t.median_salary >= WAGE_SANITY.SALARY_FLOOR && t.median_salary <= WAGE_SANITY.SALARY_CEILING)
-      .map((t) => ({ year: t.fiscal_year, salary: t.median_salary })),
-    [employerName, trends, visaType]
-  );
+      .map((t) => ({ year: t.fiscal_year, salary: t.median_salary }));
+  }, [employerName, trends, visaType]);
 
   if (data.length < 2) return <span className="text-xs text-[var(--muted-foreground)]">No history</span>;
 
