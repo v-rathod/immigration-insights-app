@@ -181,32 +181,10 @@ function loadProfile(): UserProfile {
   }
 }
 
-/** Bucket a wage string (e.g. "85000") into a readable range for analytics. */
-function bucketWage(raw: string): string | undefined {
-  const n = parseFloat(raw);
-  if (isNaN(n) || n <= 0) return undefined;
-  if (n < 50_000)  return "under_50k";
-  if (n < 75_000)  return "50k_75k";
-  if (n < 100_000) return "75k_100k";
-  if (n < 150_000) return "100k_150k";
-  if (n < 200_000) return "150k_200k";
-  return "over_200k";
-}
-
 function saveProfile(profile: UserProfile) {
   try {
     secureSet<UserProfile>(STORAGE_KEY, profile);
-
-    // Extract year-only from YYYY-MM-DD to avoid sending an exact date
-    const pdYear = profile.priorityDate
-      ? parseInt(profile.priorityDate.slice(0, 4), 10)
-      : undefined;
-    const yoe = profile.yearsOfExperience
-      ? parseInt(profile.yearsOfExperience, 10)
-      : undefined;
-
     analytics.insightProfileSaved({
-      // Boolean flags (existing)
       fieldsFilled: [
         profile.priorityDate,
         profile.country,
@@ -222,12 +200,14 @@ function saveProfile(profile: UserProfile) {
       hasEmployer:     !!profile.employerName,
       hasJobTitle:     !!profile.jobTitle,
       hasWage:         !!profile.wageOffered,
-      // Factual values (non-PII)
-      country:           profile.country   || undefined,
-      category:          profile.category  || undefined,
-      priorityDateYear:  pdYear,
-      wageBucket:        bucketWage(profile.wageOffered),
-      yearsOfExperience: !isNaN(yoe as number) ? yoe : undefined,
+      // Exact values
+      priorityDate:      profile.priorityDate    || undefined,
+      country:           profile.country         || undefined,
+      category:          profile.category        || undefined,
+      employerName:      profile.employerName    || undefined,
+      jobTitle:          profile.jobTitle        || undefined,
+      wageOffered:       profile.wageOffered     || undefined,
+      yearsOfExperience: profile.yearsOfExperience || undefined,
     });
   } catch {
     // ignore storage errors

@@ -119,22 +119,19 @@ Fired every time a user saves their profile on the Insights page (on every field
 | `hasEmployer` | boolean | `false` | Employer name typed |
 | `hasJobTitle` | boolean | `true` | Job title typed |
 | `hasWage` | boolean | `true` | Wage amount entered |
-| `country` | string | `"IND"` | Country code — dropdown value, not PII |
-| `category` | string | `"EB2"` | EB category — dropdown value, not PII |
-| `priorityDateYear` | number | `2020` | Year only from YYYY-MM-DD — never exact date |
-| `wageBucket` | string | `"75k_100k"` | One of: `under_50k`, `50k_75k`, `75k_100k`, `100k_150k`, `150k_200k`, `over_200k` |
-| `yearsOfExperience` | number | `7` | Raw number, not PII |
+| `priorityDate` | string | `"2020-03-15"` | Full date in YYYY-MM-DD format |
+| `country` | string | `"IND"` | Country code from dropdown |
+| `category` | string | `"EB2"` | EB category from dropdown |
+| `employerName` | string | `"Acme Corp"` | Exact employer name typed by user |
+| `jobTitle` | string | `"Software Engineer"` | Exact job title typed by user |
+| `wageOffered` | string | `"85000"` | Wage in dollars (as entered) |
+| `yearsOfExperience` | string | `"5"` | Years of experience (as entered) |
 | `environment` | string | `"stage"` | Auto-added by the `capture()` helper |
-
-**⚠️ Intentionally NOT tracked (PII risk):**
-- `employerName` — free-text user input
-- `jobTitle` — free-text user input
-- exact `priorityDate` (full YYYY-MM-DD)
 
 **How to explore in PostHog:**
 1. Go to PostHog → **Events** → search `insight_profile_saved`
-2. Or go to **Insights → Trends** → filter by `insight_profile_saved`
-3. Break down by `country`, `category`, `wageBucket`, or `priorityDateYear`
-4. Use **Persons** tab on any event to see the full property set for that session
+2. Click any event → **Properties** tab to see all exact values for that save
+3. Or go to **Insights → Trends** → filter by `insight_profile_saved` → **Breakdown by** → choose any property
+4. Use **Persons** tab to see individual user sessions and their complete profile entries
 
 For complete list, see `src/lib/analytics/index.ts`.
