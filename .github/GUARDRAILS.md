@@ -56,6 +56,26 @@ No CSS modules. No styled-components. No inline styles except for dynamic values
 
 **Why**: P3 is the public-facing surface. Every XSS vector, every unsanitized input, every leaked key is a direct user-facing risk.
 
+### 9. Monitor Client-Side Errors in Production
+
+Every unhandled JavaScript error and promise rejection **must** reach the monitoring dashboard. Use the dual-reporting pattern: Sentry (stack traces, source maps, session replay) + PostHog (`error_occurred` event, session correlation). The `ErrorMonitor` component (`src/components/providers/error-monitor.tsx`) handles this automatically — never remove it.
+
+Environment variables required in production:
+```env
+NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/12345
+NEXT_PUBLIC_APP_VERSION=git-sha-or-tag   # optional but enables release tracking
+```
+
+If `NEXT_PUBLIC_SENTRY_DSN` is absent, Sentry silently no-ops — dev and test environments work without a key. PostHog error events always fire regardless.
+
+**Rules**:
+- Never remove `<ErrorMonitor />` from `layout.tsx`
+- Do **not** silently swallow errors in `catch` blocks unless the failure is truly inconsequential
+- Always call `reportError()` for known error boundaries (data load failures, form errors)
+- Do **not** log PII (no user input, no profile data) in error context
+
+**Why**: An SPA with no backend server has no server logs, no access logs, and no error aggregation by default. Without `ErrorMonitor`, production bugs are invisible until a user explicitly reports them.
+
 ---
 
 ## Regression Testing (CRITICAL — MANDATORY FOR ALL FIXES)

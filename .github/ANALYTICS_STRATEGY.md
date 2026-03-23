@@ -105,6 +105,7 @@ analytics.myNewEvent({ foo: "value", bar: 42 });
 - `insightPanelUnlocked(panelName)`
 - `dataLoaded(source, bytes, loadTimeMs, dashboard?)`
 - `insightProfileSaved(...)` — see below
+- `errorOccurred(...)` — see below
 
 ### `insight_profile_saved` — Full Property Reference
 
@@ -133,5 +134,30 @@ Fired every time a user saves their profile on the Insights page (on every field
 2. Click any event → **Properties** tab to see all exact values for that save
 3. Or go to **Insights → Trends** → filter by `insight_profile_saved` → **Breakdown by** → choose any property
 4. Use **Persons** tab to see individual user sessions and their complete profile entries
+
+---
+
+### `error_occurred` — Client-Side Error Tracking
+
+Fired by `ErrorMonitor` on every unhandled JavaScript error and promise rejection. Dual-reported to Sentry (stack traces, replay) and PostHog (session correlation).
+
+| PostHog Property | Type | Example | Notes |
+|---|---|---|---|
+| `error_message` | string | `"TypeError: Cannot read properties of null"` | The JS error message |
+| `error_type` | string | `"TypeError"` | Error class name or `"UnhandledRejection"` |
+| `page` | string | `"/dashboard/visa-bulletin"` | `window.location.pathname` at time of error |
+| `severity` | string | `"high"` | Always `"high"` for unhandled errors |
+| `stack_preview` | string | `"TypeError: ...\n  at Component ..."` | First 500 chars of stack trace (optional) |
+| `environment` | string | `"prod"` | Auto-added by `capture()` helper |
+
+**How to explore in PostHog:**
+1. Go to PostHog → **Events** → search `error_occurred`
+2. **Breakdown by `page`** to find which dashboard has the most errors
+3. **Breakdown by `error_type`** to classify error categories
+4. Click any event → use **Persons** tab to view the user's full session
+5. **Insights → Trends** → compare `error_occurred` rate vs `page_viewed` rate (error rate as %)
+6. Set up a **PostHog Alert** on spike in `error_occurred` count
+
+**Companion tool**: Every `error_occurred` event also fires to **Sentry** with full stack traces and optional session replay. Check Sentry Issues for source-mapped stack frames.
 
 For complete list, see `src/lib/analytics/index.ts`.

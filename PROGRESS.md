@@ -4,7 +4,7 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-24)
+## Session Quick Snapshot (2026-03-23)
 
 **Current Status**: ✅ Production Ready
 - **Unit Tests**: 1206 passing (3 skipped) across 40 files
@@ -15,16 +15,87 @@
 - **ESLint**: 0 errors
 
 **What's New This Session**:
-- Created cross-project guardrails system (Ten Commandments + per-project guardrails)
-- All 4 repos updated: northstar-docs, P1, P2, P3
-- Commits: `fa2d4a7` (docs), `a23763d` (P1), `37aa88b` (P2), `875af5f` (P3)
-- Documentation hierarchy: copilot-instructions → GUARDRAILS.md → parent Ten Commandments
+- Production error monitoring: Sentry + PostHog dual-reporting (Milestone 16.0)
+- Enhanced PostHog analytics with exact profile field values (prev session)
+- `@sentry/browser` installed, `ErrorMonitor` component, `src/lib/monitoring/` module
+- GUARDRAILS.md updated: Commandment 9 (client-side error monitoring)
 
-**Next Agent Starting Point**: 
-1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — Non-negotiable rules
-2. Review Milestone 15.0 below for latest context
-3. Check `.github/copilot-instructions.md` for stable rules
+**Next Agent Starting Point**:
+1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — 9 Non-negotiable rules
+2. Review Milestone 16.0 below for latest context
+3. **Action needed**: Create Sentry account + set `NEXT_PUBLIC_SENTRY_DSN` in `.env.local` and CloudFront env vars
 4. Run `npm test` to validate everything passes
+
+---
+
+## 2026-03-23 — Milestone 16.0: Production Error Monitoring
+
+### Objective
+Implement a production-grade client-side error monitoring stack so that bugs experienced by real users can be detected, reproduced, and fixed — without any backend server or logs.
+
+### Problem Solved
+A static-export SPA has zero server-side logs. Without monitoring, a production crash is invisible until a user explicitly reports it via the feedback form. There is no access log, no Lambda error stream, no CloudWatch — just silence.
+
+### What Was Implemented
+
+**Three-layer architecture**:
+
+1. **Sentry** (`@sentry/browser`) — stack traces, source maps, session replay, release tracking
+2. **PostHog** (`error_occurred` event) — error correlation with user session context (which page, which filters, etc.)
+3. **Browser DevTools** — errors still reach the console (nothing suppressed)
+
+**New files**:
+- `src/lib/monitoring/index.ts` — Sentry init (`initSentry()`) + manual escalation (`reportError()`)
+- `src/components/providers/error-monitor.tsx` — `<ErrorMonitor />` client component; wires global `window.error` and `unhandledrejection` handlers; dual-reports to Sentry + PostHog
+
+**Modified files**:
+- `src/app/layout.tsx` — Added `<ErrorMonitor />` inside `PostHogProvider`
+- `src/lib/analytics/index.ts` — Added `errorOccurred()` event helper + exported
+- `.github/GUARDRAILS.md` — Added **Commandment 9**: Monitor Client-Side Errors in Production
+- `ARCHITECTURE.md` — Added full Error Monitoring section with debugging table and code examples
+- `.github/ANALYTICS_STRATEGY.md` — Documented `error_occurred` event properties + PostHog exploration guide
+
+### Results
+
+| Metric | Value |
+|--------|-------|
+| TypeScript errors | 0 |
+| New package | `@sentry/browser@^10.x` |
+| New files | 2 (monitoring/index.ts, error-monitor.tsx) |
+| Files modified | 5 |
+| Commandments updated | GUARDRAILS.md now has 9 commandments |
+
+### How to Activate in Production
+
+```env
+# Add to .env.local (dev) and CloudFront environment variables (prod)
+NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/12345
+NEXT_PUBLIC_APP_VERSION=git-sha-or-tag   # optional
+
+# Steps:
+# 1. Create free Sentry account at sentry.io
+# 2. Create a new project (Browser JavaScript)
+# 3. Copy the DSN from Project Settings → Client Keys
+# 4. Set NEXT_PUBLIC_SENTRY_DSN in .env.local
+# 5. Set same var in CloudFront distribution (stage + prod)
+# 6. Redeploy: bash scripts/deploy.sh
+```
+
+If `NEXT_PUBLIC_SENTRY_DSN` is absent, Sentry silently no-ops. PostHog `error_occurred` events still fire regardless.
+
+### Debugging Flow for Production Issues
+
+| Symptom | Where to look |
+|---------|---------------|
+| Crash / white screen | Sentry Issues → session replay |
+| Error rate spike | PostHog Events → `error_occurred` → breakdown by `page` |
+| "Worked for me" bug | Sentry breadcrumbs → action sequence before crash |
+| Error on specific page only | PostHog → filter `error_occurred` where `page = /dashboard/X` |
+
+### Next Steps
+1. Create Sentry account (free) and set `NEXT_PUBLIC_SENTRY_DSN`
+2. Consider setting up a Sentry Slack alert for error spikes
+3. Optional: Upload source maps during deploy for source-mapped stack traces
 
 ---
 

@@ -109,7 +109,7 @@ src/
 ├── components/
 │   ├── layout/                   # AppShell, Sidebar, Footer
 │   ├── ui/                       # Reusable primitives (GlassCard, NumberTicker, StatCard)
-│   ├── providers/                # ThemeProvider, PostHogProvider
+│   ├── providers/                # ThemeProvider, PostHogProvider, ErrorMonitor
 │   ├── srs/                      # Sponsor Reliability Score components
 │   ├── pdi/                      # Priority Date Index components
 │   └── wage/                     # Wage Intelligence components
@@ -129,6 +129,7 @@ src/
 │   ├── search/                   # RAG search + LLM service
 │   ├── security/                 # XSS prevention, input sanitization, CSP
 │   ├── analytics/                # PostHog event helpers (typed)
+│   ├── monitoring/               # Sentry init + reportError() helper
 │   └── utils/                    # cn(), formatting, barrel exports
 │
 ├── types/
@@ -250,6 +251,72 @@ Never render a widget that would only show "please provide input". Hide input-ga
 | Secure storage | `secureGet/Set/Remove/ClearAll` with `compass_` prefix |
 | CSP headers | Configured for CloudFront deployment |
 | No secrets | Zero API keys in client bundle (except PostHog + optional Groq) |
+
+---
+
+## Error Monitoring
+
+Production debug stack for a zero-backend SPA. No server logs exist, so all visibility comes from the client.
+
+```
+Unhandled JS error / Promise rejection
+          │
+          ▼
+ ErrorMonitor (src/components/providers/error-monitor.tsx)
+          │
+    ┌─────┴──────────────┐
+    │                    │
+    ▼                    ▼
+Sentry                PostHog
+(stack trace,         (error_occurred event,
+ source maps,          correlates with session:
+ session replay,       which page, which filters,
+ release tracking,     user's profile state)
+ Slack alerts)
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/monitoring/index.ts` | Sentry init + `reportError()` helper |
+| `src/components/providers/error-monitor.tsx` | Global window error + unhandledrejection handlers |
+| `src/lib/analytics/index.ts` → `errorOccurred()` | PostHog event for error correlation |
+
+### Environment Variables
+
+```env
+NEXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/12345
+NEXT_PUBLIC_APP_VERSION=1.0.0          # optional; enables Sentry release tracking
+NEXT_PUBLIC_APP_ENV=prod               # auto-tags every event
+```
+
+When `NEXT_PUBLIC_SENTRY_DSN` is absent, Sentry silently skips init — local dev and tests work without configuration.
+
+### Debugging Production Issues
+
+| Symptom | Where to look |
+|---------|---------------|
+| Crash / white screen | Sentry → Issues → Latest events + session replay |
+| Error trend spike | PostHog → Events → filter `error_occurred` → breakdown by `page` or `error_type` |
+| "It worked for me" | Sentry breadcrumbs → sequence of actions before the crash |
+| Slow load | PostHog → `data_loaded.load_time_ms` + Sentry performance traces |
+| User-reported bug | PostHog → Persons → find their session → replay |
+
+### Manual Error Reporting
+
+For known error boundaries (data load failures, caught exceptions), call `reportError()` directly:
+
+```typescript
+import { reportError } from '@/lib/monitoring';
+
+try {
+  const data = await loadEmployerShard(id);
+} catch (err) {
+  reportError(err as Error, { employerId: id, page: '/dashboard/employer' });
+  // also update UI state
+}
+```
 
 ---
 

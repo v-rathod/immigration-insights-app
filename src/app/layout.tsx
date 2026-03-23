@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider, themeScript } from "@/components/providers/theme-provider";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
+import { ErrorMonitor } from "@/components/providers/error-monitor";
 import { AppShell } from "@/components/layout/app-shell";
 import "./globals.css";
 
@@ -181,6 +182,7 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <PostHogProvider>
+            <ErrorMonitor />
             <AppShell>{children}</AppShell>
           </PostHogProvider>
         </ThemeProvider>

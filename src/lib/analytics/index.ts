@@ -299,6 +299,33 @@ function queuePositionLooked(category: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Error monitoring
+// ---------------------------------------------------------------------------
+
+/**
+ * Called by ErrorMonitor when an unhandled JS error or promise rejection occurs.
+ * Dual-reported: Sentry (stack traces, replay) + PostHog (session context).
+ * Stack trace is truncated to 500 chars to keep PostHog event payloads lean.
+ */
+function errorOccurred(params: {
+  message: string;         // e.g. "TypeError: Cannot read properties of null"
+  type: string;            // e.g. "TypeError", "ReferenceError", "UnhandledRejection"
+  page: string;            // e.g. "/dashboard/visa-bulletin"
+  severity?: "low" | "medium" | "high";
+  stack?: string;          // First 500 chars of stack trace
+  context?: Record<string, unknown>;
+}) {
+  capture("error_occurred", {
+    error_message: params.message,
+    error_type: params.type,
+    page: params.page,
+    severity: params.severity ?? "high",
+    ...(params.stack ? { stack_preview: params.stack } : {}),
+    ...(params.context ?? {}),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Geographic
 // ---------------------------------------------------------------------------
 
@@ -379,4 +406,5 @@ export const analytics = {
   navItemClicked,
   feedbackSubmitted,
   contactSubmitted,
+  errorOccurred,
 };
