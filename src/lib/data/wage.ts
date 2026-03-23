@@ -251,10 +251,11 @@ export function getEmployerRoleTrendSeries(
   socCode: string,
   visaType: string = 'H-1B'
 ): EmployerRoleTrend[] {
+  const needle = employerName.toLowerCase();
   return roleTrends
     .filter(
       (r) =>
-        r.employer_name === employerName &&
+        r.employer_name.toLowerCase() === needle &&
         r.soc_code === socCode &&
         r.visa_type === visaType &&
         r.median_salary >= WAGE_SANITY.SALARY_FLOOR
@@ -488,8 +489,9 @@ export function getEmployerTrend(
   employerName: string,
   visaType = 'H-1B'
 ): EmployerSalaryTrend[] {
+  const needle = employerName.toLowerCase();
   return trend
-    .filter((r) => r.employer_name === employerName && r.visa_type === visaType)
+    .filter((r) => r.employer_name.toLowerCase() === needle && r.visa_type === visaType)
     .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
@@ -607,9 +609,10 @@ export function getEmployerRoles(
    * window is valid hiring activity. */
   minFilings: number = 1
 ): (EmployerWageRanking & { prior_year_median_salary?: number })[] {
+  const needle = employerName.toLowerCase();
   const employerRows = rankings.filter(
     (r) =>
-      r.employer_name === employerName &&
+      r.employer_name.toLowerCase() === needle &&
       (visaType == null || r.visa_type === visaType) &&
       r.n_filings >= minFilings &&
       r.median_salary >= WAGE_SANITY.SALARY_FLOOR

@@ -347,6 +347,16 @@ run_smoke_tests() {
     error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
     exit 1
   }
+
+  # ── Comprehensive post-deploy validation ────────────────────────────────
+  if [[ -f "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" ]]; then
+    log "Running comprehensive post-deploy validation..."
+    node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || {
+      error "Comprehensive post-deploy tests FAILED — data integrity issues. Check above output."
+      exit 1
+    }
+  fi
+
   SMOKE_DURATION=$(_elapsed $SMOKE_START)
 }
 
