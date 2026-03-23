@@ -215,3 +215,49 @@ The V2 redesign is complete. Key design rules that persist:
 - **levels.fyi inspiration**: Data visible immediately, no marketing pitch
 - **Independent tools**: Each dashboard serves independently (employer -> employer dashboard, PD -> visa-bulletin dashboard). NOT driving users toward profile creation.
 - See [REDESIGN_V2.md](./REDESIGN_V2.md) for design rationale if modifying insights or sidebar.
+
+---
+
+## Last Session — Satellite Files Reviewed (2026-03-24)
+
+**Context Gathering Task**: Reviewed copilot instructions and all referenced files to understand full project context and verify stage deployment status.
+
+### Satellite Files Revisited
+
+| File | Purpose | Status |
+|------|---------|--------|
+| **This file** (copilot-instructions.md) | Architecture constraints, coding conventions, standing instructions | ✓ Read (157 lines) |
+| **[.github/GUARDRAILS.md](./GUARDRAILS.md)** | P3-specific 8 commandments, regression testing, quality gates | ✓ Read |
+| **[northstar-docs/GUARDRAILS.md](/Users/vrathod1/dev/NorthStar/northstar-docs/GUARDRAILS.md)** | Program-wide Ten Commandments, non-negotiable rules | ✓ Read |
+| **[.github/NEXT_AGENT_CONTEXT.md](.github/NEXT_AGENT_CONTEXT.md)** | Current state snapshot, milestone history, essential reading order | ✓ Read |
+| **[../ENVIRONMENTS.md](../ENVIRONMENTS.md)** | Deploy URLs, environments (dev/stage/prod), environment variables | ✓ Read |
+| **[../PROGRESS.md](../PROGRESS.md)** | Milestone history with timestamps, work completion log | ✓ Referenced (Milestone 15.0) |
+| **[../ARCHITECTURE.md](../ARCHITECTURE.md)** | Technical design: routes, components, data pipeline | Referenced |
+| **[./TEST_AUDIT.md](./TEST_AUDIT.md)** | Test organization, patterns, coverage strategy | Referenced |
+
+### Verification Summary
+
+**Findings**:
+- ✓ 1226 unit tests passing (3 skipped)
+- ✓ 238 post-deploy tests (47 smoke + 191 comprehensive)
+- ✓ TypeScript strict mode: 0 errors
+- ✓ ESLint: 0 errors
+- ✓ **Stage deployment verified up-to-date**: Local and stage bundle hashes match
+- ✓ Latest code commit: `57058f8` — docs: Milestone 14.0 + 15.0 (guardrails system)
+- ✓ Latest functional code: `adc4052` — Cognizant fix + 191 post-deploy tests (deployed to stage)
+- ✓ Dev server: Running on http://localhost:3000
+
+### Satellite Files NOT Consulted (but available for future reference)
+
+- [../PRODUCT_GUIDE.md](../PRODUCT_GUIDE.md) — Full product guide
+- [./UI_DESIGN_PRINCIPLES.md](./UI_DESIGN_PRINCIPLES.md) — Aurora design system
+- [./MOBILE_DEVELOPMENT_GUIDE.md](./MOBILE_DEVELOPMENT_GUIDE.md) — Mobile-specific rules
+- [./SECURITY_UI_COPY_GUIDE.md](./SECURITY_UI_COPY_GUIDE.md) — Security principles
+- [./SEO_STRATEGY.md](./SEO_STRATEGY.md) — SEO metadata strategy
+- [./ANALYTICS_STRATEGY.md](./ANALYTICS_STRATEGY.md) — PostHog analytics
+- [./DATA_CATALOG.md](./DATA_CATALOG.md) — P2 artifacts and dashboards mapping
+- [./CODEBASE_INVENTORY.md](./CODEBASE_INVENTORY.md) — File inventory
+- [./ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) — Architecture trade-offs
+- [./REDESIGN_V2.md](./REDESIGN_V2.md) — V2 redesign rationale
+
+**Next Agent**: Consult files above as needed for your specific task using the [Satellite File Registry](#satellite-file-registry) as a reference guide.
