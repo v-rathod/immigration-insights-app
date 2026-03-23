@@ -55,6 +55,9 @@
 
 ## Quick Start for This Agent (NEW SESSION)
 
+### 🎯 First Thing: Read the Handoff Guide
+Before diving into code, read [NEXT_AGENT_CONTEXT.md](.github/NEXT_AGENT_CONTEXT.md) (5 min) — it's a comprehensive handoff summarizing current state, what happened this session, quick commands, and common tasks.
+
 ### VS Code Configuration ✅
 Your VS Code settings have been configured for AI agent workflows:
 - **File operations**: Auto-approved (`chat.fileOperations.autoApprove: true`)
@@ -85,12 +88,14 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 
 **Live Status**: Check [`PROGRESS.md`](../PROGRESS.md) for latest milestones and current state (updated with every change).
 
-**Quick Facts** (baseline):
-- **P3 Tests**: 1024 passing (34 files) | **TypeScript**: Strict mode ✅ | **ESLint**: 0 errors ✅
+**Quick Facts (Current - 2026-03-22)**:
+- **P3 Tests**: 1206 passing (41 files) | **TypeScript**: Strict mode ✅ | **ESLint**: 0 errors ✅
+- **Component Coverage**: 85% (all 50 components tested; was 74% at session start)
+- **Build**: 16 pages + 95K employer shards, all 47 smoke checks passing ✅
+- **Deploy**: Live on stage CloudFront at `d10immmzyp7xgr.cloudfront.net`
+- **Data**: 102K consolidated employer entries, full wage/SRS/LCA/H1B metrics inline
+- **Dev Server**: Running locally on http://localhost:3000
 - **Architecture**: Static export (no backend). AWS cost ~$1–3/month (S3 + CloudFront)
-- **Dashboards**: 8 deployed + Insights personalization + geographic heatmap
-- **Data**: 102K+ employer shards, full wage/SRS/LCA/H1B metrics inline
-- **SEO**: All 16 pages with metadata, JSON-LD structured data, llms.txt, manifest
 
 ### Common Workflow Patterns
 1. **Modify P3 code** → Run `npm test` → Run `npm run build` → Commit to git
@@ -122,7 +127,7 @@ cd /Users/vrathod1/dev/NorthStar/fetch-immigration-data
 - After completing ANY feature/fix: (1) Update PROGRESS.md with **timestamped milestone**, (2) Update parent docs if architectural changes, (3) DO NOT duplicate in copilot-instructions.md
 
 **Test Quality:**
-- All code changes require `npm test` passing (1024+ tests across 34 files as baseline)
+- All code changes require `npm test` passing (1206 tests across 41 files minimum)
 - TypeScript strict mode + ESLint 0 errors (non-negotiable)
 - Mobile tests required for UI changes (see Rule 21 in Mobile-First Development below)
 

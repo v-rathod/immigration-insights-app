@@ -1,0 +1,237 @@
+# Next Agent Context & Handoff Guide
+
+**Created**: 2026-03-22 after Milestone 12.0 (comprehensive test expansion)  
+**Purpose**: Quick reference for the next agent starting a session. This supplements but doesn't replace PROGRESS.md, copilot-instructions.md, or ARCHITECTURE.md.
+
+---
+
+## Current State Snapshot
+
+**Project Status**: ✅ **Production Quality** — Comprehensive test coverage, zero lint/type errors, all 47 smoke checks passing.
+
+| Aspect | Status | Details |
+|--------|--------|---------|
+| **Tests** | 1206/1206 passing | 41 files, 3 skipped. Component coverage: 85% (50/50 components). All real-data assertions pass. |
+| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Minified/optimized. Total ~500 KB pages. |
+| **Type Safety** | 0 errors | TypeScript strict mode across all 75+ source files. All P2 artifact schemas typed. |
+| **Lint** | 0 errors | ESLint passing. No unused imports, proper exports. |
+| **Deploy** | Live ✅ | Staged on CloudFront: `d10immmzyp7xgr.cloudfront.net`. All 47 smoke checks (pages, data files, bundle integrity) pass. |
+| **Dev Server** | Running | `npm run dev` active on http://localhost:3000. Auto-reload working. |
+| **Data** | Fresh | P2 sync complete. 102K employer entries consolidated. Real-data tests validate all major dashboards have correct data. |
+
+---
+
+## What Happened This Session (2026-03-22)
+
+**Milestone 12.0**: Comprehensive test coverage expansion
+- **Added**: 112 new tests (comprehensive-widgets.test.tsx: 39 + anchor-real-data.test.ts: 73)
+- **Coverage**: 74% → 85% (all 50 components now tested)
+- **Fixed**: Employer search index (144K raw → 102K clean entries via consolidation)
+- **Commit**: `cfd313c` — "test: comprehensive widget + real-data anchor tests (1206 passing)"
+- **Deployed**: All 47 smoke checks passing
+
+**Key New Test Coverage**:
+- Widget render tests: StatCard, DataFreshnessChip, WageGrowthLeaderboard, MarketTrendChart, About page
+- Data helper unit tests: getTopWageGrowers, computeEmployerGrowth, getEmployerList, employer growth streaks
+- Real-data anchors: PD forecasts (16), cutoff trends (9), SRS overview (8), employer shards (Optum/Infosys/Cognizant: 29), wage rankings (9)
+
+---
+
+## Essential Reading (In Order)
+
+1. **This file** — You're reading it. 5 min overview. ✓
+2. **PROGRESS.md** — Detailed session history with timestamps. Start at Milestone 12.0. 10 min.
+3. **copilot-instructions.md** — High-level architecture, coding conventions, standing instructions. 10 min.
+4. **ARCHITECTURE.md** — Technical design: routes, components, data pipeline. 15 min.
+5. **TEST_AUDIT.md** — Test organization, patterns, coverage strategy. 10 min.
+6. **PRODUCT_GUIDE.md** — Full user guide + feature docs. Reference as needed.
+
+**For specific domains**:
+- **Mobile dev**: See `.github/MOBILE_DEVELOPMENT_GUIDE.md` (11 rules).
+- **UI design**: See `.github/UI_DESIGN_PRINCIPLES.md` (Aurora design system).
+- **Security**: See `.github/SECURITY_UI_COPY_GUIDE.md` (8 principles).
+- **SEO**: See `.github/SEO_STRATEGY.md` (per-page metadata).
+- **Analytics**: See `.github/ANALYTICS_STRATEGY.md` (PostHog events).
+
+---
+
+## Quick Start Commands
+
+```bash
+# Verify everything works
+npm test                        # All 1206 tests should pass
+npm run build                   # Should generate 18 HTML files in out/
+npx next build                  # Direct Next.js build (same as above)
+npm run dev                     # Start dev server on http://localhost:3000
+
+# Deploy (only with user permission)
+bash scripts/deploy.sh          # Full deploy to stage (build + sync + smoke test)
+bash scripts/deploy.sh --skip-build  # Use existing out/
+bash scripts/deploy.sh --env prod --skip-build  # Prod deploy (rare)
+
+# Data operations
+python3 scripts/sync_p2_data.py # Sync latest P2 artifacts → public/data/
+python3 scripts/_regen_search.py  # Regenerate employer search index
+
+# Git workflow
+git status                      # See uncommitted changes
+git log --oneline -10           # Recent commits
+git push origin main            # Push to remote (GitHub)
+```
+
+---
+
+## Critical Constraints (DO NOT VIOLATE)
+
+1. **Static export only**: No `getServerSideProps`, no API routes, no middleware. Config: `output: 'export'` in next.config.ts.
+2. **Zero backend**: All data is pre-computed P2 artifacts as JSON. No runtime compute. No database queries.
+3. **Build cost < $5/month**: S3 + CloudFront only. No Lambda, no RDS, no extra services.
+4. **All tests must pass**: Before any commit: `npm test` → all 1206 must pass. No exceptions.
+5. **TypeScript strict + 0 eslint errors**: Non-negotiable. Every file must be strict-compliant.
+6. **No manual AWS CLI**: Always use `bash scripts/deploy.sh`. Raw `aws s3 sync` will break CSS bundle hashes on old HTML files.
+
+---
+
+## Architecture Overview (30-second summary)
+
+```
+┌─ Compass (P3) — This Repo ──────────────────┐
+│  Next.js 16 static export → out/             │
+│  • 50 React components                       │
+│  • 9 dashboards + insights                   │
+│  • 16 pages pre-rendered as HTML             │
+│      ↓                                        │
+│  S3 Bucket → CloudFront CDN → Global edge   │
+│  • 95K employer shards                       │
+│  • 102K employer search index                │
+│  • ~500 MB total static site                 │
+│  • Cost: ~$1-3/month                         │
+└─────────────────────────────────────────────┘
+         ↓ consumes
+    P2 Meridian Artifacts
+    (Parquet → JSON pre-computed)
+```
+
+**Data Flow**:
+1. P2 produces 40+ parquet files + models
+2. `sync_p2_data.py` converts to optimized JSON
+3. `consolidate_employer_shards()` embeds data into 95K JSON shards
+4. `next build` bundles everything into static HTML/CSS/JS
+5. `deploy.sh` syncs to S3 + invalidates CloudFront
+6. Users GET from CloudFront (globally distributed, instant)
+
+---
+
+## Common Tasks & Playbooks
+
+### Adding a new dashboard
+1. Create page in `src/app/dashboard/[name]/page.tsx`
+2. Create data loader in `src/lib/data/[name].ts`
+3. Create components in `src/components/[name]/`
+4. Write unit tests for components
+5. Write E2E test in `e2e/*.spec.ts`
+6. Add to `copilot-instructions.md` artifact mapping
+7. Run `npm test` → `npm run build` → commit
+
+### Fixing a bug
+1. Write test that reproduces bug (test should fail)
+2. Fix code
+3. Verify test passes
+4. `npm test` (all 1206 must pass)
+5. Commit with clear message
+
+### Updating P2 data
+1. Run `python3 scripts/sync_p2_data.py`
+2. Verify new JSON in `public/data/`
+3. Run `npm test` (real-data anchor tests validate)
+4. If data is corrupt, run regeneration scripts (see PROGRESS.md Milestone 11.5)
+5. `npm run build`
+6. Deploy with `bash scripts/deploy.sh`
+
+### Adding a new test
+1. Create file: `src/__tests__/[feature].test.tsx` or `.test.ts`
+2. Write tests (see TEST_AUDIT.md for patterns)
+3. Run `npm test -- [feature]` to test just that file
+4. Run `npm test` (all tests must pass)
+5. Note: E2E tests go in `e2e/` and use Playwright
+
+### Updating documentation
+1. For session milestones: Update `PROGRESS.md` with timestamped entry
+2. For architecture changes: Update `ARCHITECTURE.md` and/or `PRODUCT_GUIDE.md`
+3. For coding patterns: Update `copilot-instructions.md` or specialized `.github/*.md` files
+4. Don't duplicate status in copilot-instructions.md — link to PROGRESS.md instead
+5. Commit all doc changes together
+
+---
+
+## Project Structure at a Glance
+
+```
+immigration-insights-app/
+├── PROGRESS.md                      ← Milestone history (start here for status)
+├── ARCHITECTURE.md                  ← Technical design
+├── PRODUCT_GUIDE.md                 ← Full user guide (large)
+├── .github/
+│   ├── copilot-instructions.md     ← AI agent instructions (this supplement)
+│   ├── TEST_AUDIT.md               ← Test strategy + inventory
+│   ├── MOBILE_DEVELOPMENT_GUIDE.md ← 11 mobile rules
+│   ├── UI_DESIGN_PRINCIPLES.md     ← Aurora design system
+│   ├── SECURITY_UI_COPY_GUIDE.md   ← 8 security principles
+│   ├── ANALYTICS_STRATEGY.md       ← PostHog event tracking
+│   ├── SEO_STRATEGY.md             ← Per-page metadata
+│   ├── REDESIGN_V2.md              ← V2 redesign rationale
+│   └── NEXT_AGENT_CONTEXT.md       ← This file
+├── src/
+│   ├── app/                        ← Next.js pages (/ /about /insights /dashboard/*)
+│   ├── components/                 ← 50 React components (UI + feature)
+│   ├── lib/                        ← Data loaders, search, security, utilities
+│   ├── types/                      ← TypeScript definitions
+│   └── __tests__/                  ← 41 test files (1206 tests)
+├── public/
+│   └── data/                       ← P2 artifacts as JSON (95K employer shards + metadata)
+├── e2e/                            ← Playwright E2E tests
+├── scripts/
+│   ├── deploy.sh                   ← Safe deployment script (use this, not aws cli)
+│   ├── sync_p2_data.py             ← P2 Parquet → JSON converter
+│   ├── _regen_search.py            ← Regenerate employer search index
+│   └── smoke-test.mjs              ← Post-deploy verification (47 checks)
+└── terraform/                      ← IaC for AWS infra (S3 + CloudFront)
+```
+
+---
+
+## Troubleshooting Quick Reference
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `npm test` fails | New code broke tests or old tests are brittle | Run individual test: `npm test -- [file]`. Check for real bugs vs mock issues. |
+| Build outputs 0 HTML files | P2 data is corrupt (e.g., _search.json is 2 bytes) | Run: `python3 scripts/sync_p2_data.py && python3 scripts/_regen_search.py` |
+| CSS doesn't load on deploy | Old HTML has stale bundle hash. Raw `aws s3 sync` was used instead of deploy.sh | Only use `bash scripts/deploy.sh`. It uses `--exact-timestamps` to force re-upload. |
+| TypeScript error: "Object is not valid as React child" | NumberTicker or motion component mock issue in test | Add mock: `vi.mock("@/components/ui/number-ticker", { ... })` |
+| Dev server won't start | Port 3000 already in use | `pkill -f "next dev"` then `npm run dev` |
+| Test times out | Data file fetch is slow or missing | Check `public/data/` exists. Verify S3 connectivity. May need to mock fetch in test. |
+
+---
+
+## Next Session Priorities (If Continuing)
+
+1. **Monitor Deploy**: Keep checking smoke tests are all 47/47 passing.
+2. **Expand Tests**: Cover remaining untested utilities (e.g., search helpers, analytics).
+3. **Performance**: E2E performance tests (Lighthouse, Core Web Vitals).
+4. **Public Launch**: When ready, deploy to prod CloudFront (requires user approval).
+5. **WAF Rules**: If public, apply Azure WAF rules from `.github/` docs.
+
+---
+
+## Contact / Resources
+
+- **Current Deploy**: `d10immmzyp7xgr.cloudfront.net`
+- **Local Dev**: http://localhost:3000 (when `npm run dev` is running)
+- **Test Command**: `npm test` (1206 tests)
+- **Build Command**: `npm run build` (18 HTML pages)
+- **CI/CD**: GitHub Actions (checks before merge)
+
+---
+
+**Last Updated**: 2026-03-22 20:30 UTC  
+**Next Agent**: Read this file first (5 min), then start with PROGRESS.md Milestone 12.0 for full context.

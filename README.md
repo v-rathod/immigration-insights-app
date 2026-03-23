@@ -24,10 +24,11 @@ Data Collection      →    Analytics & ML         →    Web Dashboard
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-948%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1206%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
-[![Dashboards](https://img.shields.io/badge/dashboards-9%2F9-brightgreen)]()
+[![Dashboards](https://img.shields.io/badge/dashboards-9%2B%2B-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ## Development Setup — Corporate Network

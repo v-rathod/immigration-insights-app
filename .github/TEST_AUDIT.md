@@ -28,19 +28,19 @@ npm test 2>&1 | grep -E 'passing|failing'
 
 ---
 
-## Test Status (Updated 2026-03-21)
+## Test Status (Updated 2026-03-22)
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Tests** | 1,072 (1,040 passing, 32 skipped) | ✅ All passing |
-| **Test Files** | 38 | ✅ +1 employer-url-preload.test.tsx |
+| **Total Tests** | 1,206 (3 skipped) | ✅ All passing |
+| **Test Files** | 41 | ✅ +2 new: comprehensive-widgets, anchor-real-data |
 | **E2E Tests** | ~55 (3 files) + visual regression | ✅ Mobile-first + visual |
 | **Visual Tests** | 93 (1 file, 90 PNG baselines) | ✅ Expanded from 22 last session |
-| **Unit Tests** | ~640 | ✅ Components + utilities |
-| **Integration / Navigation Flow Tests** | ~330+ | ✅ Data loaders + cross-page flows |
+| **Unit Tests** | ~750+ | ✅ Components + utilities + data helpers |
+| **Integration / Navigation Flow Tests** | ~360+ | ✅ Data loaders + cross-page flows |
 | **TypeScript Coverage** | Strict mode | ✅ No `any` types |
 | **ESLint Compliance** | 0 errors | ✅ Clean |
-| **Coverage Target** | 80%+ | ✅ Codepaths verified |
+| **Coverage Target** | 85%+ | ✅ 50/50 components tested |
 
 ---
 
