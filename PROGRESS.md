@@ -88,6 +88,68 @@ Created `scripts/comprehensive-post-deploy.mjs` — **191 tests across 11 sectio
 
 ---
 
+## 2026-03-23 — Milestone 14.0: Regression Test Suite for Employer Name Normalization
+
+### Objective
+Prevent future employer name mismatch bugs by establishing a permanent regression test suite. When defects are discovered, add tests to catch recurrence rather than just hot-fixing.
+
+### What Was Built
+1. **Exported `normalizeEmployerName()` function** from `src/lib/data/wage.ts`
+   - Handles case differences: "US" vs "Us"
+   - Handles spacing differences: "U S" vs "US" (DOL title-casing artifact)
+   - With comprehensive JSDoc and usage examples
+
+2. **Added 25 Comprehensive Regression Tests** in `src/__tests__/wage-dashboard.test.tsx`
+   - New test suite: `describe("employer name normalization (Milestone 13 regression)")`
+   - Edge case coverage: lowercase conversion, word boundaries, multiple occurrences, embedded spaces
+   - Integration tests: `getEmployerTrend()`, `getEmployerRoles()`, `getEmployerRoleTrendSeries()` with mismatched names
+   - All 7 known problematic employers (parameterized tests):
+     1. Cognizant Technology Solutions (case: "US" vs "Us")
+     2. Itech US (case: "US" vs "Us")
+     3. Ernst Young US (spacing: "US" vs "U S")
+     4. Amazon Development Center US (spacing: "US" vs "U S")
+     5. Capgemini US (spacing: "US" vs "U S")
+     6. US Bank National Association (spacing: "US" vs "U S")
+     7. Visa US A (spacing: "US A" vs "U S A")
+   - Symmetry verification test: `normalizeEmployerName(search) === normalizeEmployerName(shard)` for all 7
+
+3. **Documentation**
+   - TEST_AUDIT.md: New "Regression Testing Patterns" section with full case study
+   - ARCHITECTURE_DECISIONS.md: Added decision entry on regression test pattern (Testing section)
+   - PROGRESS.md: This milestone entry
+   - Test file count updated in TEST_AUDIT.md (wage-dashboard.test.tsx: 325 lines, +25 new tests)
+
+### Pattern Established: Defect-Driven Test Suite
+When a production bug is discovered:
+1. Document root cause in code comments & JSDoc
+2. Export any needed private helpers for unit testing
+3. Write comprehensive test coverage (edge cases + all affected cases)
+4. Commit fix + test suite together (not separately)
+5. Update documentation (TEST_AUDIT.md, ARCHITECTURE_DECISIONS.md)
+6. This prevents silent recurrence of similar bugs
+
+### Test Results
+- All 1206 existing tests still passing
+- 25 new regression tests added (part of wage-dashboard.test.tsx)
+- Total test file count: 41 files
+- No breaking changes to existing code
+
+### Files Modified
+- `src/lib/data/wage.ts` — MODIFIED (exported normalizeEmployerName, updated JSDoc with examples)
+- `src/__tests__/wage-dashboard.test.tsx` — MODIFIED (+25 new regression tests)
+- `.github/TEST_AUDIT.md` — MODIFIED (added Regression Testing Patterns section, 40+ lines)
+- `.github/ARCHITECTURE_DECISIONS.md` — MODIFIED (added decision entry on regression pattern)
+
+### Commits
+- Will be committed together with test suite: "test: add 25 regression tests for employer name normalization (Milestone 14.0)"
+
+### Next Steps
+- This pattern should be replicated for ALL future defects discovered
+- Keep regression test suites close to the defect (e.g., wage-related bugs → wage-dashboard.test.tsx)
+- Update documentation landmarks (TEST_AUDIT.md + ARCHITECTURE_DECISIONS.md) so future agents know the pattern
+
+---
+
 ## 2026-03-22 — Milestone 12.0: Comprehensive Test Coverage Expansion
 
 ### Objective

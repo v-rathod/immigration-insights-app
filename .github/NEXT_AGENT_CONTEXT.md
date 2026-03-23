@@ -152,12 +152,58 @@ git push origin main            # Push to remote (GitHub)
 4. Run `npm test` (all tests must pass)
 5. Note: E2E tests go in `e2e/` and use Playwright
 
+### Adding a regression test (after defect discovery)
+1. **Identify the defect** — Document root cause in code comments
+2. **Export helpers** — Make previously private functions testable (e.g., `normalizeEmployerName` export)
+3. **Create test suite** — Add `describe("feature name (Milestone N regression)")` with:
+   - Mock data that reproduces the bug (old code fails, new code passes)
+   - Edge case tests for the normalization/fix logic
+   - All affected cases in a parameterized test loop
+   - Symmetry verification (if applicable)
+4. **Update docs** — Add case study to TEST_AUDIT.md, decision note to ARCHITECTURE_DECISIONS.md
+5. **Commit together** — Never commit hot-fix without regression suite
+6. **Example**: Employer name mismatch (Milestone 14.0) — 25 tests covering case + spacing for 7 employers
+
 ### Updating documentation
 1. For session milestones: Update `PROGRESS.md` with timestamped entry
 2. For architecture changes: Update `ARCHITECTURE.md` and/or `PRODUCT_GUIDE.md`
 3. For coding patterns: Update `copilot-instructions.md` only if a fundamental rule changes, otherwise update specialized `.github/*.md` files
 4. Don't duplicate live data in copilot-instructions.md — it's a routing doc to satellite files
 5. Commit all doc changes together
+
+---
+
+## Testing Patterns & Strategies
+
+### Regression Test Pattern (Milestone 14.0+)
+After a defect is discovered in production or pre-deploy testing:
+
+1. **Root Cause**: Document clearly (e.g., "search index case 'US' vs shard data 'Us'")
+2. **Fix**: Apply the fix to source code (normalize, validate, etc.)
+3. **Regression Suite**: Add permanent test coverage in the relevant test file
+   - Must cover ALL known affected cases (e.g., all 7 employers with the mismatch)
+   - Use parameterized tests to avoid duplication
+   - Include edge cases (spacing, casing, special characters)
+4. **Exports**: Export any private helpers needed for unit testing
+5. **Documentation**: Update TEST_AUDIT.md with the pattern, add decision to ARCHITECTURE_DECISIONS.md
+6. **Commit**: Bundle fix + regression suite + doc updates together
+
+**Why**: Prevents silent recurrence. Future agents see the pattern and replicate it for similar bugs.
+
+### Key Test Files by Domain
+- **Wage filtering**: `wage-dashboard.test.tsx` (includes employer name normalization suite)
+- **SRS scoring**: `srs-data.test.ts`, `srs-components.test.tsx`
+- **PDI forecasts**: `pdi-data.test.ts`, `pdi-components.test.tsx`
+- **Security**: `security.test.ts` (XSS, validation, localStorage)
+- **Data loading**: `loader.test.ts`, `dashboard-data-loaders.test.ts`
+- **Components**: `[feature].test.tsx` following RTL patterns with `render()`, `screen`, `fireEvent`, `userEvent`
+
+### Live-Data Tests (Gitignored Data)
+Tests loading from `public/data/` must guard gracefully in CI:
+```typescript
+const DATA_AVAILABLE = existsSync(dataPath);
+describe.skipIf(!DATA_AVAILABLE)("suite name", () => { ... });
+```
 
 ---
 

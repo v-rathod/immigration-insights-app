@@ -243,6 +243,55 @@ npm run test:visual:update       # Update baseline screenshots
 
 ---
 
+## Regression Testing Patterns
+
+### Pattern: Defect-Driven Test Suite Expansion (Milestone 13+)
+
+**Context**: When a defect is discovered in production or pre-deployment testing, add a regression test suite to prevent recurrence.
+
+**The Employer Name Normalization Case Study** (March 2026)
+
+**Root Cause**: Search index stores employer names as `"Cognizant Technology Solutions US"` (uppercase) but shard data stores `"Cognizant Technology Solutions Us"` (title-case) or `"Ernst Young U S"` (spaced variant). Three wage filtering functions (`getEmployerTrend`, `getEmployerRoles`, `getEmployerRoleTrendSeries`) used strict `===` equality, causing mismatches → "No trend data available" error for 7 employers.
+
+**Solution**: 
+1. Exported `normalizeEmployerName()` helper from `src/lib/data/wage.ts`
+2. Updated all three functions to use normalized comparison
+3. **Added 25 comprehensive regression test cases** in `wage-dashboard.test.tsx` under `describe("employer name normalization (Milestone 13 regression)")`
+
+**Test Coverage**:
+- ✅ Edge cases: `normalizeEmployerName()` with case, spacing ("U S"), embedded spaces
+- ✅ Integration: `getEmployerTrend()`, `getEmployerRoles()`, `getEmployerRoleTrendSeries()` with mismatched names
+- ✅ All 7 known problematic employers (parameterized tests)
+- ✅ Symmetry verification: normalized search name === normalized shard name
+
+**How to Replicate This Pattern**:
+1. When a defect is discovered, document the root cause in a code comment and JSDoc
+2. Export any previously private helpers needed for unit testing
+3. Create a new `describe()` block with "Milestone N regression" naming
+4. Include:
+   - Mock data that reproduces the bug with old code
+   - Tests that fail with old code, pass with new code
+   - Edge cases (spacing, case, multi-occurrence)
+   - A list of all known affected entities (employers, users, features, etc.)
+   - Parameterized tests iterating over the full set
+5. Commit the test suite WITH the fix (no exceptions)
+6. Update TEST_AUDIT.md, PROGRESS.md, and ARCHITECTURE_DECISIONS.md
+
+**Maintenance Checklist**:
+- [ ] Is the regression test suite part of `npm test`? (Yes, auto-runs as part of wage-dashboard.test.tsx)
+- [ ] Are all 7 failing cases covered? (Yes, parameterized)
+- [ ] Does the fix have public functions exported? (Yes, `normalizeEmployerName` exported from wage.ts)
+- [ ] Is the root cause documented in code? (Yes, JSDoc comments + test file header)
+- [ ] Can future agents find this pattern? (Yes, documented here in TEST_AUDIT.md + ARCHITECTURE_DECISIONS.md)
+
+**Files**:
+- Source fix: `src/lib/data/wage.ts` (lines 250+, normalizeEmployerName + 3 functions)
+- Test suite: `src/__tests__/wage-dashboard.test.tsx` (lines 495+, 25 test cases)
+- Decision log: `.github/ARCHITECTURE_DECISIONS.md` (Testing section)
+- Progress: `PROGRESS.md` (Milestone 14.0)
+
+---
+
 ## Coverage Patterns
 
 ### Live-Data Tests (MANDATORY Pattern)

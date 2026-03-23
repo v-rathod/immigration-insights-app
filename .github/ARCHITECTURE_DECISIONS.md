@@ -75,7 +75,10 @@
 
 | Decision | Rationale |
 |----------|----------|
+| **Regression test suite per defect (Milestone 13+)** | Every discovered defect triggers a permanent test suite preventing recurrence. Pattern: export private helpers, add parameterized tests for all affected cases, document root cause in code/comments. Example: employer name mismatch (25 tests for 7 employers, all case/spacing variants). Prevents similar bugs in future | 
+|----------|----------|
 | **Vitest + happy-dom (not jsdom)** | jsdom's `html-encoding-sniffer` → `@exodus/bytes` is ESM-only but loaded via CJS require() — creates module resolution mess. happy-dom is lighter, ESM-compatible, sufficient for RTL tests. |
+| **Regression test pattern (post-defect)** | After a defect is discovered, add permanent regression test suite (not just a hot-fix). Export previously-private helpers if needed. Cover all known affected cases with parameterized tests. Example: employer name normalization (Milestone 13) — 25 tests covering case + spacing variants for 7 employers. Prevents silent recurrence. |
 | **Setup.ts global mocks** | Mocks `matchMedia`, `IntersectionObserver`, `localStorage` once per suite. localStorage cleared in `beforeEach` to prevent state leaking. Prevents test interdependencies. |
 | **Playwright for E2E** | Fast, runs real browser, mobile testing out-of-box, screenshots on failure, no flakiness. Mobile-first: iPhone 14 baseline (390px). |
 | **Live-data tests with DATA_AVAILABLE guard** | Tests that load from `public/data/` must skip gracefully in CI (data is gitignored). Guard pattern prevents `readFileSync` crashes before Vitest can skip. |

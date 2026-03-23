@@ -246,8 +246,14 @@ export async function resolveEmployerHash(employerName: string): Promise<string 
  * Handles mismatches between the search index and shard data:
  *   - Case differences: "US" vs "Us"
  *   - Space differences: "U S" vs "US" (DOL title-casing artifact)
+ *
+ * Examples:
+ *   - "Cognizant Technology Solutions US" → "cognizant technology solutions us"
+ *   - "Cognizant Technology Solutions Us" → "cognizant technology solutions us"
+ *   - "Ernst Young U S" → "ernst young us"
+ *   - "U S Bank National Association" → "us bank national association"
  */
-function normalizeEmployerName(name: string): string {
+export function normalizeEmployerName(name: string): string {
   return name.toLowerCase().replace(/\bu\s+s\b/g, 'us');
 }
 

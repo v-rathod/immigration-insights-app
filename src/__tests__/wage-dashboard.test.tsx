@@ -21,6 +21,9 @@ import {
   getTopStates,
   getSocList,
   getEmployerRoles,
+  getEmployerTrend,
+  getEmployerRoleTrendSeries,
+  normalizeEmployerName,
 } from "../lib/data/wage";
 
 // ── Shared mock data ──────────────────────────────────────────────────────
@@ -485,6 +488,213 @@ describe("getEmployerRoles", () => {
     // Verify top role is Software Developers (450 filings)
     expect(rolesDefault[0].soc_title).toBe("Software Developers");
     expect(rolesDefault[0].n_filings).toBe(450);
+  });
+});
+
+// ── Employer name normalization tests (Milestone 13 regression prevention) ──
+// Regression test suite for the employer name mismatch bug (March 2026).
+// Issue: Search index has "Cognizant...US", shard data has "Cognizant...Us"
+// causing wage trend filtering to fail due to strict string equality.
+// Solution: normalizeEmployerName() handles case + "U S" spacing variants.
+// See: https://github.com/immigration-insights-app/issues/XXX
+
+describe("employer name normalization (Milestone 13 regression)", () => {
+  // Mock shard trends with the shard's native employer name
+  const mockShardTrendsWithinUS = [
+    { employer_name: "Cognizant Technology Solutions Us", fiscal_year: 2020, visa_type: "H-1B", median_salary: 95000 },
+    { employer_name: "Cognizant Technology Solutions Us", fiscal_year: 2021, visa_type: "H-1B", median_salary: 98000 },
+    { employer_name: "Cognizant Technology Solutions Us", fiscal_year: 2022, visa_type: "H-1B", median_salary: 102000 },
+  ];
+
+  const mockShardTrendsWithSpacedU = [
+    { employer_name: "Ernst Young U S", fiscal_year: 2020, visa_type: "H-1B", median_salary: 105000 },
+    { employer_name: "Ernst Young U S", fiscal_year: 2021, visa_type: "H-1B", median_salary: 108000 },
+  ];
+
+  const mockShardTrendsMultiSpaced = [
+    { employer_name: "U S Bank National Association", fiscal_year: 2021, visa_type: "H-1B", median_salary: 88000 },
+    { employer_name: "U S Bank National Association", fiscal_year: 2022, visa_type: "H-1B", median_salary: 91000 },
+  ];
+
+  // ── normalizeEmployerName() edge cases ────────────────────────────────────
+
+  it("normalizeEmployerName converts to lowercase", () => {
+    expect(normalizeEmployerName("COGNIZANT TECHNOLOGY SOLUTIONS US")).toBe(
+      "cognizant technology solutions us"
+    );
+  });
+
+  it('normalizeEmployerName handles "U S" → "us" with word boundaries', () => {
+    expect(normalizeEmployerName("Ernst Young U S")).toBe("ernst young us");
+  });
+
+  it('normalizeEmployerName handles multiple "U S" occurrences', () => {
+    expect(normalizeEmployerName("U S Bank National U S Association")).toBe(
+      "us bank national us association"
+    );
+  });
+
+  it("normalizeEmployerName left-aligns U S (word start): U S Bank → us bank", () => {
+    expect(normalizeEmployerName("U S Bank National Association")).toBe(
+      "us bank national association"
+    );
+  });
+
+  it("normalizeEmployerName fails gracefully on null/undefined", () => {
+    // In production, TypeScript ensures non-null. Test edge case if runtime value somehow passed.
+    expect(() => normalizeEmployerName(null as unknown as string)).toThrow();
+  });
+
+  it("normalizeEmployerName handles embedded spaces: U  S (double space)", () => {
+    // The regex \\b matches word boundaries; \\s+ matches one or more spaces.
+    expect(normalizeEmployerName("Ernst Young U  S")).toBe("ernst young us");
+  });
+
+  it("normalizeEmployerName preserves unrelated text", () => {
+    expect(normalizeEmployerName("Tech Company USA Inc")).toBe("tech company usa inc");
+  });
+
+  // ── getEmployerTrend with mismatched names ──────────────────────────────────
+
+  it("getEmployerTrend matches search name (US) to shard name (Us)", () => {
+    // User searches for "Cognizant Technology Solutions US"
+    // Shard has "Cognizant Technology Solutions Us"
+    // Should return all trends despite case mismatch
+    const results = getEmployerTrend(mockShardTrendsWithinUS, "Cognizant Technology Solutions US", "H-1B");
+    expect(results).toHaveLength(3);
+    expect(results[0].fiscal_year).toBe(2020);
+    expect(results[2].fiscal_year).toBe(2022);
+  });
+
+  it("getEmployerTrend matches search name to shard name with U S spacing variant", () => {
+    // User searches: "Ernst Young US"
+    // Shard has: "Ernst Young U S"
+    const results = getEmployerTrend(mockShardTrendsWithSpacedU, "Ernst Young US", "H-1B");
+    expect(results).toHaveLength(2);
+    expect(results[0].median_salary).toBe(105000);
+  });
+
+  it("getEmployerTrend empty result when visa_type mismatches (not a normalization issue)", () => {
+    const results = getEmployerTrend(mockShardTrendsWithinUS, "Cognizant Technology Solutions US", "PERM");
+    expect(results).toHaveLength(0);
+  });
+
+  // ── getEmployerRoleTrendSeries with mismatched names ────────────────────────
+
+  it("getEmployerRoleTrendSeries matches normalized names", () => {
+    const mockRoleTrends = [
+      { employer_name: "Cognizant Technology Solutions Us", soc_code: "15-1252", fiscal_year: 2023, visa_type: "H-1B", median_salary: 100000 },
+      { employer_name: "Cognizant Technology Solutions Us", soc_code: "15-1252", fiscal_year: 2024, visa_type: "H-1B", median_salary: 104000 },
+    ] as any[];
+
+    // Query with uppercase "US"
+    const results = getEmployerRoleTrendSeries(mockRoleTrends, "Cognizant Technology Solutions US", "15-1252", "H-1B");
+    expect(results).toHaveLength(2);
+    expect(results[0].fiscal_year).toBe(2023);
+  });
+
+  // ── The 7 known problematic employers ──────────────────────────────────────
+  // These employers had search index → shard name mismatches that broke wage filtering.
+  // Regression tests to prevent a recurrence.
+
+  const knownMismatchEmployers = [
+    {
+      searchName: "Cognizant Technology Solutions US",
+      shardName: "Cognizant Technology Solutions Us",
+      issueType: "case",
+    },
+    { searchName: "Itech US", shardName: "Itech Us", issueType: "case" },
+    { searchName: "Ernst Young US", shardName: "Ernst Young U S", issueType: "spacing" },
+    {
+      searchName: "Amazon Development Center US",
+      shardName: "Amazon Development Center U S",
+      issueType: "spacing",
+    },
+    { searchName: "Capgemini US", shardName: "Capgemini U S", issueType: "spacing" },
+    {
+      searchName: "US Bank National Association",
+      shardName: "U S Bank National Association",
+      issueType: "spacing",
+    },
+    { searchName: "Visa US A", shardName: "Visa U S A", issueType: "spacing" },
+  ];
+
+  knownMismatchEmployers.forEach(({ searchName, shardName, issueType }) => {
+    it(`getEmployerTrend resolves ${searchName} (${issueType} mismatch)`, () => {
+      const mockTrends = [
+        { employer_name: shardName, fiscal_year: 2022, visa_type: "H-1B", median_salary: 100000 },
+        { employer_name: shardName, fiscal_year: 2023, visa_type: "H-1B", median_salary: 105000 },
+        { employer_name: shardName, fiscal_year: 2024, visa_type: "H-1B", median_salary: 110000 },
+      ] as any[];
+
+      const results = getEmployerTrend(mockTrends, searchName, "H-1B");
+
+      // Should find all 3 years despite name mismatch
+      expect(results.length).toBeGreaterThan(0);
+      expect(results).toHaveLength(3);
+
+      // Verify salary progression
+      expect(results[0].median_salary).toBe(100000);
+      expect(results[1].median_salary).toBe(105000);
+      expect(results[2].median_salary).toBe(110000);
+    });
+  });
+
+  // ── getEmployerRoles with mismatched names ────────────────────────────────
+
+  it("getEmployerRoles returns roles despite employer name case/spacing mismatch", () => {
+    const mockRankings = [
+      {
+        soc_code: "15-1252",
+        soc_title: "Software Developers",
+        employer_name: "Cognizant Technology Solutions Us", // Shard name
+        fiscal_year: 2024,
+        n_filings: 150,
+        median_salary: 105000,
+        mean_salary: 106000,
+        p25_salary: 95000,
+        p75_salary: 118000,
+        prevailing_wage_median: 92000,
+        wage_premium_pct: 14,
+        wage_vs_pw_pct: 12,
+        oews_national_median: 93000,
+        visa_type: "H-1B",
+        job_title_top: "Software Engineer",
+        worksite_state_top: "NJ",
+      },
+      {
+        soc_code: "15-1132",
+        soc_title: "Software QA Engineers",
+        employer_name: "Cognizant Technology Solutions Us",
+        fiscal_year: 2024,
+        n_filings: 45,
+        median_salary: 95000,
+        mean_salary: 96000,
+        p25_salary: 88000,
+        p75_salary: 105000,
+        prevailing_wage_median: 85000,
+        wage_premium_pct: 12,
+        wage_vs_pw_pct: 11,
+        oews_national_median: 88000,
+        visa_type: "H-1B",
+        job_title_top: "QA Analyst",
+        worksite_state_top: "NJ",
+      },
+    ] as any[];
+
+    // Query with uppercase "US" — should still find both roles
+    const roles = getEmployerRoles(mockRankings, "Cognizant Technology Solutions US", "H-1B");
+    expect(roles).toHaveLength(2);
+    expect(roles[0].soc_code).toBe("15-1252");
+    expect(roles[1].soc_code).toBe("15-1132");
+  });
+
+  // ── Normalization symmetry test ──────────────────────────────────────────
+
+  it("normalizeEmployerName(searchName) === normalizeEmployerName(shardName) for all known mismatches", () => {
+    knownMismatchEmployers.forEach(({ searchName, shardName }) => {
+      expect(normalizeEmployerName(searchName)).toBe(normalizeEmployerName(shardName));
+    });
   });
 });
 
