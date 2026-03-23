@@ -207,16 +207,29 @@ function wageModeChanged(mode: "employer" | "role") {
 // ---------------------------------------------------------------------------
 
 /**
- * User saved / updated their profile. Tracks which fields are filled.
+ * User saved / updated their profile.
+ *
+ * Includes factual (non-PII) field values so PostHog shows what users enter:
+ * - country / category are dropdown selections (not personal data)
+ * - priorityDate sent as year-only to avoid exact-date sensitivity
+ * - wageOffered bucketed into a range (not an exact figure)
+ * - yearsOfExperience sent as-is (not personal data)
+ * - employerName and jobTitle omitted (free-text, PII risk)
  */
 function insightProfileSaved(params: {
-  fieldsFilled: number; // 0–7
+  fieldsFilled: number;           // 0–7
   hasPriorityDate: boolean;
   hasCountry: boolean;
   hasCategory: boolean;
   hasEmployer: boolean;
   hasJobTitle: boolean;
   hasWage: boolean;
+  // Factual values (non-PII)
+  country?: string;               // e.g. "IND", "CHN"
+  category?: string;              // e.g. "EB2", "EB3"
+  priorityDateYear?: number;      // year only, e.g. 2020
+  wageBucket?: string;            // e.g. "75k_100k"
+  yearsOfExperience?: number;     // e.g. 5
 }) {
   capture("insight_profile_saved", params);
 }

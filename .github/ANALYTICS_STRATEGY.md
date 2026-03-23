@@ -104,5 +104,37 @@ analytics.myNewEvent({ foo: "value", bar: 42 });
 - `contactSubmitted(category, hasEmail?)`
 - `insightPanelUnlocked(panelName)`
 - `dataLoaded(source, bytes, loadTimeMs, dashboard?)`
+- `insightProfileSaved(...)` — see below
+
+### `insight_profile_saved` — Full Property Reference
+
+Fired every time a user saves their profile on the Insights page (on every field change, not just on explicit "save" button).
+
+| PostHog Property | Type | Example | Notes |
+|---|---|---|---|
+| `fieldsFilled` | number | `4` | Count of non-empty fields (0–7) |
+| `hasPriorityDate` | boolean | `true` | Priority date field filled |
+| `hasCountry` | boolean | `true` | Country of birth selected |
+| `hasCategory` | boolean | `true` | EB category selected |
+| `hasEmployer` | boolean | `false` | Employer name typed |
+| `hasJobTitle` | boolean | `true` | Job title typed |
+| `hasWage` | boolean | `true` | Wage amount entered |
+| `country` | string | `"IND"` | Country code — dropdown value, not PII |
+| `category` | string | `"EB2"` | EB category — dropdown value, not PII |
+| `priorityDateYear` | number | `2020` | Year only from YYYY-MM-DD — never exact date |
+| `wageBucket` | string | `"75k_100k"` | One of: `under_50k`, `50k_75k`, `75k_100k`, `100k_150k`, `150k_200k`, `over_200k` |
+| `yearsOfExperience` | number | `7` | Raw number, not PII |
+| `environment` | string | `"stage"` | Auto-added by the `capture()` helper |
+
+**⚠️ Intentionally NOT tracked (PII risk):**
+- `employerName` — free-text user input
+- `jobTitle` — free-text user input
+- exact `priorityDate` (full YYYY-MM-DD)
+
+**How to explore in PostHog:**
+1. Go to PostHog → **Events** → search `insight_profile_saved`
+2. Or go to **Insights → Trends** → filter by `insight_profile_saved`
+3. Break down by `country`, `category`, `wageBucket`, or `priorityDateYear`
+4. Use **Persons** tab on any event to see the full property set for that session
 
 For complete list, see `src/lib/analytics/index.ts`.
