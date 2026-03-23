@@ -242,6 +242,16 @@ export async function resolveEmployerHash(employerName: string): Promise<string 
 }
 
 /**
+ * Normalize an employer name for comparison across data sources.
+ * Handles mismatches between the search index and shard data:
+ *   - Case differences: "US" vs "Us"
+ *   - Space differences: "U S" vs "US" (DOL title-casing artifact)
+ */
+function normalizeEmployerName(name: string): string {
+  return name.toLowerCase().replace(/\bu\s+s\b/g, 'us');
+}
+
+/**
  * Get multi-year percentile series for a specific employer + role + visa type.
  * Returns rows sorted by fiscal_year ascending.
  */
@@ -251,11 +261,11 @@ export function getEmployerRoleTrendSeries(
   socCode: string,
   visaType: string = 'H-1B'
 ): EmployerRoleTrend[] {
-  const needle = employerName.toLowerCase();
+  const needle = normalizeEmployerName(employerName);
   return roleTrends
     .filter(
       (r) =>
-        r.employer_name.toLowerCase() === needle &&
+        normalizeEmployerName(r.employer_name) === needle &&
         r.soc_code === socCode &&
         r.visa_type === visaType &&
         r.median_salary >= WAGE_SANITY.SALARY_FLOOR
@@ -489,9 +499,9 @@ export function getEmployerTrend(
   employerName: string,
   visaType = 'H-1B'
 ): EmployerSalaryTrend[] {
-  const needle = employerName.toLowerCase();
+  const needle = normalizeEmployerName(employerName);
   return trend
-    .filter((r) => r.employer_name.toLowerCase() === needle && r.visa_type === visaType)
+    .filter((r) => normalizeEmployerName(r.employer_name) === needle && r.visa_type === visaType)
     .sort((a, b) => a.fiscal_year - b.fiscal_year);
 }
 
@@ -609,10 +619,10 @@ export function getEmployerRoles(
    * window is valid hiring activity. */
   minFilings: number = 1
 ): (EmployerWageRanking & { prior_year_median_salary?: number })[] {
-  const needle = employerName.toLowerCase();
+  const needle = normalizeEmployerName(employerName);
   const employerRows = rankings.filter(
     (r) =>
-      r.employer_name.toLowerCase() === needle &&
+      normalizeEmployerName(r.employer_name) === needle &&
       (visaType == null || r.visa_type === visaType) &&
       r.n_filings >= minFilings &&
       r.median_salary >= WAGE_SANITY.SALARY_FLOOR
