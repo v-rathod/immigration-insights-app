@@ -4,7 +4,7 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-23)
+## Session Quick Snapshot (2026-03-24)
 
 **Current Status**: ✅ Production Ready
 - **Unit Tests**: 1206 passing (3 skipped) across 40 files
@@ -15,20 +15,76 @@
 - **ESLint**: 0 errors
 
 **What's New This Session**:
-- Fixed Cognizant employer data bug (case-insensitive name matching)
-- Re-uploaded corrupt `_search.json` to S3 + CloudFront invalidation
-- Created 191-test comprehensive post-deploy validation suite
-- Integrated into deploy.sh (both smoke + comprehensive must pass)
-- Pushed to main: `adc4052`
-- Deployed to stage: `d10immmzyp7xgr.cloudfront.net`
-
-**Dev Server**: Running locally on http://localhost:3000
+- Created cross-project guardrails system (Ten Commandments + per-project guardrails)
+- All 4 repos updated: northstar-docs, P1, P2, P3
+- Commits: `fa2d4a7` (docs), `a23763d` (P1), `37aa88b` (P2), `875af5f` (P3)
+- Documentation hierarchy: copilot-instructions → GUARDRAILS.md → parent Ten Commandments
 
 **Next Agent Starting Point**: 
-1. Review Milestone 13.0 below for context
-2. Check `.github/copilot-instructions.md` for stable rules
-3. Run `npm test` to validate everything passes
-4. For post-deploy testing, see `scripts/comprehensive-post-deploy.mjs`
+1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — Non-negotiable rules
+2. Review Milestone 15.0 below for latest context
+3. Check `.github/copilot-instructions.md` for stable rules
+4. Run `npm test` to validate everything passes
+
+---
+
+## 2026-03-24 — Milestone 15.0: Cross-Project Guardrails System
+
+### Objective
+Create a comprehensive guardrails and commandments system across the entire NorthStar program (all 4 repos) to codify non-negotiable architectural rules, prevent regressions, and guide AI agents.
+
+### What Was Created
+
+**Program-Wide Ten Commandments** (`northstar-docs/GUARDRAILS.md`):
+1. No Backend (Ever)
+2. AWS Cost Under $5/Month
+3. Data Flows Down Only (P1→P2→P3)
+4. Pre-Compute Everything
+5. Separate Concerns (One Repo, One Job)
+6. Test Before Committing
+7. Regression Tests for Every Bug Fix
+8. Don't Break the Data Contract
+9. Use Correct Branding
+10. Document Every Session
+
+**Project-Specific Guardrails**:
+- **P1 Horizon** (`fetch-immigration-data/.github/GUARDRAILS.md`): 8 commandments — manifest sacred, never re-download, downloads gitignored, one handler per source, update data-dictionary, sources.yaml config, HTTP etiquette, atomic manifest saves
+- **P2 Meridian** (`immigration-model-builder/.github/GUARDRAILS.md`): 10 commandments — Parquet canonical, one script per table, idempotent builds, NaN→null, never modify P1 data, stage 2d mandatory, dim_employer source of truth, sacred schemas, test ≥95%, golden manifest baseline
+- **P3 Compass** (`immigration-insights-app/.github/GUARDRAILS.md`): 8 commandments — static export, zero backend, TypeScript strict, deploy.sh only, client-side only, smart visibility, Tailwind/Aurora, security at every boundary
+
+### Files Changed (16 total across 4 repos)
+
+| Repo | Files | Changes |
+|------|-------|---------|
+| northstar-docs | GUARDRAILS.md (new), README.md | Ten Commandments + program guardrail tables |
+| fetch-immigration-data | .github/GUARDRAILS.md (new), copilot-instructions.md, README.md | P1 commandments + operational guardrails |
+| immigration-model-builder | .github/GUARDRAILS.md (new), copilot-instructions.md, README.md | P2 commandments + pipeline/export guardrails |
+| immigration-insights-app | .github/GUARDRAILS.md (rewrite), copilot-instructions.md, README.md | P3 commandments + UI/security guardrails |
+
+### Documentation Hierarchy
+```
+copilot-instructions.md → "Read GUARDRAILS.md first" (minimal pointers only)
+  └── .github/GUARDRAILS.md → Project-specific commandments + guardrail tables
+       └── northstar-docs/GUARDRAILS.md → Program-wide Ten Commandments (parent)
+```
+
+### Commits
+- `fa2d4a7` — northstar-docs: program-wide GUARDRAILS.md + README
+- `a23763d` — P1 Horizon: GUARDRAILS.md + copilot-instructions + README
+- `37aa88b` — P2 Meridian: GUARDRAILS.md + copilot-instructions + README
+- `875af5f` — P3 Compass: GUARDRAILS.md + copilot-instructions + README
+
+---
+
+## 2026-03-24 — Milestone 14.0: Regression Testing Documentation
+
+### Objective
+Codify mandatory regression testing requirements as a first-class guardrail, ensuring every bug fix includes permanent tests.
+
+### Changes
+- Created `.github/GUARDRAILS.md` with full regression testing workflow
+- Updated `copilot-instructions.md` to reference guardrails (pointers only, no inline details)
+- Committed: `3fdf05d`
 
 ---
 
