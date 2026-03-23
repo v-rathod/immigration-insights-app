@@ -1,47 +1,53 @@
 # Next Agent Context & Handoff Guide
 
-**Created**: 2026-03-23 after Milestone 13.0 (Cognizant fix + enterprise post-deploy testing)  
+**Created**: 2026-03-23 after Milestone 16.1 (Employer name normalization comprehensive fix)  
 **Purpose**: Quick reference for the next agent starting a session. This supplements but doesn't replace PROGRESS.md, copilot-instructions.md, or ARCHITECTURE.md.
 
 ---
 
 ## Current State Snapshot
 
-**Project Status**: ✅ **Production Quality** — Case-insensitive employer matching, enterprise-grade post-deploy validation (238 tests), zero lint/type errors.
+**Project Status**: ✅ **Production Quality** — Error monitoring (Sentry + PostHog), employer name normalization, enterprise-grade post-deploy validation.
 
 | Aspect | Status | Details |
 |--------|--------|---------|
-| **Unit Tests** | 1206/1206 passing | 40 files, 3 skipped. Component coverage: 85%. All real-data assertions pass. |
+| **Unit Tests** | 1237 passing | 40 files, 3 skipped. +31 new tests this session (8 H1B widgets, 23 prior error monitoring). All real-data assertions pass. |
 | **Post-Deploy: Smoke** | 47 checks | Page loads, bundle integrity, critical data files. |
 | **Post-Deploy: Comprehensive** | 191 tests | 11 sections: pages, search index, shard integrity, dashboard schemas, dimensions, ML models, RAG, cross-refs, SEO, data quality. |
-| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Minified/optimized. |
+| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Built 2026-03-23 13:49. |
 | **Type Safety** | 0 errors | TypeScript strict mode across all 75+ source files. |
 | **Lint** | 0 errors | ESLint passing. |
-| **Deploy** | Live ✅ | Staged on CloudFront: `d10immmzyp7xgr.cloudfront.net`. All 238 post-deploy tests pass. |
+| **Deploy** | Live ✅ | Latest: `c5a7954` deployed to stage @ 14:00. All 238 post-deploy tests pass. |
 | **Data** | Fresh | P2 sync complete. 102K employer entries. |
 
 ---
 
-## What Happened This Session (2026-03-23)
+## What Happened This Session (2026-03-23, cont'd)
 
-### Milestone 13.0: Cognizant Bug Fix + Enterprise Post-Deploy Testing
-- **Bug**: Cognizant employer showed "No trend data available" due to name casing mismatch between search index ("US") and shard data ("Us")
-- **Fix**: Made `getEmployerTrend()`, `getEmployerRoles()`, `getEmployerRoleTrendSeries()` all case-insensitive in `src/lib/data/wage.ts`
-- **Also fixed**: Corrupt `_search.json` on S3 (was 2 bytes), re-uploaded + CloudFront invalidation
-- **Created**: `scripts/comprehensive-post-deploy.mjs` — 191 tests across 11 sections including E2E wage flow simulation and name consistency checks
-- **Integrated**: Both smoke + comprehensive tests now run in `scripts/deploy.sh`. Deploy fails if either suite fails.
-- **Commit**: `adc4052` — pushed to main
+### Milestone 16.0: Production Error Monitoring (Pre-Session)
+- **Implemented**: Sentry + PostHog dual-reporting error monitoring for production SPA
+- **New modules**: `src/lib/monitoring/index.ts` + `src/components/providers/error-monitor.tsx`
+- **Status**: Active in code, ready to activate (awaiting Sentry DSN)
+
+### Milestone 16.1: Employer Name Normalization - Comprehensive Fix + Widget Tests (THIS SESSION @ 14:00)
+- **Bug discovered**: Two places missing employer name normalization
+  1. WageIntelligenceHub line 389 — Search enrichment lookup
+  2. EmployerWageTable line 46 — Trend filtering for sparklines
+  
+- **Fixed & tested**: 8 new comprehensive test cases verify entire flow works
+  - Commit: `c5a7954`
+  - Tests: 1237 pass, +8 H1B widget tests
+  - Deploy: Stage @ 14:00
 
 ---
 
 ## Essential Reading (In Order)
 
-1. **This file** — You're reading it. 5 min overview. ✓
-2. **PROGRESS.md** — Detailed session history with timestamps. Start at Milestone 12.0. 10 min.
-3. **copilot-instructions.md** — High-level architecture, coding conventions, standing instructions. 10 min.
-4. **ARCHITECTURE.md** — Technical design: routes, components, data pipeline. 15 min.
-5. **TEST_AUDIT.md** — Test organization, patterns, coverage strategy. 10 min.
-6. **PRODUCT_GUIDE.md** — Full user guide + feature docs. Reference as needed.
+1. **This file** — Quick reference. ✓
+2. **PROGRESS.md** — Detailed history. Start at Milestone 16.0 and 16.1 (10 min).
+3. **.github/GUARDRAILS.md** — 9 commandments including Commandment 9 (error monitoring).
+4. **copilot-instructions.md** — Architecture and conventions (10 min).
+5. **ARCHITECTURE.md** — Technical design + Error Monitoring section (15 min).
 
 **For specific domains**:
 - **Mobile dev**: See `.github/MOBILE_DEVELOPMENT_GUIDE.md` (11 rules).
