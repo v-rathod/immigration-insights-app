@@ -88,11 +88,42 @@ Use P1/P2/P3 in code and internal comments. Use Horizon/Meridian/Compass in publ
   - deploy.sh uses `--exact-timestamps` to prevent stale HTML with mismatched CSS/JS bundle hashes
   - It runs pre-flight checks and post-deploy smoke tests automatically
 
+### Regression Testing (CRITICAL — MANDATORY FOR ALL FIXES)
+
+> **CORE PRINCIPLE: Whenever you fix broken functionality, you MUST add test cases to prevent silent recurrence.**
+
+This is non-negotiable. Every code fix that addresses broken functionality requires:
+
+1. **Add regression tests IMMEDIATELY** — before deployment, before documentation
+   - Tests must cover the exact scenario that was broken
+   - Include edge cases and related variations
+   - Use parameterized tests when multiple similar cases exist (e.g., all 7 employers affected by one bug)
+2. **All regression tests MUST pass locally** (`npm test`) before any commit
+3. **Tests must integrate into the existing test suite** — not in isolation
+   - For data/loader bugs: add to `src/__tests__/[domain]-data.test.ts`
+   - For component bugs: add to `src/__tests__/[domain]-components.test.tsx`
+   - For cross-cutting issues: create a new `describe()` block with date + objective
+4. **Document the pattern** — Update `TEST_AUDIT.md` "Regression Testing Patterns" section with:
+   - Root cause of the bug
+   - Solution applied
+   - Test cases added (with line references)
+   - How to replicate this pattern for future defects
+5. **Update PROGRESS.md** — Add a milestone entry documenting the regression suite
+
+**Example**: When Cognizant employer showed "No trend data available", we:
+- Fixed the source bug (`normalizeEmployerName()` function)
+- Added 25 regression tests covering all 7 affected employers + edge cases
+- Documented the pattern in TEST_AUDIT.md for next agent to replicate
+- Committed all together: fix + tests + documentation
+
+**Why this matters**: A silent recurrence of the same bug in a future deployment is far costlier than spending 30 minutes adding tests now. Tests are the contract between you and future agents.
+
 ### Quality Gates (before every commit)
-- `npm test` must pass with zero failures
+- `npm test` must pass with zero failures (including all regression tests from fixes)
 - TypeScript strict mode: 0 errors
 - ESLint: 0 errors
 - Mobile tests required for UI changes (see MOBILE_DEVELOPMENT_GUIDE.md)
+- **For any bug fix: Regression test suite MUST exist and MUST pass**
 
 ### Documentation Maintenance
 After completing ANY feature, fix, or milestone:
