@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import { initSentry, reportError } from "@/lib/monitoring";
+import {
+  generateTestErrors,
+  generateSpecificError,
+} from "@/lib/monitoring/test-errors";
 import { analytics } from "@/lib/analytics";
 
 /**
@@ -19,6 +23,12 @@ import { analytics } from "@/lib/analytics";
  */
 export function ErrorMonitor() {
   useEffect(() => {
+    // Expose test error generators to window for console testing
+    if (typeof window !== "undefined") {
+      (window as any).generateTestErrors = generateTestErrors;
+      (window as any).generateSpecificError = generateSpecificError;
+    }
+
     initSentry();
 
     function handleError(event: ErrorEvent) {
@@ -67,6 +77,10 @@ export function ErrorMonitor() {
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).generateTestErrors;
+        delete (window as any).generateSpecificError;
+      }
       window.removeEventListener("error", handleError);
       window.removeEventListener(
         "unhandledrejection",

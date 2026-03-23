@@ -1232,3 +1232,41 @@ describe.skipIf(!!process.env.CI || !process.env.VITEST_WITH_SERVER)("LCA filing
     }
   });
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// REGRESSION: Widget Selection Employer Name Normalization (Milestone 16.1)
+// ────────────────────────────────────────────────────────────────────────────
+// Issue: "Ernst Young U S" In Popular employers widget, but search index had it as
+// "Ernst Young US" (no spaces). Widget selection failed because exact name match failed.
+// Fix: normalizeEmployerName applied when looking up encoder in searchEntries.
+// This test verifies the normalization handles common variants correctly.
+
+describe("normalizeEmployerName (Regression: widget selection names)", () => {
+  it("matches 'Ernst Young U S' to 'Ernst Young US' via normalization", () => {
+    const widgetName = "Ernst Young U S";
+    const searchIndexName = "Ernst Young US";
+    expect(normalizeEmployerName(widgetName)).toBe(normalizeEmployerName(searchIndexName));
+  });
+
+  it("matches 'Cognizant Technology Solutions Us' to 'Cognizant Technology Solutions US'", () => {
+    const name1 = "Cognizant Technology Solutions Us";
+    const name2 = "Cognizant Technology Solutions US";
+    expect(normalizeEmployerName(name1)).toBe(normalizeEmployerName(name2));
+  });
+
+  it("normalizes all case variations to lowercase and removes spaces from 'U S'", () => {
+    const variants = [
+      "Ernst Young U S",
+      "ERNST YOUNG U S",
+      "Ernst Young US",
+      "ernst young us",
+    ];
+    const normalized = variants.map(normalizeEmployerName);
+    expect(normalized.every((n) => n === "ernst young us")).toBe(true);
+  });
+
+  it("handles multiple 'U S' patterns (edge case)", () => {
+    // If ever entered as "U  S  Corp" (multiple spaces), normalization should still work
+    expect(normalizeEmployerName("Acme U S Inc U S Services")).toContain("us");
+  });
+});

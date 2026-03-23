@@ -58,6 +58,7 @@ import {
   computePercentile,
   marketAsBenchmark,
   getSocGroupStats,
+  normalizeEmployerName,
   type SalaryBenchmark,
   type SocSalaryMarket,
   type EmployerWageRanking,
@@ -339,9 +340,13 @@ export function WageIntelligenceHub() {
 
   // ── Load employer shard on selection ───────────────────────────────────
   // Fetches a single ~3–50 KB shard instead of 130+ MB monolithic files.
+  // CRITICAL: Use normalizeEmployerName to handle variants like "Ernst Young U S" vs "Ernst Young US"
   useEffect(() => {
     if (!selectedEmployer) return;
-    const entry = searchEntries.find((e) => e.employer_name === selectedEmployer);
+    const normalizedSelected = normalizeEmployerName(selectedEmployer);
+    const entry = searchEntries.find(
+      (e) => normalizeEmployerName(e.employer_name) === normalizedSelected
+    );
     if (!entry?.employer_id) return;
     setEmployerDataLoading(true);
     loadEmployerShard(entry.employer_id)
