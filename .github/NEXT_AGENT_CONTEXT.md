@@ -23,17 +23,18 @@
 
 ## What Happened This Session (2026-03-22)
 
-**Milestone 12.0**: Comprehensive test coverage expansion
+### Documentation Redesign (latest)
+- **Restructured `copilot-instructions.md`**: 588 lines → 197 lines
+- **Philosophy**: Instructions file now contains ONLY stable rules, conventions, and pointers. All live data (test counts, artifact inventories, deploy URLs, phase status) moved to satellite files.
+- **Created `DATA_CATALOG.md`**: New satellite file for P2 artifacts, data pipeline, dashboard-to-artifact mappings, user input schema, RAG architecture, data scale, stubs
+- **Key principle**: copilot-instructions.md should NEVER need updating for routine milestones. Only update it when a fundamental rule or convention changes.
+
+### Milestone 12.0: Comprehensive test coverage expansion
 - **Added**: 112 new tests (comprehensive-widgets.test.tsx: 39 + anchor-real-data.test.ts: 73)
 - **Coverage**: 74% → 85% (all 50 components now tested)
 - **Fixed**: Employer search index (144K raw → 102K clean entries via consolidation)
 - **Commit**: `cfd313c` — "test: comprehensive widget + real-data anchor tests (1206 passing)"
 - **Deployed**: All 47 smoke checks passing
-
-**Key New Test Coverage**:
-- Widget render tests: StatCard, DataFreshnessChip, WageGrowthLeaderboard, MarketTrendChart, About page
-- Data helper unit tests: getTopWageGrowers, computeEmployerGrowth, getEmployerList, employer growth streaks
-- Real-data anchors: PD forecasts (16), cutoff trends (9), SRS overview (8), employer shards (Optum/Infosys/Cognizant: 29), wage rankings (9)
 
 ---
 
@@ -130,7 +131,7 @@ git push origin main            # Push to remote (GitHub)
 3. Create components in `src/components/[name]/`
 4. Write unit tests for components
 5. Write E2E test in `e2e/*.spec.ts`
-6. Add to `copilot-instructions.md` artifact mapping
+6. Add to `DATA_CATALOG.md` artifact mapping
 7. Run `npm test` → `npm run build` → commit
 
 ### Fixing a bug
@@ -158,8 +159,8 @@ git push origin main            # Push to remote (GitHub)
 ### Updating documentation
 1. For session milestones: Update `PROGRESS.md` with timestamped entry
 2. For architecture changes: Update `ARCHITECTURE.md` and/or `PRODUCT_GUIDE.md`
-3. For coding patterns: Update `copilot-instructions.md` or specialized `.github/*.md` files
-4. Don't duplicate status in copilot-instructions.md — link to PROGRESS.md instead
+3. For coding patterns: Update `copilot-instructions.md` only if a fundamental rule changes, otherwise update specialized `.github/*.md` files
+4. Don't duplicate live data in copilot-instructions.md — it's a routing doc to satellite files
 5. Commit all doc changes together
 
 ---
