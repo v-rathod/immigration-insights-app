@@ -16,7 +16,7 @@ Data Collection      →    Analytics & ML         →    Web Dashboard
 └ Store raw data          └ Generate artifacts      └ 948+ regression tests
 ```
 
-**Program Overview:** [NORTHSTAR_VISION.md](../northstar-docs/NORTHSTAR_VISION.md) • **Setup Guide:** [SETUP_GUIDE.md](../northstar-docs/SETUP_GUIDE.md) • **Best Practices:** [BEST_PRACTICES.md](../northstar-docs/BEST_PRACTICES.md)
+**Program Overview:** [NORTHSTAR_VISION.md](../northstar-docs/NORTHSTAR_VISION.md) • **Guardrails:** [GUARDRAILS.md](../northstar-docs/GUARDRAILS.md) • **Setup Guide:** [SETUP_GUIDE.md](../northstar-docs/SETUP_GUIDE.md) • **Best Practices:** [BEST_PRACTICES.md](../northstar-docs/BEST_PRACTICES.md)
 
 ---
 

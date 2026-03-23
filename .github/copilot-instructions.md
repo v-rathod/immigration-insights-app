@@ -6,6 +6,20 @@
 
 ---
 
+## Guardrails (READ FIRST)
+
+**Before writing any code, read the guardrails documents.** They contain non-negotiable architectural commandments that govern every decision in this codebase.
+
+1. **[Program-Wide Ten Commandments](/Users/vrathod1/dev/NorthStar/northstar-docs/GUARDRAILS.md)** — The 10 absolute rules for the entire NorthStar program. These cover the no-backend architecture, the $5/month cost constraint, unidirectional data flow, mandatory testing, regression test requirements, data contract protection, and documentation discipline. Violating these requires explicit user approval.
+
+2. **[P3 Compass Guardrails](.github/GUARDRAILS.md)** — Project-specific rules for this repo: static export, TypeScript strict mode, deploy.sh only, smart visibility, Aurora design system, security boundaries, regression testing workflow, and the complete quality gates checklist.
+
+3. **[Engineering Best Practices](/Users/vrathod1/dev/NorthStar/northstar-docs/BEST_PRACTICES.md)** — Cross-project coding conventions, UI design patterns, testing strategies, and common pitfalls.
+
+These documents are the source of truth for "how we build". When in doubt, consult guardrails before inventing a new approach.
+
+---
+
 ## Identity & Program Context
 
 **NorthStar** is the internal program name (never shown in UI). The web app is called **Compass**.
@@ -133,6 +147,8 @@ After completing ANY feature, fix, or milestone:
 | **Analytics events, PostHog setup** | [ANALYTICS_STRATEGY.md](./ANALYTICS_STRATEGY.md) | When event types change |
 | **Architecture decisions, trade-offs** | [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) | When strategic choices change |
 | **V2 redesign rationale** | [REDESIGN_V2.md](./REDESIGN_V2.md) | Reference only (completed) |
+| **P3 guardrails, commandments, quality gates** | [GUARDRAILS.md](./GUARDRAILS.md) | When architectural rules change |
+| **Program-wide Ten Commandments** | [northstar-docs/GUARDRAILS.md](/Users/vrathod1/dev/NorthStar/northstar-docs/GUARDRAILS.md) | When program-level rules change |
 
 ### Security Quick Reference (stable helpers, not counts)
 - Use `sanitizeTextInput()` for user text

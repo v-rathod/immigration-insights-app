@@ -1,6 +1,60 @@
-# Guardrails & Best Practices
+# P3 Compass — Project Guardrails
 
-> This file contains non-negotiable rules and quality standards that ensure code reliability and prevent recurring bugs.
+> **Compass** is the user-facing web application for NorthStar. These guardrails protect the static-site architecture, user experience quality, security, and the testing contract.
+>
+> **Read the program-wide Ten Commandments first**: `/Users/vrathod1/dev/NorthStar/northstar-docs/GUARDRAILS.md`
+
+---
+
+## P3 Commandments (Non-Negotiable)
+
+### 1. Static Export, No Exceptions
+
+`output: 'export'` in `next.config.ts`. No API routes. No server components that fetch at runtime. No middleware. No `getServerSideProps`. The build produces `out/` with pure HTML/CSS/JS files served from S3.
+
+**Why**: A static site has zero attack surface, zero server costs, zero cold starts, and infinite scalability via CDN.
+
+### 2. Zero Backend, Zero Database
+
+The app has no Lambda, no database, no API Gateway, no server. All data is pre-built JSON served from S3/CloudFront. If you need computed data, add it to P2 Meridian, never to P3.
+
+**Why**: This keeps AWS costs at $1-3/month and eliminates an entire class of security, scaling, and operational concerns.
+
+### 3. TypeScript Strict Mode, Always
+
+No `any`. No unexplained type assertions. All P2 artifact schemas typed in `src/types/p2-artifacts.ts`. All component props typed with interfaces. `strict: true` in `tsconfig.json`.
+
+**Why**: TypeScript strict mode catches an entire class of bugs at compile time. Every `any` is a hole in the safety net.
+
+### 4. Deploy Only Via deploy.sh
+
+**ALWAYS use `bash scripts/deploy.sh`**. NEVER run `aws s3 sync` directly. The deploy script uses `--exact-timestamps` to prevent stale HTML with mismatched CSS/JS bundle hashes. It runs pre-flight checks and post-deploy smoke tests.
+
+**Why**: Direct S3 sync can leave stale HTML files referencing deleted JS bundles, producing blank white pages in production.
+
+### 5. Client-Side Interactivity Only
+
+All search, filtering, and personalization runs in the browser. Fuse.js for search. localStorage for persistence. No external API calls for core functionality (LLM for Ask page is optional enhancement, not critical path).
+
+**Why**: Client-side-only means the app works offline after first load, has zero privacy concerns (no data leaves the device), and requires no server infrastructure.
+
+### 6. Smart Visibility: Never Render Empty Widgets
+
+Never render a widget whose only output is "please provide input". If a component requires user input, hide it entirely until input exists. Replace with a clear CTA.
+
+**Why**: Empty widgets waste screen space, confuse users, and undermine trust. The data-first design means every visible element should show meaningful content.
+
+### 7. Tailwind Only, Aurora Design System
+
+No CSS modules. No styled-components. No inline styles except for dynamic values. All colors via CSS custom properties (`var(--accent-blue)`). Glassmorphic cards with `backdrop-blur-xl bg-white/[0.03]`. Dark-first design.
+
+**Why**: Consistent design language builds user trust. CSS-in-JS approaches create invisible complexity and hurt performance.
+
+### 8. Security at Every Boundary
+
+`sanitizeTextInput()` on all user text. `escapeHtml()` before rendering. `secureGet/Set/Remove` for localStorage. `sanitizeUrl()` blocks dangerous protocols. No API keys in source code.
+
+**Why**: P3 is the public-facing surface. Every XSS vector, every unsanitized input, every leaked key is a direct user-facing risk.
 
 ---
 
@@ -229,3 +283,77 @@ A: Enough to cover: root cause + edge cases + integration scenarios + all affect
 
 **Q: What if I'm refactoring and I break a regression test?**  
 A: STOP. Don't commit. Either preserve the fix that regression test is protecting, or intentionally deprecate the old behavior WITH new tests for the new behavior.
+
+---
+
+## Additional P3 Guardrails
+
+### Quality Gates (before every commit)
+
+| Gate | Check | Command |
+|------|-------|---------|
+| Unit tests | 1,206+ pass, 0 fail | `npm test` |
+| TypeScript | 0 errors, strict mode | `npx tsc --noEmit` |
+| ESLint | 0 errors | `npm run lint` |
+| Mobile (for UI changes) | Touch targets, responsive layout | `npm run test:e2e:mobile` |
+| Build | Static export succeeds | `npm run build` |
+| Regression tests | All fix-related tests pass | `npm test` |
+
+### UI & Design Guardrails
+
+| # | Guardrail | Enforcement |
+|---|-----------|-------------|
+| U1 | Tailwind only: no CSS modules, no styled-components | Code review |
+| U2 | Dark-first design with CSS variable tokens | `globals.css` tokens |
+| U3 | Framer Motion with standard easing `[0.25, 0.1, 0.25, 1]` | Convention |
+| U4 | Smart Visibility: never render empty "please provide input" widgets | Component review |
+| U5 | Number formatting via `Intl.NumberFormat` with commas | Convention |
+| U6 | Dates displayed as "Month YYYY", stored as ISO-8601 | Convention |
+| U7 | `font-mono` for all numeric data cells | Aurora design system |
+| U8 | Server components by default; `"use client"` only for interactivity | Next.js architecture |
+| U9 | No em-dashes (`—`) in user-facing text | UI copy rules |
+| U10 | No AI marketing filler words | UI copy rules |
+
+### Data Handling Guardrails
+
+| # | Guardrail | Enforcement |
+|---|-----------|-------------|
+| D1 | Co-locate data loaders: `src/lib/data/[topic].ts` per dashboard | Architecture |
+| D2 | P2 field remap at loader boundary (EFS→SRS, NaN→null) | Data loaders |
+| D3 | Employer shard lookup via `_index.json` hash, not raw name | `employer-shard.ts` |
+| D4 | Case-insensitive employer matching with `normalizeEmployerName()` | Regression-tested |
+| D5 | UTC timezone for all date formatters (prevents test failures) | Convention |
+
+### Security Guardrails
+
+| # | Guardrail | Enforcement |
+|---|-----------|-------------|
+| S1 | `sanitizeTextInput()` on all user-provided text | `src/lib/security/` |
+| S2 | `escapeHtml()` before rendering user-supplied text | XSS prevention |
+| S3 | `secureGet/Set/Remove/ClearAll()` for all localStorage | `compass_` prefix |
+| S4 | URL validation blocks `javascript:`, `data:`, `vbscript:` | `sanitizeUrl()` |
+| S5 | No API keys, tokens, or credentials in source code | Git review |
+| S6 | `.env.local` always gitignored | `.gitignore` |
+| S7 | Only permitted env vars: `NEXT_PUBLIC_POSTHOG_*`, `NEXT_PUBLIC_GROQ_API_KEY`, `NEXT_PUBLIC_FORMSPREE_ID` | Convention |
+
+### Deployment Guardrails
+
+| # | Guardrail | Enforcement |
+|---|-----------|-------------|
+| DP1 | Deploy only via `bash scripts/deploy.sh` | Standing instruction |
+| DP2 | Never deploy without explicit user request | Standing instruction |
+| DP3 | Pre-flight checks: HTML count, `_next/static/` present, CSS non-empty | `deploy.sh` |
+| DP4 | Post-deploy smoke tests (238+ checks) must pass | `scripts/smoke-test.mjs` |
+| DP5 | CloudFront invalidation after every deploy | `deploy.sh` |
+| DP6 | Employer shards synced with `--size-only` optimization | `deploy.sh` |
+
+---
+
+## Cross-References
+
+- **Program-wide guardrails (Ten Commandments)**: `/Users/vrathod1/dev/NorthStar/northstar-docs/GUARDRAILS.md`
+- **P1 Horizon guardrails**: `/Users/vrathod1/dev/NorthStar/fetch-immigration-data/.github/GUARDRAILS.md`
+- **P2 Meridian guardrails**: `/Users/vrathod1/dev/NorthStar/immigration-model-builder/.github/GUARDRAILS.md`
+- **P2→P3 data contract**: `src/types/p2-artifacts.ts` (this repo) + `configs/schemas.yml` (P2 repo)
+- **Test audit**: [TEST_AUDIT.md](./TEST_AUDIT.md)
+- **Architecture decisions**: [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md)
