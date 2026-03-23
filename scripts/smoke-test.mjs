@@ -154,6 +154,20 @@ const CHECKS = [
       if (!wt.median_salary || !wt.total_filings)
         throw new Error(`wage_trend[0] missing median_salary or total_filings: ${JSON.stringify(Object.keys(wt))}`);
 
+      // Spot-check wage_roles entry has all UI fields
+      const wr = d.wage_roles[0];
+      const requiredRoleFields = ['soc_code', 'soc_title', 'n_filings', 'median_salary', 'p10_salary', 'p90_salary'];
+      for (const field of requiredRoleFields) {
+        if (wr[field] == null)
+          throw new Error(`wage_roles[0].${field} is null/missing — role card will render incomplete data`);
+      }
+      if (wr.median_salary < 30_000 || wr.median_salary > 1_000_000)
+        throw new Error(`wage_roles[0].median_salary = ${wr.median_salary} is outside plausible range [$30K, $1M]`);
+
+      // ── wage_role_trends (role drill-down percentile chart) ───────────────
+      if (!Array.isArray(d.wage_role_trends) || d.wage_role_trends.length === 0)
+        throw new Error('wage_role_trends missing or empty — role drill-down chart will be blank');
+
       // ── SRS data (consolidated by run_consolidation.py) ──────────────────
       if (!d.srs || typeof d.srs !== 'object')
         throw new Error('srs field missing — shard not consolidated (run: python3 scripts/run_consolidation.py)');
@@ -164,6 +178,44 @@ const CHECKS = [
         throw new Error(`srs.n_36m = ${d.srs.n_36m} (need ≥ 500) — SRS case count will show incorrectly in search results`);
       if (!Array.isArray(d.srs_monthly) || d.srs_monthly.length < 10)
         throw new Error(`srs_monthly has ${Array.isArray(d.srs_monthly) ? d.srs_monthly.length : 'no'} entries (need ≥ 10) — SRS trend chart will be empty`);
+    },
+  },
+
+  // ── Cognizant Technology Solutions Us (second anchor — largest IT outsourcer) ──
+  // employer_id: 32d0e427e2b050673c4e4106eb9b681f5987677f
+  // Tests that the wage consolidation pipeline worked for a DIFFERENT major employer.
+  // Catches scenarios where only the "Optum" shard is accidentally fixed but the
+  // broader consolidation is still broken.
+  {
+    path: '/data/employers/32d0e427e2b050673c4e4106eb9b681f5987677f.json',
+    label: 'Cognizant Technology Solutions Us shard — wage + SRS data',
+    minSize: 10_000,
+    validate: (d) => {
+      if (!d.employer_name)
+        throw new Error('employer_name missing');
+      const lcaCount = d.lca_total ?? (Array.isArray(d.lca) ? d.lca.length : 0);
+      if (lcaCount < 5_000)
+        throw new Error(`lca_total = ${lcaCount} (need ≥ 5,000 for Cognizant)`);
+      if (!Array.isArray(d.wage_roles) || d.wage_roles.length === 0)
+        throw new Error('wage_roles missing — consolidation did not run for Cognizant');
+      if (!Array.isArray(d.wage_trend) || d.wage_trend.length === 0)
+        throw new Error('wage_trend missing — salary chart will be blank for Cognizant');
+      if (!d.srs || typeof d.srs !== 'object')
+        throw new Error('srs missing — SRS score will not show for Cognizant');
+    },
+  },
+
+  // ── Infosys (third anchor — major IT services firm) ──────────────────────
+  // employer_id: d35dde19e28ef4470b60562576e4f5cbc41b3298
+  {
+    path: '/data/employers/d35dde19e28ef4470b60562576e4f5cbc41b3298.json',
+    label: 'Infosys shard — wage + SRS data',
+    minSize: 10_000,
+    validate: (d) => {
+      if (!Array.isArray(d.wage_roles) || d.wage_roles.length === 0)
+        throw new Error('wage_roles missing — consolidation did not run for Infosys');
+      if (!d.srs || typeof d.srs !== 'object')
+        throw new Error('srs missing — SRS score will not show for Infosys');
     },
   },
 
@@ -205,6 +257,14 @@ const CHECKS = [
   { path: '/data/dashboards/wage/salary_benchmarks_states.json',   label: 'State salary benchmarks',   headOnly: true, minSize: 100_000 },
   { path: '/data/dashboards/wage/employer_wage_rankings.json',     label: 'Employer wage rankings',    headOnly: true, minSize: 100_000 },
   { path: '/data/dashboards/wage/soc_salary_market.json',          label: 'SOC salary market data',    headOnly: true, minSize: 100_000 },
+
+  // These monolithic files drive the per-shard consolidation step.
+  // headOnly is intentional — they are large (50–200 MB) and we only need to
+  // confirm they are present and non-empty; a HEAD request is sufficient.
+  // If these are absent, run: python3 scripts/sync_p2_data.py
+  { path: '/data/dashboards/wage/employer_role_profiles.json',     label: 'Employer role profiles (wage_roles consolidation source — wage card)', headOnly: true, minSize: 50_000_000 },
+  { path: '/data/dashboards/wage/employer_salary_trend.json',      label: 'Employer salary trend (wage_trend consolidation source — salary chart)', headOnly: true, minSize: 1_000_000 },
+  { path: '/data/dashboards/wage/employer_role_trends.json',       label: 'Employer role-level yearly wage trend (wage_role_trends source)', headOnly: true, minSize: 1_000_000 },
 
   // ── Visa Bulletin dashboard data ─────────────────────────────────────────────
   { path: '/data/dashboards/visa-bulletin/fact_cutoff_trends.json', label: 'Visa bulletin cutoff trends', headOnly: true, minSize: 10_000 },

@@ -1060,13 +1060,20 @@ def consolidate_employer_shards():
 
     # ── Consolidate into each shard ────────────────────────────────────────
     shards_enriched = 0
+    shards_skipped_corrupted = 0
     for emp_name, emp_id in emp_index.items():
         shard_path = employers_dir / f"{emp_id}.json"
         if not shard_path.exists():
             continue
 
-        with open(shard_path) as f:
-            shard = json.load(f)
+        try:
+            with open(shard_path) as f:
+                shard = json.load(f)
+        except (json.JSONDecodeError, ValueError) as e:
+            # Skip corrupted shard files gracefully
+            print(f"  ⚠ Skipped corrupted shard: {emp_id} ({str(e)[:50]})")
+            shards_skipped_corrupted += 1
+            continue
 
         # Embed wage data
         wage_roles = role_profiles_by_emp.get(emp_name, [])
@@ -1096,6 +1103,8 @@ def consolidate_employer_shards():
         shards_enriched += 1
 
     print(f"  ✓ {shards_enriched:,} shards enriched with wage + SRS data")
+    if shards_skipped_corrupted:
+        print(f"  ⚠ {shards_skipped_corrupted:,} corrupted shards skipped")
 
     # ── Sample shard sizes ─────────────────────────────────────────────────
     import random

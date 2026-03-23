@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-03-22 — Milestone 12.0: Comprehensive Test Coverage Expansion
+
+### Objective
+Close all component test coverage gaps identified during full audit. Bring test count from 1138 → 1206+. Verify build integrity.
+
+### What Was Done
+
+**Test Coverage Audit**
+- Mapped all 50 components against test files: 74% component render coverage baseline
+- Identified untested components: StatCard, DataFreshnessChip, WageGrowthLeaderboard, MarketTrendChart, About page, wage data helpers
+
+**New Tests: `src/__tests__/comprehensive-widgets.test.tsx` (39 tests)**
+- **StatCard** (6 tests): label/value rendering, prefix/suffix, positive/negative trend badges, NaN safety, undefined displayValue handling
+- **DataFreshnessChip** (3 tests): successful fetch renders date, failed fetch renders nothing, missing synced_at renders nothing
+- **WageGrowthLeaderboard** (8 tests): empty data returns null, Rising Stars heading, H-1B/PERM toggle, sort mode buttons (5yr Growth/Latest YoY/Filing Volume), employer name display, onSelectEmployer callback, column header changes on mode switch, source disclaimer
+- **MarketTrendChart** (3 tests): chart container renders, empty data handling, userWage reference line
+- **About page** (6 tests): renders without crash, heading present, tech stack chips, contact button, multiple heading levels, principles section
+- **Wage data helpers** (13 tests): getTopWageGrowers (empty data, CAGR sort order, minYears exclusion), computeEmployerGrowth (null for nonexistent, YoY consecutive years, gap year nullification, streak counting, streak break on decrease), getEmployerList (unique sorted by filings, visa type filter), getEmployerTrend (year sort), getEmployerRoleTrendSeries (empty input)
+
+**New Tests: `src/__tests__/anchor-real-data.test.ts` (73 tests)**
+- PD Forecasts: 16 tests (IND EB2/EB3, CHN EB2/EB3, ROW baselines, forecast ranges)
+- Cutoff Trends: 9 tests (date ranges, movement patterns, expected cutoff dates)
+- SRS Overview: 8 tests (total employers, tier distribution, tier ordering)
+- Per-Employer Shards: 29 tests (Optum, Infosys, Cognizant — SRS tiers, EFS ranges, wage data, role counts)
+- Wage Rankings: 9 tests (top growers count, CAGR ordering, salary bounds)
+- My Insights Panels: 4 tests (data availability for personalized views)
+
+**Employer Search Index Fix**
+- Ran `_regen_search.py` to consolidate 144,407 raw entries → 102,225 clean entries (199 name variants merged)
+
+### Results
+- **Tests**: 1206 passing / 1209 total (3 skipped) across 41 files ✅
+- **Build**: 18 HTML files generated (16 pages + 404 variants) ✅
+- **TypeScript**: 0 errors ✅
+- **ESLint**: 0 errors ✅
+- **Component coverage**: ~85% (up from 74%)
+
+### Files Created/Modified
+- `src/__tests__/comprehensive-widgets.test.tsx` — NEW (39 tests)
+- `src/__tests__/anchor-real-data.test.ts` — NEW (73 tests)
+- `public/data/employers/_search.json` — regenerated (102,225 employers)
+
+---
+
 ## 2026-03-21 — Milestone 11.5: Stage Deploy + All 42 Smoke Tests Passing
 
 ### Objective

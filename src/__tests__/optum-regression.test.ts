@@ -329,6 +329,202 @@ describe("Optum Services — employer search index (_search.json)", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// WAGE DATA IN ENRICHED SHARD
+//
+// This is the CORE scenario that caused "wage details not showing for any
+// employer" (Milestone 11.6 regression). The consolidation step embeds
+// wage_roles, wage_trend, and wage_role_trends into each shard from the
+// monolithic wage JSON files. If consolidation didn't run, these fields are
+// absent and the Wage Intelligence Hub shows empty results for every employer.
+//
+// Fix if these fail: python3 scripts/consolidate_all.py
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface WageRole {
+  soc_code?: string;
+  soc_title?: string;
+  fiscal_year?: number;
+  n_filings?: number;
+  mean_salary?: number;
+  median_salary?: number;
+  p10_salary?: number;
+  p25_salary?: number;
+  p75_salary?: number;
+  p90_salary?: number;
+  prevailing_wage_median?: number;
+  wage_premium_pct?: number;
+  [key: string]: unknown;
+}
+
+interface WageTrend {
+  fiscal_year?: number;
+  median_salary?: number;
+  total_filings?: number;
+  [key: string]: unknown;
+}
+
+describe("Optum Services — wage data in enriched shard (CRITICAL consolidation check)", () => {
+  const optumShard = loadOptumShard();
+
+  // ── 1. wage_roles must exist ────────────────────────────────────────────────
+  // wage_roles powers the "Top Roles" collapsible section in EmployerProfile.
+  // If missing, the "Top Roles" button is hidden and no salary breakdowns show.
+
+  it("shard has wage_roles array (consolidated, not LCA-only)", () => {
+    expect(Array.isArray(optumShard.wage_roles)).toBe(true);
+    expect((optumShard.wage_roles as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("Optum Services has ≥10 wage roles (top H-1B filer has many SOCs)", () => {
+    const roles = (optumShard.wage_roles ?? []) as WageRole[];
+    expect(roles.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("wage_roles[0] has all required salary fields", () => {
+    const roles = (optumShard.wage_roles ?? []) as WageRole[];
+    const role = roles[0];
+    expect(role).toBeDefined();
+    // Required for role card display
+    expect(typeof role.soc_code).toBe("string");
+    expect(typeof role.soc_title).toBe("string");
+    expect(typeof role.n_filings).toBe("number");
+    expect(typeof role.median_salary).toBe("number");
+    expect(typeof role.mean_salary).toBe("number");
+    // Percentile fields for the salary distribution widget
+    expect(typeof role.p10_salary).toBe("number");
+    expect(typeof role.p25_salary).toBe("number");
+    expect(typeof role.p75_salary).toBe("number");
+    expect(typeof role.p90_salary).toBe("number");
+  });
+
+  it("wage_roles[0] has valid salary values (> $30K and < $1M)", () => {
+    const roles = (optumShard.wage_roles ?? []) as WageRole[];
+    const role = roles[0];
+    expect((role.median_salary ?? 0)).toBeGreaterThan(30_000);
+    expect((role.median_salary ?? 0)).toBeLessThan(1_000_000);
+  });
+
+  it("wage_roles have valid SOC codes (format XX-XXXX)", () => {
+    const roles = (optumShard.wage_roles ?? []) as WageRole[];
+    const invalidSocs = roles.filter((r) => !/^\d{2}-\d{4}$/.test(r.soc_code ?? ""));
+    expect(invalidSocs.length).toBe(0);
+  });
+
+  it("all wage_roles have positive n_filings", () => {
+    const roles = (optumShard.wage_roles ?? []) as WageRole[];
+    const noFilings = roles.filter((r) => !r.n_filings || r.n_filings <= 0);
+    expect(noFilings.length).toBe(0);
+  });
+
+  // ── 2. wage_trend must exist ────────────────────────────────────────────────
+  // wage_trend powers the salary trend chart (LineChart in EmployerProfile).
+  // If missing, the salary trend chart shows a blank area.
+
+  it("shard has wage_trend array", () => {
+    expect(Array.isArray(optumShard.wage_trend)).toBe(true);
+    expect((optumShard.wage_trend as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("Optum Services has ≥5 years of salary trend data", () => {
+    const trend = (optumShard.wage_trend ?? []) as WageTrend[];
+    expect(trend.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("wage_trend[0] has median_salary and total_filings", () => {
+    const trend = (optumShard.wage_trend ?? []) as WageTrend[];
+    const entry = trend[0];
+    expect(typeof entry.fiscal_year).toBe("number");
+    expect(typeof entry.median_salary).toBe("number");
+    expect(typeof entry.total_filings).toBe("number");
+  });
+
+  it("wage_trend covers recent fiscal years (≥ FY2020)", () => {
+    const trend = (optumShard.wage_trend ?? []) as WageTrend[];
+    const years = trend.map((t) => t.fiscal_year ?? 0);
+    const maxYear = Math.max(...years);
+    expect(maxYear).toBeGreaterThanOrEqual(2020);
+  });
+
+  // ── 3. wage_role_trends must exist ─────────────────────────────────────────
+  // wage_role_trends powers the 5-year percentile chart shown when clicking
+  // a specific role in the Top Roles section. If missing, clicking a role
+  // shows nothing (no trend chart appears).
+
+  it("shard has wage_role_trends array", () => {
+    expect(Array.isArray(optumShard.wage_role_trends)).toBe(true);
+    expect((optumShard.wage_role_trends as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("Optum Services has ≥30 role trend rows (multiple roles × multiple years)", () => {
+    const roleTrends = (optumShard.wage_role_trends ?? []) as unknown[];
+    expect(roleTrends.length).toBeGreaterThanOrEqual(30);
+  });
+
+  // ── 4. Consolidated shard coverage summary ──────────────────────────────────
+
+  it("consolidated shard has all 4 wage+SRS data sections", () => {
+    const has_wage_roles = Array.isArray(optumShard.wage_roles) && (optumShard.wage_roles as unknown[]).length > 0;
+    const has_wage_trend = Array.isArray(optumShard.wage_trend) && (optumShard.wage_trend as unknown[]).length > 0;
+    const has_wage_role_trends = Array.isArray(optumShard.wage_role_trends) && (optumShard.wage_role_trends as unknown[]).length > 0;
+    const has_srs = typeof optumShard.srs === "object" && optumShard.srs !== null;
+
+    const summary = { has_wage_roles, has_wage_trend, has_wage_role_trends, has_srs };
+    console.log("\n  💰 Optum Wage+SRS Consolidation:", summary);
+
+    expect(has_wage_roles).toBe(true);
+    expect(has_wage_trend).toBe(true);
+    expect(has_wage_role_trends).toBe(true);
+    expect(has_srs).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COGNIZANT TECHNOLOGY SOLUTIONS US (second anchor — largest IT outsourcer)
+// employer_id: 32d0e427e2b050673c4e4106eb9b681f5987677f
+// Tests that a DIFFERENT major employer also has wage + SRS data.
+// This catches scenarios where only the "Optum" shard is fixed but the
+// broader consolidation pipeline is still broken.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadCognizantShard(): Record<string, unknown> {
+  const shardPath = join(PUBLIC_DATA, "employers", "32d0e427e2b050673c4e4106eb9b681f5987677f.json");
+  try {
+    const raw = readFileSync(shardPath, "utf-8");
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+describe("Cognizant Technology Solutions Us — enriched shard cross-check", () => {
+  const shard = loadCognizantShard();
+
+  it("shard loaded and has employer_name", () => {
+    expect(shard.employer_name).toBeDefined();
+  });
+
+  it("has ≥5,000 LCA records (major H-1B filer)", () => {
+    const total = shard.lca_total as number ?? (shard.lca as unknown[] ?? []).length;
+    expect(total).toBeGreaterThanOrEqual(5_000);
+  });
+
+  it("has wage_roles (consolidation ran for large IT firms too)", () => {
+    const roles = shard.wage_roles as unknown[] ?? [];
+    expect(roles.length).toBeGreaterThan(0);
+  });
+
+  it("has wage_trend (salary chart has data)", () => {
+    const trend = shard.wage_trend as unknown[] ?? [];
+    expect(trend.length).toBeGreaterThan(0);
+  });
+
+  it("has srs object (SRS score dashboard populated)", () => {
+    expect(typeof shard.srs).toBe("object");
+    expect(shard.srs).not.toBeNull();
+  });
+});
+
 function isNormalized(name: string): boolean {
   if (!name || name.length <= 3) return true;
   if (name !== name.toUpperCase()) return true;
