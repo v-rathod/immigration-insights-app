@@ -4,30 +4,87 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-22)
+## Session Quick Snapshot (2026-03-23)
 
 **Current Status**: ✅ Production Ready
-- **Tests**: 1206 passing (3 skipped) across 41 files
+- **Unit Tests**: 1206 passing (3 skipped) across 40 files
+- **Post-Deploy Tests**: 238 (47 smoke + 191 comprehensive)
 - **Build**: 18 HTML pages + 95K employer shards
-- **Deploy**: Live on stage CloudFront, all 47 smoke checks passing
-- **Coverage**: 85% components tested (was 74%)
+- **Deploy**: Live on stage CloudFront, all 238 post-deploy tests passing
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 
 **What's New This Session**:
-- Added 112 new tests (comprehensive-widgets.test.tsx + anchor-real-data.test.ts)
-- Fixed employer search index (144K → 102K clean entries)
-- Pushed to main: `cfd313c`
+- Fixed Cognizant employer data bug (case-insensitive name matching)
+- Re-uploaded corrupt `_search.json` to S3 + CloudFront invalidation
+- Created 191-test comprehensive post-deploy validation suite
+- Integrated into deploy.sh (both smoke + comprehensive must pass)
+- Pushed to main: `adc4052`
 - Deployed to stage: `d10immmzyp7xgr.cloudfront.net`
 
 **Dev Server**: Running locally on http://localhost:3000
 
 **Next Agent Starting Point**: 
-1. Review Milestone 12.0 below for context
-2. Check `.github/copilot-instructions.md` (updated with v2 redesign notes, artifact inventory)
-3. For architecture, see `ARCHITECTURE.md` and `PRODUCT_GUIDE.md`
-4. For recent fixes, see `PROGRESS.md` Milestones 11.4-12.0
-5. Run `npm test` to validate everything passes
+1. Review Milestone 13.0 below for context
+2. Check `.github/copilot-instructions.md` for stable rules
+3. Run `npm test` to validate everything passes
+4. For post-deploy testing, see `scripts/comprehensive-post-deploy.mjs`
+
+---
+
+## 2026-03-23 — Milestone 13.0: Cognizant Bug Fix + Enterprise Post-Deploy Testing
+
+### Objective
+Fix Cognizant employer data bug ("No trend data available") and build comprehensive post-deployment validation to prevent similar bugs from reaching production.
+
+### Root Cause: Employer Name Case Mismatch
+- Search index stores `"Cognizant Technology Solutions US"` (uppercase)
+- Employer shard stores `"Cognizant Technology Solutions Us"` (title-case)
+- `getEmployerTrend()`, `getEmployerRoles()`, `getEmployerRoleTrendSeries()` all used strict `===` equality
+- When user selects from search, the name came as "US" but shard data had "Us" → empty filter → "No trend data"
+
+### Bug Fixes
+1. **Case-insensitive employer matching** (`src/lib/data/wage.ts`): All 3 functions now use `.toLowerCase()` for name comparison
+2. **Corrupt `_search.json` on S3** (2 bytes): Re-uploaded 14MB file + CloudFront invalidation
+
+### New: Comprehensive Post-Deploy Test Suite
+Created `scripts/comprehensive-post-deploy.mjs` — **191 tests across 11 sections**:
+
+| Section | Tests | Validates |
+|---------|-------|-----------|
+| Page Availability & Rendering | 17 | All pages load, CSS/JS bundles serve correctly |
+| Employer Search Index Quality | 24 | 100K+ entries, smart sort, 20 anchor employers findable |
+| Employer Shard Deep Validation | 95 | 5 anchor employers deep + 50 random shard sampling + E2E wage flow |
+| Dashboard Data Files Schema | 23 | Schema validation for all dashboard JSON files |
+| Dimensions & Metadata | 7 | dim_area, dim_country, dim_soc, dim_visa_ceiling, dim_visa_class |
+| ML Models & Forecasts | 3 | PD forecasts, retrograde model |
+| RAG/QA System | 4 | chunks, QA cache, catalog |
+| Cross-Reference Integrity | 2 | Search IDs resolve to shards |
+| Static Assets & SEO | 3 | robots.txt, sitemap.xml, GeoJSON |
+| Data Quality Deep Dives | 7 | Salary ranges, approval rates, SOC codes, dates |
+| Additional Data Files | 6 | All remaining data files validated |
+
+**Key tests that would have caught this bug**:
+- "E2E wage flow" simulates `search→select→shard load→extractWageTrend→verify` for anchor employers
+- "Name consistency" detects search↔shard name mismatches
+
+### Deploy.sh Integration
+`scripts/deploy.sh` now runs comprehensive tests after smoke tests. Both must pass or deploy fails.
+
+### Results
+- **Unit tests**: 1206 passing ✅
+- **Smoke tests**: 47 passing ✅
+- **Comprehensive tests**: 191 passing ✅
+- **Total post-deploy**: 238 tests (runs in ~72 seconds)
+- **Build**: 18 HTML files ✅
+
+### Files Created/Modified
+- `src/lib/data/wage.ts` — MODIFIED (case-insensitive employer name matching)
+- `scripts/comprehensive-post-deploy.mjs` — NEW (191 tests, ~700 lines)
+- `scripts/deploy.sh` — MODIFIED (integrated comprehensive tests after smoke tests)
+
+### Commit
+- `adc4052` — "fix: case-insensitive employer match + 191 post-deploy tests"
 
 ---
 

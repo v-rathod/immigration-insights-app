@@ -1,40 +1,36 @@
 # Next Agent Context & Handoff Guide
 
-**Created**: 2026-03-22 after Milestone 12.0 (comprehensive test expansion)  
+**Created**: 2026-03-23 after Milestone 13.0 (Cognizant fix + enterprise post-deploy testing)  
 **Purpose**: Quick reference for the next agent starting a session. This supplements but doesn't replace PROGRESS.md, copilot-instructions.md, or ARCHITECTURE.md.
 
 ---
 
 ## Current State Snapshot
 
-**Project Status**: ✅ **Production Quality** — Comprehensive test coverage, zero lint/type errors, all 47 smoke checks passing.
+**Project Status**: ✅ **Production Quality** — Case-insensitive employer matching, enterprise-grade post-deploy validation (238 tests), zero lint/type errors.
 
 | Aspect | Status | Details |
 |--------|--------|---------|
-| **Tests** | 1206/1206 passing | 41 files, 3 skipped. Component coverage: 85% (50/50 components). All real-data assertions pass. |
-| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Minified/optimized. Total ~500 KB pages. |
-| **Type Safety** | 0 errors | TypeScript strict mode across all 75+ source files. All P2 artifact schemas typed. |
-| **Lint** | 0 errors | ESLint passing. No unused imports, proper exports. |
-| **Deploy** | Live ✅ | Staged on CloudFront: `d10immmzyp7xgr.cloudfront.net`. All 47 smoke checks (pages, data files, bundle integrity) pass. |
-| **Dev Server** | Running | `npm run dev` active on http://localhost:3000. Auto-reload working. |
-| **Data** | Fresh | P2 sync complete. 102K employer entries consolidated. Real-data tests validate all major dashboards have correct data. |
+| **Unit Tests** | 1206/1206 passing | 40 files, 3 skipped. Component coverage: 85%. All real-data assertions pass. |
+| **Post-Deploy: Smoke** | 47 checks | Page loads, bundle integrity, critical data files. |
+| **Post-Deploy: Comprehensive** | 191 tests | 11 sections: pages, search index, shard integrity, dashboard schemas, dimensions, ML models, RAG, cross-refs, SEO, data quality. |
+| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Minified/optimized. |
+| **Type Safety** | 0 errors | TypeScript strict mode across all 75+ source files. |
+| **Lint** | 0 errors | ESLint passing. |
+| **Deploy** | Live ✅ | Staged on CloudFront: `d10immmzyp7xgr.cloudfront.net`. All 238 post-deploy tests pass. |
+| **Data** | Fresh | P2 sync complete. 102K employer entries. |
 
 ---
 
-## What Happened This Session (2026-03-22)
+## What Happened This Session (2026-03-23)
 
-### Documentation Redesign (latest)
-- **Restructured `copilot-instructions.md`**: 588 lines → 197 lines
-- **Philosophy**: Instructions file now contains ONLY stable rules, conventions, and pointers. All live data (test counts, artifact inventories, deploy URLs, phase status) moved to satellite files.
-- **Created `DATA_CATALOG.md`**: New satellite file for P2 artifacts, data pipeline, dashboard-to-artifact mappings, user input schema, RAG architecture, data scale, stubs
-- **Key principle**: copilot-instructions.md should NEVER need updating for routine milestones. Only update it when a fundamental rule or convention changes.
-
-### Milestone 12.0: Comprehensive test coverage expansion
-- **Added**: 112 new tests (comprehensive-widgets.test.tsx: 39 + anchor-real-data.test.ts: 73)
-- **Coverage**: 74% → 85% (all 50 components now tested)
-- **Fixed**: Employer search index (144K raw → 102K clean entries via consolidation)
-- **Commit**: `cfd313c` — "test: comprehensive widget + real-data anchor tests (1206 passing)"
-- **Deployed**: All 47 smoke checks passing
+### Milestone 13.0: Cognizant Bug Fix + Enterprise Post-Deploy Testing
+- **Bug**: Cognizant employer showed "No trend data available" due to name casing mismatch between search index ("US") and shard data ("Us")
+- **Fix**: Made `getEmployerTrend()`, `getEmployerRoles()`, `getEmployerRoleTrendSeries()` all case-insensitive in `src/lib/data/wage.ts`
+- **Also fixed**: Corrupt `_search.json` on S3 (was 2 bytes), re-uploaded + CloudFront invalidation
+- **Created**: `scripts/comprehensive-post-deploy.mjs` — 191 tests across 11 sections including E2E wage flow simulation and name consistency checks
+- **Integrated**: Both smoke + comprehensive tests now run in `scripts/deploy.sh`. Deploy fails if either suite fails.
+- **Commit**: `adc4052` — pushed to main
 
 ---
 
