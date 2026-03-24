@@ -61,6 +61,9 @@ tmp_script_*.py
 .wingman/
 .docs/
 
+# Private strategy docs (local only — not for public repo)
+TRAFFIC_GROWTH_PLAN.md
+
 # Python cache
 __pycache__/
 *.pyc

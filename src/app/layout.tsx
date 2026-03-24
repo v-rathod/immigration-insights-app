@@ -176,6 +176,53 @@ const schemaOrgJsonLd = {
       dateModified: "2026-03-23",
       sameAs: ["https://github.com/v-rathod/immigration-insights-app"],
     },
+    {
+      "@type": "Dataset",
+      "@id": `${SITE_URL}/#dataset`,
+      name: "US Immigration Employment-Based Green Card Analytics Dataset",
+      description:
+        "Comprehensive dataset of 18.5M+ official US government immigration records including USCIS approval/denial data, DOL PERM certifications, State Department visa bulletins, and BLS occupational wage statistics. Covers employment-based green card pipelines (EB1, EB2, EB3), employer sponsorship patterns, salary trends, and processing timelines from 1992-2026.",
+      url: SITE_URL,
+      creator: {
+        "@type": "Organization",
+        name: "NorthStar Compass",
+        url: SITE_URL,
+      },
+      distribution: [
+        {
+          "@type": "DataDownload",
+          encodingFormat: "JSON",
+          contentUrl: `${SITE_URL}/data/dashboards/`,
+        },
+      ],
+      spatialCoverage: "United States",
+      temporalCoverage: "1992/2026",
+      keywords: [
+        "immigration",
+        "green card",
+        "H-1B",
+        "PERM",
+        "USCIS",
+        "employment-based",
+        "visa bulletin",
+        "salary data",
+        "approval rates",
+      ],
+      variableMeasured: [
+        "Priority date cutoff dates",
+        "Visa bulletin dates for filing",
+        "PERM approval rates by employer",
+        "H-1B sponsorship frequency",
+        "Salary median and percentiles",
+        "Employer sponsorship reliability",
+        "Processing time estimates",
+        "Queue depth and backlog",
+      ],
+      license: "CC0 1.0 Universal (CC0 1.0 Public Domain Dedication)",
+      isAccessibleForFree: true,
+      datePublished: "2026-03-23",
+      dateModified: "2026-03-23",
+    },
   ],
 };
 

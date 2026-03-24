@@ -36,15 +36,15 @@ describe("ThemeProvider", () => {
     expect(screen.getByText("Hello")).toBeInTheDocument();
   });
 
-  it("defaults to dark theme", async () => {
+  it("defaults to light theme", async () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
       </ThemeProvider>
     );
     // Wait for mount effect
-    expect(await screen.findByTestId("theme")).toHaveTextContent("dark");
-    expect(await screen.findByTestId("resolved")).toHaveTextContent("dark");
+    expect(await screen.findByTestId("theme")).toHaveTextContent("light");
+    expect(await screen.findByTestId("resolved")).toHaveTextContent("light");
   });
 
   it("switches to light theme", async () => {
@@ -60,7 +60,7 @@ describe("ThemeProvider", () => {
     expect(screen.getByTestId("resolved")).toHaveTextContent("light");
   });
 
-  it("toggles between dark and light", async () => {
+  it("toggles between light and dark", async () => {
     const user = userEvent.setup();
     render(
       <ThemeProvider>
@@ -68,13 +68,13 @@ describe("ThemeProvider", () => {
       </ThemeProvider>
     );
 
-    // Start at dark, toggle to light
-    await user.click(screen.getByTestId("toggle"));
-    expect(screen.getByTestId("resolved")).toHaveTextContent("light");
-
-    // Toggle back to dark
+    // Start at light, toggle to dark
     await user.click(screen.getByTestId("toggle"));
     expect(screen.getByTestId("resolved")).toHaveTextContent("dark");
+
+    // Toggle back to light
+    await user.click(screen.getByTestId("toggle"));
+    expect(screen.getByTestId("resolved")).toHaveTextContent("light");
   });
 
   it("persists theme to localStorage", async () => {

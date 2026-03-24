@@ -54,3 +54,43 @@ All data comes from official US government sources:
 ## Contact
 
 - GitHub: https://github.com/v-rathod/immigration-insights-app
+
+---
+
+## Frequently Asked Questions (FAQ)
+
+**Q: How long will my EB-2 green card take? What's my priority date?**
+A: Compass predicts green card wait times using 15 years of Visa Bulletin history and machine learning. Enter your priority date on `/dashboard/visa-bulletin/` to see personalized 24-month forecasts for your category and country. No login required.
+
+**Q: Which employers have the best green card sponsorship track record?**
+A: Search 70,000+ employers on `/dashboard/employer/` to see their Sponsor Reliability Score (SRS), H-1B and PERM approval rates, denial trends, and hiring volume. Data based on 18.5M USCIS records.
+
+**Q: What salary should I negotiate for an H-1B or PERM role?**
+A: View historical salary data by employer and job title on `/dashboard/wage/`. Compass shows p10-p90 percentile bands, 5-year salary growth trends, and how each employer compares to national benchmarks from the Bureau of Labor Statistics.
+
+**Q: Is my occupation in high demand for immigration sponsorship?**
+A: Check `/dashboard/job-demand/` to see which SOC codes have the highest H-1B and PERM sponsorship activity, approval rates, and wage competitiveness.
+
+**Q: How many years is the EB-2 India backlog?**
+A: Compass tracks `/dashboard/backlog/` to show queue depth estimates and years-to-clear projections by country and category, updated quarterly from USCIS data.
+
+**Q: What's the difference between EB-1, EB-2, and EB-3?**
+A: Visit `/dashboard/eb-category/` for a side-by-side comparison of visa category velocity, volatility, and approval rates. EB-1 moves fastest, EB-3 is slowest but has shorter visa bulletin waits.
+
+**Q: How fast is USCIS processing I-485 and I-140 cases right now?**
+A: Check `/dashboard/processing/` to see latest quarterly throughput, approval rates, and USCIS backlog trends by benefit type.
+
+**Q: Are there any immigration insights specific to my priority date and employer?**
+A: Go to `/insights/` (our personalized dashboard). Enter your priority date, employer name, and job title to get a customized forecast and comparison to industry benchmarks.
+
+**Q: How is Compass different from other immigration trackers?**
+A: Compass is built on 18.5M+ official government data points from USCIS, DOL, and State Department. We offer ML-powered forecasts, no login required, zero ads, zero data collection, and completely free access. All code is open source.
+
+**Q: Why does Compass have no login?**
+A: We believe immigration data should be freely accessible without friction. Compass runs entirely in your browser — no data is stored on our servers, no login required, no tracking.
+
+**Q: Can I use Compass on my phone?**
+A: Yes. Compass is fully responsive and works on mobile browsers. All dashboards and features are mobile-friendly.
+
+**Q: Is Compass affiliated with USCIS or the State Department?**
+A: No. Compass is an independent open-source project built by an immigrant. We only use publicly available government data. We are not affiliated with any government agency.

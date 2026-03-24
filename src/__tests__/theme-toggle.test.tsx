@@ -36,11 +36,11 @@ describe("ThemeToggle", () => {
   it("applies correct aria-checked state", async () => {
     renderWithProvider();
 
-    // Dark should be checked by default
-    const darkBtn = await screen.findByLabelText("Dark theme");
-    expect(darkBtn).toHaveAttribute("aria-checked", "true");
+    // Light should be checked by default
+    const lightBtn = await screen.findByLabelText("Light theme");
+    expect(lightBtn).toHaveAttribute("aria-checked", "true");
 
-    const lightBtn = screen.getByLabelText("Light theme");
-    expect(lightBtn).toHaveAttribute("aria-checked", "false");
+    const darkBtn = screen.getByLabelText("Dark theme");
+    expect(darkBtn).toHaveAttribute("aria-checked", "false");
   });
 });
