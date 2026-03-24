@@ -115,6 +115,9 @@ const schemaOrgJsonLd = {
       description:
         "Free immigration insights and analytics for employment-based green card applicants.",
       inLanguage: "en-US",
+      mainEntity: {
+        "@id": `${SITE_URL}/#webapp`,
+      },
     },
     {
       "@type": "WebApplication",
@@ -148,6 +151,18 @@ const schemaOrgJsonLd = {
         audienceType:
           "Employment-based green card applicants, H-1B visa holders, immigration attorneys",
       },
+      author: {
+        "@type": "Organization",
+        name: "NorthStar",
+        url: "https://github.com/v-rathod",
+      },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/ask?q={search_term_string}`,
+        },
+      },
     },
     {
       "@type": "Organization",
@@ -156,6 +171,9 @@ const schemaOrgJsonLd = {
       url: SITE_URL,
       description:
         "Open-source immigration analytics platform built by immigrants, for immigrants.",
+      image: `${SITE_URL}/og-image.png`,
+      datePublished: "2026-03-23",
+      dateModified: "2026-03-23",
       sameAs: ["https://github.com/v-rathod/immigration-insights-app"],
     },
   ],
