@@ -345,8 +345,17 @@ run_smoke_tests() {
   log "Waiting 30s for CloudFront invalidation to propagate..."
   sleep 30
 
-  log "Running HTTP smoke tests against CloudFront..."
-  node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
+  # Use CloudFront direct URL for smoke tests (avoids Zscaler/corporate proxy blocking custom domains)
+  local CF_DOMAIN
+  CF_DOMAIN=$(aws cloudfront get-distribution --id "$CF_DIST" --region "$REGION" \
+    --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
+  local SMOKE_URL="${DEPLOY_URL}"
+  if [[ -n "$CF_DOMAIN" ]]; then
+    SMOKE_URL="https://$CF_DOMAIN"
+  fi
+
+  log "Running HTTP smoke tests against ${SMOKE_URL}..."
+  SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
     error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
     exit 1
   }
@@ -354,7 +363,7 @@ run_smoke_tests() {
   # ── Comprehensive post-deploy validation ────────────────────────────────
   if [[ -f "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" ]]; then
     log "Running comprehensive post-deploy validation..."
-    node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || {
+    SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || {
       error "Comprehensive post-deploy tests FAILED — data integrity issues. Check above output."
       exit 1
     }
