@@ -1,5 +1,5 @@
 # Compass — Immigration Insights & Green Card Tracker
-# https://d10immmzyp7xgr.cloudfront.net
+# https://immigrationcompass.fyi
 
 User-agent: *
 Allow: /
@@ -10,7 +10,7 @@ Disallow: /ops/
 Disallow: /data/
 
 # Sitemap
-Sitemap: https://d10immmzyp7xgr.cloudfront.net/sitemap.xml
+Sitemap: https://immigrationcompass.fyi/sitemap.xml
 
 # LLM context file (emerging standard for AI agent discoverability)
 # See https://llmstxt.org/

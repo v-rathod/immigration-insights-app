@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+const SITE_URL = "https://immigrationcompass.fyi";
 
 export const metadata: Metadata = {
   title: "Employer Sponsor Reliability Score",

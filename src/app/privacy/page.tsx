@@ -17,7 +17,7 @@ const SECTIONS = [
     icon: Eye,
     title: "What We Collect",
     content:
-      "Nothing. NorthStar Compass is a purely static website. We do not collect, store, or transmit any personal data. There are no user accounts, no analytics trackers, no cookies (beyond browser defaults), and no server-side processing. Your browser downloads HTML, CSS, JavaScript, and JSON files. That's it.",
+      "NorthStar Compass is a static website with minimal data collection. We do not create user accounts or store personal information on any server. We use PostHog (a privacy-focused analytics tool) to collect anonymous usage events such as page views and feature interactions. PostHog receives your anonymized session data, browser type, and general region, but no names, emails, or personally identifiable information. All analytics events are tagged with an environment label (dev, stage, or prod) for debugging purposes only.",
   },
   {
     icon: Lock,
@@ -35,7 +35,7 @@ const SECTIONS = [
     icon: Cookie,
     title: "Cookies & Tracking",
     content:
-      "We do not set any cookies. We do not use Google Analytics, Facebook Pixel, Hotjar, or any other tracking service. There are no third-party scripts loaded on this site. The only external resources are Google Fonts (Geist) loaded via Next.js font optimization.",
+      "We use PostHog for anonymous, privacy-focused product analytics. PostHog may set a cookie to distinguish unique sessions, but this cookie contains no personal data. We do not use Google Analytics, Facebook Pixel, Hotjar, or any advertising trackers. PostHog data is used solely to understand which features are used and to improve the product. The only other external resource is Google Fonts (Geist) loaded via Next.js font optimization.",
   },
   {
     icon: Bell,
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
             is below, written in plain language because legalese helps no one.
           </p>
           <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-            Last updated: February 2026
+            Last updated: March 23, 2026
           </p>
         </FadeIn>
       </section>

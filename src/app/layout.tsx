@@ -7,7 +7,7 @@ import { ErrorMonitor } from "@/components/providers/error-monitor";
 import { AppShell } from "@/components/layout/app-shell";
 import "./globals.css";
 
-const SITE_URL = "https://d10immmzyp7xgr.cloudfront.net";
+const SITE_URL = "https://immigrationcompass.fyi";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

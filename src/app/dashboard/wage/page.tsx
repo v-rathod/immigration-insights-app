@@ -29,10 +29,10 @@ export const metadata: Metadata = {
     title: "Wage Competitiveness: H-1B & PERM Salary Data | Compass",
     description:
       "Research H-1B and PERM salaries by employer and job title. 5-year trends, p10-p90 percentile bands, BLS benchmarks.",
-    url: "https://d10immmzyp7xgr.cloudfront.net/dashboard/wage/",
+    url: "https://immigrationcompass.fyi/dashboard/wage/",
     images: [
       {
-        url: "https://d10immmzyp7xgr.cloudfront.net/og-image.png",
+        url: "https://immigrationcompass.fyi/og-image.png",
         width: 1200,
         height: 630,
         alt: "Compass: H-1B & PERM Wage Competitiveness",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: "https://d10immmzyp7xgr.cloudfront.net/dashboard/wage/",
+    canonical: "https://immigrationcompass.fyi/dashboard/wage/",
   },
 };
 

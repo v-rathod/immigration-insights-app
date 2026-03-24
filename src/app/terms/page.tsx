@@ -38,6 +38,12 @@ const SECTIONS = [
       "We may update these terms as the project evolves. Material changes will be noted on this page with the updated date. Continued use of Compass after changes constitutes acceptance of the revised terms.",
   },
   {
+    icon: Scale,
+    title: "Limitation of Liability",
+    content:
+      "NorthStar Compass is provided on an as-is and as-available basis without warranties of any kind, express or implied. In no event shall the creators or contributors be liable for any direct, indirect, incidental, special, or consequential damages arising from your use of, or inability to use, this service. This includes, without limitation, damages for errors in immigration data, missed filing deadlines, or reliance on statistical forecasts.",
+  },
+  {
     icon: FileText,
     title: "Open Source License",
     content:
@@ -79,7 +85,7 @@ export default function TermsPage() {
             help us make it better if you can.
           </p>
           <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-            Last updated: February 2026
+            Last updated: March 23, 2026
           </p>
         </FadeIn>
       </section>

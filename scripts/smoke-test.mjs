@@ -19,7 +19,7 @@ const args = process.argv.slice(2);
 const urlFlagIdx = args.indexOf('--url');
 const BASE_URL = (urlFlagIdx !== -1 ? args[urlFlagIdx + 1] : null)
   ?? process.env.SMOKE_TEST_URL
-  ?? 'https://d10immmzyp7xgr.cloudfront.net';
+  ?? 'https://immigrationcompass.fyi';
 
 const TIMEOUT_MS = 20_000;
 const CONCURRENCY = 5; // parallel requests per batch

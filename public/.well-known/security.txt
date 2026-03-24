@@ -1,0 +1,5 @@
+Contact: mailto:vivek.rathod@outlook.com
+Expires: 2027-03-23T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://immigrationcompass.fyi/.well-known/security.txt
+Policy: https://immigrationcompass.fyi/privacy
