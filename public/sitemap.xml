@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Core pages -->
   <url>
     <loc>https://immigrationcompass.fyi/</loc>
     <lastmod>2026-03-23</lastmod>
@@ -26,8 +24,6 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-
-  <!-- Dashboards -->
   <url>
     <loc>https://immigrationcompass.fyi/dashboard/visa-bulletin/</loc>
     <lastmod>2026-03-23</lastmod>
@@ -82,8 +78,6 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-
-  <!-- Legal pages -->
   <url>
     <loc>https://immigrationcompass.fyi/privacy/</loc>
     <lastmod>2026-03-23</lastmod>
@@ -96,7 +90,6 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-
 </urlset>
   <url>
     <loc>https://immigrationcompass.fyi/about/</loc>
