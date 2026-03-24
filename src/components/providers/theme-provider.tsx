@@ -62,18 +62,18 @@ function resolveTheme(theme: Theme): ResolvedTheme {
  * Must be inserted as `<script dangerouslySetInnerHTML={{ __html: themeScript }}>`
  * in the root layout's <head>.
  */
-export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");var d=document.documentElement;d.classList.remove("light","dark");if(t==="light"){d.classList.add("light")}else if(t==="system"){d.classList.add(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}else{d.classList.add("dark")}}catch(e){document.documentElement.classList.add("dark")}})()`;
+export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");var d=document.documentElement;d.classList.remove("light","dark");if(t==="dark"){d.classList.add("dark")}else if(t==="system"){d.classList.add(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}else{d.classList.add("light")}}catch(e){document.documentElement.classList.add("light")}})();
 
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Always initialize as "dark" to match server-rendered HTML.
+  // Always initialize as "light" to match server-rendered HTML.
   // The blocking <script> in <head> already applied the correct CSS class,
   // so visuals are correct even before this component hydrates.
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
+  const [theme, setThemeState] = useState<Theme>("light");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
   // After hydration, read persisted preference from localStorage.
   // This is a one-time initialization — the standard mount pattern.
