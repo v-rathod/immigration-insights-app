@@ -93,3 +93,16 @@ resource "aws_acm_certificate_validation" "cert" {
   certificate_arn         = aws_acm_certificate.cert[0].arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
+
+# =============================================================================
+# Google Search Console Verification
+# =============================================================================
+resource "aws_route53_record" "google_site_verification" {
+  count           = var.domain_name != "" && local.resolved_zone_id != "" && var.route53_zone_id == "" ? 1 : 0
+  zone_id         = local.resolved_zone_id
+  name            = var.domain_name
+  type            = "TXT"
+  ttl             = 300
+  allow_overwrite = true
+  records         = ["google-site-verification=ydZR6_X372zf-EFzEzTYG7CdY8HJTru-STIwg49Q_eQ"]
+}
