@@ -96,11 +96,37 @@ Use P1/P2/P3 in code and internal comments. Use Horizon/Meridian/Compass in publ
 
 ## Standing Instructions (CRITICAL)
 
-### Deployment
-- Do NOT deploy to AWS without explicit user request
-- **ALWAYS use `bash scripts/deploy.sh`** — NEVER run `aws s3 sync` directly
-  - deploy.sh uses `--exact-timestamps` to prevent stale HTML with mismatched CSS/JS bundle hashes
-  - It runs pre-flight checks and post-deploy smoke tests automatically
+### Deployment (MANDATORY WORKFLOW)
+
+**STAGE-FIRST PROMOTION — Always follow this exactly:**
+
+1. **Make code changes** → Test locally (`npm test`, `npm run build` success)
+2. **Commit to main** (clear commit message describing the change)
+3. **Deploy to stage** → `bash scripts/deploy.sh` (stage is the default target)
+4. **Wait for user verification** → Ask user to test on `https://stage.immigrationcompass.fyi/` (specific features to verify)
+5. **Get explicit approval** → User says "looks good, deploy to prod" or "I found an issue, fix this"
+6. **Deploy to prod** → `bash scripts/deploy.sh --env prod` **ONLY after explicit user approval**
+
+**Exception for Config-Only Changes** (meta tags, robots.txt, DNS records, env vars):
+- Deploy to stage normally
+- Can deploy to prod with approval **without requiring user stage testing** (config-only changes can't be functionally tested)
+- Still need explicit approval: "Stage updated with config change. Approved for prod deployment?"
+
+**ABSOLUTE RULES (Guardrail #11 in GUARDRAILS.md):**
+- ✅ **ALWAYS** deploy stage first
+- ✅ **NEVER** deploy directly to prod without explicit user approval
+- ✅ For code/features: Ask user to verify on stage before asking for prod approval
+- ✅ For config-only: Ask for approval without requiring stage verification
+- ❌ **NEVER** assume success = safe — user approval is required
+- ❌ **NEVER** batch multiple changes into one approval — each gets its own cycle
+- ❌ **NEVER** deploy to prod without asking: "Approved for prod deployment?"
+
+**What this means:**
+- All changes go through the promotion workflow: dev → stage → prod
+- Production stays ultra-stable because stage is the safety valve
+- User always has control over what goes live
+
+---
 
 ### Regression Testing (CRITICAL — MANDATORY FOR ALL FIXES)
 **Read [GUARDRAILS.md](./GUARDRAILS.md) for complete regression testing requirements.** Every bug fix requires permanent regression tests to prevent silent recurrence.

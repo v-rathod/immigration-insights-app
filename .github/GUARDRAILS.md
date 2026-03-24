@@ -89,6 +89,41 @@ If `NEXT_PUBLIC_SENTRY_DSN` is absent, Sentry silently no-ops — dev and test e
 
 **Why**: An SPA with no backend server has no server logs, no access logs, and no error aggregation by default. Without `ErrorMonitor`, production bugs are invisible until a user explicitly reports them.
 
+### 11. Deployment Safety: Stage-First Promotion, Never Direct to Prod
+
+**MANDATORY WORKFLOW:**
+1. **Code changes → local testing** (`npm test`, `npm run build`, `npm run dev`)
+2. **Commit to main** (`git commit`, verified to pass CI)
+3. **Deploy to stage** (`bash scripts/deploy.sh` — auto-deploys to stage by default)
+4. **Manual verification on stage** — User manually tests the changes on `stage.immigrationcompass.fyi`
+5. **Get explicit approval** — Agent asks user "Verify stage is working, approve prod deployment?"
+6. **Deploy to prod** (`bash scripts/deploy.sh --env prod` — only after user approval)
+
+**Exception for Config-Only Changes:**
+- For changes that are purely configuration (meta tags, robots.txt, environment variables, headers) and **cannot be meaningfully tested**, you may skip user stage testing
+- **Still require explicit user approval** before prod deployment
+- Document the reason: "This is a config-only change, approved for direct prod deploy"
+
+**ABSOLUTE RULES (No Exceptions):**
+- ✅ **ALWAYS** deploy to stage first
+- ✅ **NEVER** deploy directly to prod without explicit user approval
+- ✅ **ALWAYS** ask for approval after stage verification before touching prod
+- ✅ For config-only changes: "Stage updated. Approved for prod deploy?" (no testing needed)
+- ✅ For code/functional changes: "Stage updated. I've verified [specific feature]. Please test on https://stage.immigrationcompass.fyi/ and approve prod deployment"
+- ❌ **NEVER** assume stage success means it's safe — user decision is required
+- ❌ **NEVER** deploy to prod without asking first
+- ❌ **NEVER** batch multiple changes with a single approval — each major change gets its own approval cycle
+
+**Why**: Production is the live user-facing site. A single misconfiguration, typo, or regression can immediately impact users. Stage is the safety valve: it's an exact replica of prod infrastructure, letting us catch issues before they affect real users. User approval is the human safety check that prevents automation errors.
+
+### 12. No Unreviewed Code in Production
+
+- All code changes **must** be committed to git with a clear, descriptive message
+- All deployments **must** be traceable to commits (`git log --oneline | head -5`)
+- Never patch production files directly via AWS Console or terminal — **always** go through code → commit → deploy workflow
+
+**Why**: Production stability depends on traceability. If something breaks, we need to know exactly what changed and when. Direct patching creates mystery bugs that are impossible to debug.
+
 ---
 
 ## Regression Testing (CRITICAL — MANDATORY FOR ALL FIXES)
