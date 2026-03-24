@@ -187,12 +187,13 @@ Final quality checks, deploy to production, update DNS records.
   - Stage URL: https://d10immmzyp7xgr.cloudfront.net
   - Note: Needs redeployment with updated code (URL migration + legal fixes)
 
-- `[🔄]` **3.3 Build & Deploy to Production**
-  - 🔄 First deploy in progress (2026-03-23): 254 main files + 95,153 employer shards uploading
+- `[✅]` **3.3 Build & Deploy to Production**
+  - ✅ DONE (2026-03-23): Production deployed and fully verified
   - Prod bucket: `compass-prod-883107059193`
   - CloudFront: `EWRFYZRXA7HFE` (d3sr5zz19rlvju.cloudfront.net)
   - PostHog key: baked into build via deploy-envs.conf
-  - ⚠️ NOTE: This deploy used pre-update code. A second deploy with privacy/terms/URL fixes is needed.
+  - 254 main files + 95,153 employer shards deployed
+  - Updated code deployed: privacy policy, terms, security.txt, production URLs
   - Deploy command: `bash scripts/deploy.sh --env prod`
 
 - `[✅]` **3.4 Update Route 53 DNS**
@@ -207,11 +208,12 @@ Final quality checks, deploy to production, update DNS records.
   - Covers: `immigrationcompass.fyi` + `*.immigrationcompass.fyi`
   - HSTS header present: `max-age=31536000; includeSubDomains`
 
-- `[ ]` **3.6 Production Smoke Tests**
-  - Status: Waiting for first prod deploy to complete
-  - Will run: `node scripts/smoke-test.mjs https://immigrationcompass.fyi`
-  - Expected: 238/238 post-deploy tests passing
-  - Notes: After initial deploy verified, will redeploy with updated code
+- `[✅]` **3.6 Production Smoke Tests**
+  - ✅ DONE (2026-03-23): All post-deploy tests passing on production
+  - 47/47 smoke tests passed on `d3sr5zz19rlvju.cloudfront.net`
+  - 191/191 comprehensive tests passed
+  - Total: 238/238 post-deploy tests  ✅
+  - Fixed: deploy.sh now uses CloudFront direct URL for smoke tests (avoids Zscaler)
 
 ### Completion Criteria
 - ✅ All unit tests passing
