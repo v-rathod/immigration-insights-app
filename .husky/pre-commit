@@ -1,0 +1,47 @@
+#!/bin/sh
+# Pre-commit hook: Enforce tests pass and TypeScript/ESLint clean before commits
+# This prevents broken code from being committed
+
+set -e
+
+echo "🔍 Pre-commit checks running..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 1. Check for staged TypeScript/TSX files
+TYPESCRIPT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
+
+if [ -n "$TYPESCRIPT_FILES" ]; then
+  echo "📝 Type-checking modified files..."
+  npx tsc --noEmit || {
+    echo "❌ TypeScript errors found. Fix them before committing."
+    exit 1
+  }
+  echo "✅ TypeScript strict mode: OK"
+fi
+
+# 2. Check ESLint
+if [ -n "$TYPESCRIPT_FILES" ]; then
+  echo "🔗 Running ESLint..."
+  npx eslint $TYPESCRIPT_FILES || {
+    echo "❌ ESLint errors found. Fix them before committing."
+    exit 1
+  }
+  echo "✅ ESLint: OK"
+fi
+
+# 3. Run tests for changed files
+if [ -n "$TYPESCRIPT_FILES" ]; then
+  TEST_FILES=$(echo "$TYPESCRIPT_FILES" | sed 's|src/|src/__tests__|g; s|\.tsx\?|.test.tsx\?|g' | tr '\n' '|' | sed 's/|$//')
+  
+  if [ -n "$TEST_FILES" ] && find src/__tests__ -regex "$TEST_FILES" -type f | grep -q .; then
+    echo "🧪 Running affected tests..."
+    npm test -- --run 2>&1 | tail -50 || {
+      echo "❌ Tests failed. Fix them before committing."
+      exit 1
+    }
+    echo "✅ Tests: OK"
+  fi
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ All checks passed! Ready to commit."

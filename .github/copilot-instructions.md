@@ -96,6 +96,55 @@ Use P1/P2/P3 in code and internal comments. Use Horizon/Meridian/Compass in publ
 
 ## Standing Instructions (CRITICAL)
 
+### Mandatory Test Workflow (ENFORCED — GUARDRAIL #13)
+
+**EVERY code change affecting behavior MUST include corresponding test updates or new tests. This is non-negotiable.**
+
+**Procedure for ANY functional change:**
+
+1. **BEFORE making code changes** → Search for related tests:
+   ```bash
+   find src/__tests__ -name "*[component/module-name]*"
+   grep -r "functionName\|ComponentName" src/__tests__/
+   ```
+
+2. **IDENTIFY affected test suites** — If a feature changes, which tests verify it?
+   - Rule: If it's testable behavior, there should be a test for it
+   - Rule: Every test file name should match or reference the component/function it tests
+
+3. **UPDATE tests SIMULTANEOUSLY with code changes**:
+   - Tests must pass BEFORE committing
+   - Tests are part of the same atomic commit as the code change
+   - Never commit code changes without updated tests
+
+4. **VERIFY all tests pass**:
+   ```bash
+   npm test -- --run [test-file-pattern]  # Run specific tests
+   npm test -- --run                       # Run ALL tests
+   ```
+
+5. **COMMIT together**:
+   ```bash
+   git add src/components/my-component.tsx src/__tests__/my-component.test.tsx
+   git commit -m "feat: update component X \n\n- Code change: [what changed]\n- Tests: updated Y test cases to reflect new behavior"
+   ```
+
+**Common scenarios:**
+
+| Change | Action | Example |
+|--------|--------|---------|
+| Add new prop to component | Add new test case for prop | `theme-toggle.test.tsx` → add test for new prop |
+| Change default value | Update default test expectation | `theme-provider.test.tsx` → update "defaults to X" test |
+| Fix a bug | Add regression test | `employer-normalization.test.ts` → add case that was failing |
+| Rename function/component | Update all test references | `grep -r "oldName" src/__tests__/` |
+| Remove deprecated code | Remove corresponding tests | Clean up obsolete test cases |
+
+**If no tests exist for the changed code**, CREATE them. This is required before committing.
+
+**Exception:** Config-only changes (robots.txt, sitemap.xml, env vars) don't require tests.
+
+---
+
 ### Deployment (MANDATORY WORKFLOW)
 
 **STAGE-FIRST PROMOTION — Always follow this exactly:**
