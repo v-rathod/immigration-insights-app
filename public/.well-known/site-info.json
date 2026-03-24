@@ -1,0 +1,25 @@
+{
+  "name": "Compass - Immigration Insights & Analytics",
+  "url": "https://immigrationcompass.fyi",
+  "description": "Free immigration data analytics platform for employment-based green card applicants. Provides priority date forecasting, employer sponsorship analysis, salary benchmarks, and USCIS processing time visualization, built on 18.5M+ official US government records.",
+  "category": "Reference and Research",
+  "classification": "Government Data Analytics",
+  "subjects": [
+    "US Immigration",
+    "Green Card",
+    "H-1B Visa",
+    "PERM Labor Certification",
+    "USCIS Processing Times",
+    "Employment-Based Immigration",
+    "Government Data Analytics",
+    "Priority Date Forecasting"
+  ],
+  "audience": "Employment-based green card applicants, H-1B visa holders, immigration attorneys",
+  "data_sources": ["USCIS", "Department of Labor", "Department of State"],
+  "content_rating": "general",
+  "language": "en-US",
+  "coverage": "United States",
+  "privacy_policy": "https://immigrationcompass.fyi/privacy",
+  "terms_of_service": "https://immigrationcompass.fyi/terms",
+  "security_contact": "https://immigrationcompass.fyi/.well-known/security.txt"
+}

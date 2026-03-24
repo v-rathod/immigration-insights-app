@@ -53,6 +53,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "NorthStar Compass" }],
   creator: "NorthStar Compass",
+  publisher: "NorthStar Compass",
+  category: "Reference",
+  classification: "Reference and Research > Government Data > Immigration Analytics",
   icons: {
     icon: [
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
@@ -170,6 +173,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgJsonLd) }}
         />
+        {/* URL categorization signals for web filtering tools (Zscaler, BrightCloud, etc.) */}
+        <meta name="category" content="Reference and Research" />
+        <meta name="classification" content="Government Data Analytics" />
+        <meta name="subject" content="US Immigration Data, Green Card, H-1B, USCIS, Employment-Based Immigration" />
+        <meta name="coverage" content="United States" />
+        <meta name="rating" content="general" />
+        <meta name="revisit-after" content="7 days" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}

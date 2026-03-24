@@ -1,0 +1,21 @@
+/* TEAM */
+Creator: Vivek Rathod
+Contact: vivek.rathod@outlook.com
+Location: United States
+
+/* SITE */
+Name: Compass — Immigration Insights & Analytics
+Description: Free immigration data analytics for employment-based green card applicants. Built on 18.5M+ official US government records from USCIS, DOL, and DOS.
+Category: Reference and Research
+Subject: US Immigration, Green Card, H-1B, PERM, USCIS, Employment-Based Immigration, Government Data Analytics
+Coverage: United States
+Language: English
+URL: https://immigrationcompass.fyi
+Privacy Policy: https://immigrationcompass.fyi/privacy
+Terms of Service: https://immigrationcompass.fyi/terms
+Data Sources: USCIS, Department of Labor (DOL), Department of State (DOS), H-1B Disclosure Data, PERM Labor Certifications, Visa Bulletin
+Last update: 2026-03-23
+
+/* TECHNOLOGY */
+Frontend: Next.js, React, Tailwind CSS
+Hosting: AWS S3 + CloudFront
