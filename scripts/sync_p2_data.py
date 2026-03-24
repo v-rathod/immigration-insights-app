@@ -1270,6 +1270,50 @@ def write_manifest():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def ping_index_now():
+    """Ping Bing/Yandex via IndexNow API to request instant re-crawl of updated URLs."""
+    indexnow_key_file = PROJECT_ROOT / "public" / "1944573556fa4c158c809851157d1392.txt"
+    
+    if not indexnow_key_file.exists():
+        print("⚠️  IndexNow key file not found. Skipping IndexNow ping.")
+        return
+    
+    # Read the key
+    with open(indexnow_key_file, "r") as f:
+        key = f.read().strip()
+    
+    if not key:
+        print("⚠️  IndexNow key is empty. Skipping IndexNow ping.")
+        return
+    
+    # Build list of updated URLs
+    base_url = "https://immigrationcompass.fyi"
+    urls = [
+        f"{base_url}/",
+        f"{base_url}/dashboard/visa-bulletin/",
+        f"{base_url}/dashboard/employer/",
+        f"{base_url}/dashboard/backlog/",
+        f"{base_url}/dashboard/processing/",
+    ]
+    
+    payload = {
+        "host": "immigrationcompass.fyi",
+        "key": key,
+        "keyLocation": f"{base_url}/{key}.txt",
+        "urlList": urls,
+    }
+    
+    try:
+        import requests
+        response = requests.post("https://api.indexnow.org/indexnow", json=payload, timeout=10)
+        if response.status_code == 200:
+            print(f"✅ IndexNow ping successful: {len(urls)} URLs submitted to Bing/Yandex")
+        else:
+            print(f"⚠️  IndexNow ping failed (HTTP {response.status_code}). Retrying later is OK.")
+    except Exception as e:
+        print(f"⚠️  IndexNow ping error: {e}. This won't block the sync.")
+
+
 def main():
     print("=" * 60)
     print("P2 Meridian → P3 Compass Data Sync")
@@ -1305,6 +1349,7 @@ def main():
         sync_rag()
 
     write_manifest()
+    ping_index_now()
     print("\n✅ Sync complete!")
 
 
