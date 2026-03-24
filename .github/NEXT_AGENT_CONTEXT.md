@@ -1,35 +1,55 @@
 # Next Agent Context & Handoff Guide
 
 **Created**: 2026-03-23 after Milestone 16.1 (Employer name normalization comprehensive fix)  
+**Updated**: 2026-03-23 — Multi-environment architecture complete  
 **Purpose**: Quick reference for the next agent starting a session. This supplements but doesn't replace PROGRESS.md, copilot-instructions.md, or ARCHITECTURE.md.
 
 ---
 
 ## Current State Snapshot
 
-**Project Status**: ✅ **Production Quality** — Error monitoring (Sentry + PostHog), employer name normalization, enterprise-grade post-deploy validation.
+**Project Status**: ✅ **Production Quality** — Multi-environment architecture, error monitoring (Sentry + PostHog), employer name normalization, enterprise-grade post-deploy validation.
 
 | Aspect | Status | Details |
 |--------|--------|---------|
-| **Unit Tests** | 1237 passing | 40 files, 3 skipped. +31 new tests this session (8 H1B widgets, 23 prior error monitoring). All real-data assertions pass. |
+| **Unit Tests** | 1237 passing | 40 files, 3 skipped. All real-data assertions pass. |
 | **Post-Deploy: Smoke** | 47 checks | Page loads, bundle integrity, critical data files. |
 | **Post-Deploy: Comprehensive** | 191 tests | 11 sections: pages, search index, shard integrity, dashboard schemas, dimensions, ML models, RAG, cross-refs, SEO, data quality. |
-| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). Built 2026-03-23 13:49. |
+| **Build** | 18 HTML files | 16 pages + 404 variants. Static export (no backend). |
 | **Type Safety** | 0 errors | TypeScript strict mode across all 75+ source files. |
 | **Lint** | 0 errors | ESLint passing. |
-| **Deploy** | Live ✅ | Latest: `c5a7954` deployed to stage @ 14:00. All 238 post-deploy tests pass. |
+| **Stage Deploy** | Live ✅ | Stage: `compass-stage-883107059193` → `stage.immigrationcompass.fyi`. All 238 post-deploy tests pass. |
+| **Prod Deploy** | Empty | Prod bucket `compass-prod-883107059193` exists but no content deployed yet. |
 | **Data** | Fresh | P2 sync complete. 102K employer entries. |
+
+### Multi-Environment Architecture
+
+| Resource | Stage | Prod |
+|----------|-------|------|
+| **URL** | `stage.immigrationcompass.fyi` | `immigrationcompass.fyi` |
+| **S3 Bucket** | `compass-stage-883107059193` | `compass-prod-883107059193` |
+| **CloudFront** | `E1LPLTVZ0035Q5` (`d10immmzyp7xgr.cloudfront.net`) | `EWRFYZRXA7HFE` (`d3sr5zz19rlvju.cloudfront.net`) |
+| **ACM Cert** | `32f7f9f4...` (ISSUED) | `3dbb1567...` (ISSUED) |
+| **Terraform** | Default workspace / `stage.tfvars` | Prod workspace / `prod.tfvars` |
+| **CloudWatch** | `Compass-Stage-Operations` | `Compass-Prod-Operations` |
+
+Route 53 zone `Z08038301M0XIKARMVXCB` shared — owned by prod workspace, referenced by stage.
 
 ---
 
 ## What Happened This Session (2026-03-23, cont'd)
 
-### Milestone 16.0: Production Error Monitoring (Pre-Session)
-- **Implemented**: Sentry + PostHog dual-reporting error monitoring for production SPA
-- **New modules**: `src/lib/monitoring/index.ts` + `src/components/providers/error-monitor.tsx`
-- **Status**: Active in code, ready to activate (awaiting Sentry DSN)
+### Milestone 17.0: Multi-Environment Architecture (THIS SESSION)
+- **Implemented**: Full AWS resource isolation between stage and prod
+- **Terraform refactoring**: dns.tf rewritten with zone ownership model, main.tf cleaned up
+- **New resources**: Stage S3 (`compass-stage-883107059193`), Stage ACM cert, Stage Route 53 records
+- **CloudWatch**: Environment-prefixed dashboards and alarms
+- **GUARDRAILS.md**: Added Commandment #9 (Environment Isolation)
+- **Stage deployed**: 238/238 post-deploy tests passing
+- **Known issue**: Custom domains blocked by Zscaler (corporate proxy); CloudFront URLs work fine
+- **Old bucket**: `compass-immigration-insights-883107059193` cleanup initiated (no longer terraform-managed)
 
-### Milestone 16.1: Employer Name Normalization - Comprehensive Fix + Widget Tests (THIS SESSION @ 14:00)
+### Milestone 16.1: Employer Name Normalization - Comprehensive Fix + Widget Tests
 - **Bug discovered**: Two places missing employer name normalization
   1. WageIntelligenceHub line 389 — Search enrichment lookup
   2. EmployerWageTable line 46 — Trend filtering for sparklines
@@ -37,7 +57,6 @@
 - **Fixed & tested**: 8 new comprehensive test cases verify entire flow works
   - Commit: `c5a7954`
   - Tests: 1237 pass, +8 H1B widget tests
-  - Deploy: Stage @ 14:00
 
 ---
 

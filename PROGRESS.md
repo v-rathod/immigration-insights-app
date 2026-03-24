@@ -6,25 +6,68 @@
 
 ## Session Quick Snapshot (2026-03-23)
 
-**Current Status**: ✅ Production Ready
-- **Unit Tests**: 1206 passing (3 skipped) across 40 files
+**Current Status**: ✅ Production Ready — Multi-Environment Architecture
+- **Unit Tests**: 1237 passing (3 skipped) across 40 files
 - **Post-Deploy Tests**: 238 (47 smoke + 191 comprehensive)
 - **Build**: 18 HTML pages + 95K employer shards
-- **Deploy**: Live on stage CloudFront, all 238 post-deploy tests passing
+- **Stage Deploy**: Live on `compass-stage-883107059193` → `stage.immigrationcompass.fyi`, all 238 tests passing
+- **Prod Deploy**: Infrastructure ready, bucket empty (awaiting first deploy)
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 
 **What's New This Session**:
-- Production error monitoring: Sentry + PostHog dual-reporting (Milestone 16.0)
-- Enhanced PostHog analytics with exact profile field values (prev session)
-- `@sentry/browser` installed, `ErrorMonitor` component, `src/lib/monitoring/` module
-- GUARDRAILS.md updated: Commandment 9 (client-side error monitoring)
+- Multi-environment architecture: Full AWS resource isolation (Milestone 17.0)
+- Stage: `stage.immigrationcompass.fyi` | Prod: `immigrationcompass.fyi`
+- Terraform refactored: zone ownership model, `create_before_destroy` lifecycle
+- GUARDRAILS.md: Commandment #9 (Environment Isolation), #10 (Error Monitoring)
+- ENVIRONMENTS.md: Complete rewrite with isolation documentation
+
+**📊 Go-Live Tracking**: See [.github/GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md) for the 9-phase public launch roadmap with all tasks, checklists, bash commands, and progress tracking.
 
 **Next Agent Starting Point**:
-1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — 9 Non-negotiable rules
-2. Review Milestone 16.0 below for latest context
-3. **Action needed**: Create Sentry account + set `NEXT_PUBLIC_SENTRY_DSN` in `.env.local` and CloudFront env vars
+1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — 10 Non-negotiable rules
+2. Review Milestone 17.0 below for latest context
+3. **Action needed**: Deploy to prod when ready (`bash scripts/deploy.sh --env prod`)
 4. Run `npm test` to validate everything passes
+5. When ready to go public, reference [GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md)
+
+---
+
+## 2026-03-23 — Milestone 17.0: Multi-Environment Architecture
+
+### Objective
+Implement full AWS resource isolation between stage and production environments to achieve zero blast radius, following industry best practices for static site multi-environment deployment.
+
+### Changes
+
+**Terraform Refactoring**:
+- `dns.tf` — Complete rewrite: Zone ownership model (prod creates Route 53 zone, stage references it by ID via `locals.resolved_zone_id`)
+- `main.tf` — Removed duplicate Route 53 records; added CloudFront `aliases` block; environment-prefixed CloudWatch dashboards/alarms; `create_before_destroy` lifecycle on CloudFront function
+- `variables.tf` — Added "stage" to valid environments
+- `stage.tfvars` — New: `compass-stage-883107059193`, `stage.immigrationcompass.fyi`
+- `prod.tfvars` — Cleaned: zone_id empty (creates zone)
+
+**Infrastructure Provisioned**:
+- Stage: S3 `compass-stage-883107059193`, CloudFront `E1LPLTVZ0035Q5`, ACM cert for `stage.immigrationcompass.fyi`
+- Prod: S3 `compass-prod-883107059193`, CloudFront `EWRFYZRXA7HFE`, ACM cert for `immigrationcompass.fyi`
+- Environment-prefixed CloudWatch: `Compass-Stage-Operations`, `Compass-Prod-Operations`
+- Old bucket `compass-immigration-insights-883107059193` orphaned and cleanup initiated
+
+**Deploy Config**:
+- `deploy-envs.conf` — Updated with isolated stage/prod resources
+- `deploy.sh` — Exports both `NEXT_PUBLIC_APP_ENV` and `NEXT_PUBLIC_POSTHOG_KEY` during build
+
+**Documentation**:
+- `ENVIRONMENTS.md` — Major rewrite with isolation architecture, blast radius analysis, promotion flow
+- `GUARDRAILS.md` — Added Commandment #9 (Environment Isolation), renumbered old #9 to #10
+- `GO_LIVE_STATUS.md` — Updated Phase 1 with multi-env architecture details
+- `NEXT_AGENT_CONTEXT.md` — Updated current state, multi-env table
+
+### Verification
+- Stage deployed: 253 main files + 77K employer shards uploaded
+- All 238 post-deploy tests passing (47 smoke + 191 comprehensive)
+- Custom domains: Blocked by Zscaler (corporate proxy); CloudFront direct URLs working
+- 1237 unit tests passing, 0 TypeScript errors, 0 ESLint errors
 
 ---
 

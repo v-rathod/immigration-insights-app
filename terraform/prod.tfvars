@@ -1,19 +1,14 @@
-# Compass: Production Environment (custom domain, future)
+# Compass: Production Environment
 # Usage: terraform workspace select prod && terraform apply -var-file=prod.tfvars
 #
-# INSTRUCTIONS: When you purchase a domain:
-# 1. Update s3_bucket_name to a unique prod bucket name
-# 2. Set domain_name to your domain
-# 3. Set route53_zone_id to your Route 53 hosted zone ID
-# 4. Set create_certificate = true
-# 5. Run: terraform workspace new prod
-#         terraform apply -var-file=prod.tfvars
+# Prod deploys to immigrationcompass.fyi with its own CloudFront + S3.
+# Route 53 zone is OWNED by this workspace (zone_id left empty so dns.tf creates it).
 
 s3_bucket_name     = "compass-prod-883107059193"
 aws_region         = "us-east-1"
 environment        = "prod"
 
-# Custom domain (fill when domain is purchased)
-domain_name        = ""
-route53_zone_id    = ""
-create_certificate = false
+# Root domain for production
+domain_name        = "immigrationcompass.fyi"
+route53_zone_id    = ""  # Empty = zone created in this workspace (prod owns the zone)
+create_certificate = true

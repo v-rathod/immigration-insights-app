@@ -56,7 +56,20 @@ No CSS modules. No styled-components. No inline styles except for dynamic values
 
 **Why**: P3 is the public-facing surface. Every XSS vector, every unsanitized input, every leaked key is a direct user-facing risk.
 
-### 9. Monitor Client-Side Errors in Production
+### 9. Environment Isolation: Zero Blast Radius
+
+Stage and prod run on **completely separate AWS resources**: separate S3 buckets, separate CloudFront distributions, separate ACM certificates, separate CloudWatch dashboards. They share only the AWS account and Route 53 zone.
+
+- **Stage**: `stage.immigrationcompass.fyi` | S3: `compass-stage-883107059193`
+- **Prod**: `immigrationcompass.fyi` | S3: `compass-prod-883107059193`
+
+**Promotion flow**: local dev → stage → prod. Never deploy directly to prod. Always verify on stage first.
+
+**Terraform isolation**: Same `.tf` files, different `.tfvars`, separate workspaces (default = stage, prod = prod). Every resource is tagged with `Environment = stage|prod` for cost allocation.
+
+**Why**: A misconfigured stage deploy cannot take down production. AWS billing is attributable per environment. Blast radius is contained.
+
+### 10. Monitor Client-Side Errors in Production
 
 Every unhandled JavaScript error and promise rejection **must** reach the monitoring dashboard. Use the dual-reporting pattern: Sentry (stack traces, source maps, session replay) + PostHog (`error_occurred` event, session correlation). The `ErrorMonitor` component (`src/components/providers/error-monitor.tsx`) handles this automatically — never remove it.
 

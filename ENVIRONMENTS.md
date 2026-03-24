@@ -2,11 +2,51 @@
 
 ## Environment Overview
 
-| Environment | URL | Purpose | PostHog Tag | Status |
-|-------------|-----|---------|-------------|--------|
-| **dev** | `http://localhost:3000` | Local development | `dev` | Active |
-| **stage** | `d10immmzyp7xgr.cloudfront.net` | Pre-production testing | `stage` | Active |
-| **prod** | Custom domain (TBD) | Public-facing production | `prod` | Planned |
+| Environment | URL | Purpose | PostHog Tag | Terraform | Status |
+|-------------|-----|---------|-------------|-----------|--------|
+| **dev** | `http://localhost:3000` | Local development | `dev` | N/A | Active |
+| **stage** | `https://stage.immigrationcompass.fyi` | Pre-production testing | `stage` | default workspace + `stage.tfvars` | Active |
+| **prod** | `https://immigrationcompass.fyi` | Public-facing production | `prod` | prod workspace + `prod.tfvars` | Active |
+
+## Architecture: Full Environment Isolation
+
+Stage and prod are **completely isolated** in AWS. They share nothing except:
+- The same AWS account (883107059193)
+- The same Route 53 hosted zone (immigrationcompass.fyi, owned by prod workspace)
+
+| Resource | Stage | Prod |
+|----------|-------|------|
+| S3 bucket (site) | `compass-stage-883107059193` | `compass-prod-883107059193` |
+| S3 bucket (logs) | `compass-stage-883107059193-logs` | `compass-prod-883107059193-logs` |
+| CloudFront dist | Separate distribution | Separate distribution |
+| ACM certificate | `stage.immigrationcompass.fyi` | `immigrationcompass.fyi` |
+| CloudFront function | `compass-stage-*-url-rewriter` | `compass-prod-*-url-rewriter` |
+| CloudWatch dashboard | `Compass-Stage-Operations` | `Compass-Prod-Operations` |
+| CloudWatch alarms | `compass-stage-high-4xx-*` | `compass-prod-high-4xx-*` |
+| Terraform state | `terraform.tfstate` (default workspace) | `terraform.tfstate.d/prod/` |
+| Billing tag | `Environment=stage` | `Environment=prod` |
+
+### Blast Radius
+
+| Failure Scenario | Impact |
+|-----------------|--------|
+| Stage S3 bucket deleted | Only stage affected. Prod untouched. |
+| Stage deploy broken | Only stage affected. Redeploy from `out/`. |
+| Prod CloudFront misconfigured | Only prod affected. Stage provides rollback reference. |
+| Terraform apply on wrong workspace | Resources are isolated by bucket name and workspace state. |
+
+### Promotion Flow
+
+```
+Local dev (localhost:3000)
+    ↓ npm test + npm run build
+Stage (stage.immigrationcompass.fyi)
+    ↓ bash scripts/deploy.sh --env stage
+    ↓ Smoke tests + manual verification
+Prod (immigrationcompass.fyi)
+    ↓ bash scripts/deploy.sh --env prod
+    ↓ Post-deploy smoke tests
+```
 
 ## How It Works
 
@@ -41,13 +81,10 @@ All PostHog events from `npm run dev` are tagged `environment: "dev"`.
 
 ## Deploying to Stage
 
-Stage uses the existing AWS infrastructure (S3 bucket + CloudFront distribution).
+Stage uses its own isolated AWS infrastructure at `stage.immigrationcompass.fyi`.
 
 ```bash
 # Full deploy (build + sync + invalidate + verify + smoke tests)
-bash scripts/deploy.sh
-
-# Or explicitly:
 bash scripts/deploy.sh --env stage
 
 # Skip build (deploy existing out/):
@@ -56,42 +93,71 @@ bash scripts/deploy.sh --env stage --skip-build
 
 PostHog events from stage are tagged `environment: "stage"`.
 
-## Deploying to Production (Future)
+## Deploying to Production
 
-When you purchase a domain:
+Prod uses its own isolated AWS infrastructure at `immigrationcompass.fyi`.
 
-### 1. Provision AWS infrastructure
+```bash
+# Full deploy (build + sync + invalidate + verify + smoke tests)
+bash scripts/deploy.sh --env prod
+
+# Skip build (deploy existing out/):
+bash scripts/deploy.sh --env prod --skip-build
+```
+
+PostHog events from prod are tagged `environment: "prod"`.
+
+## Terraform Management
+
+### Workspace Model
+
+Each environment has its own Terraform workspace and `.tfvars` file. The same `.tf` files
+are used for both (DRY principle), with different variable values per environment.
 
 ```bash
 cd terraform
 
-# Create a new Terraform workspace for prod
-terraform workspace new prod
+# Stage
+terraform workspace select default
+terraform plan -var-file=stage.tfvars
+terraform apply -var-file=stage.tfvars
 
-# Edit prod.tfvars with your domain details:
-#   domain_name        = "your-domain.com"
-#   route53_zone_id    = "ZXXXXXXXXXX"
-#   create_certificate = true
-
-# Plan and apply
+# Production
+terraform workspace select prod
 terraform plan -var-file=prod.tfvars
 terraform apply -var-file=prod.tfvars
 ```
 
-### 2. Update deploy config
+### Route 53 Zone Ownership
 
-After `terraform apply` outputs the S3 bucket name and CloudFront distribution ID, update `scripts/deploy-envs.conf`:
+The Route 53 zone for `immigrationcompass.fyi` is **owned by the prod workspace**.
+The stage workspace references it by zone ID to create its subdomain record.
+
+- Prod: Creates the zone + A/AAAA records for `immigrationcompass.fyi`
+- Stage: References the zone by ID + creates A/AAAA records for `stage.immigrationcompass.fyi`
+
+### 2. Deploy config
+
+`scripts/deploy-envs.conf` maps environment names to their isolated AWS resources:
 
 ```conf
+# Stage
+STAGE_S3_BUCKET=compass-stage-883107059193
+STAGE_CF_DIST=<stage-cf-id>
+STAGE_URL=https://stage.immigrationcompass.fyi
+
+# Prod
 PROD_S3_BUCKET=compass-prod-883107059193
-PROD_CF_DIST=EXXXXXXXXXX
-PROD_REGION=us-east-1
-PROD_URL=https://your-domain.com
+PROD_CF_DIST=<prod-cf-id>
+PROD_URL=https://immigrationcompass.fyi
 ```
 
 ### 3. Deploy
 
 ```bash
+# Stage first, always
+bash scripts/deploy.sh --env stage
+# Verify stage.immigrationcompass.fyi works
 bash scripts/deploy.sh --env prod
 ```
 
@@ -105,9 +171,9 @@ PostHog events from prod are tagged `environment: "prod"`.
 | `.env.local.example` | No (gitignored) | Template for `.env.local` |
 | `.env.stage` | Yes | Sets `NEXT_PUBLIC_APP_ENV=stage` |
 | `.env.production` | Yes | Sets `NEXT_PUBLIC_APP_ENV=prod` |
-| `scripts/deploy-envs.conf` | Yes | Maps env names to AWS resources (S3 bucket, CF dist) |
+| `scripts/deploy-envs.conf` | Yes | Maps env names to isolated AWS resources |
 | `terraform/stage.tfvars` | Yes | Terraform variables for stage |
-| `terraform/prod.tfvars` | Yes | Terraform variables for prod (template) |
+| `terraform/prod.tfvars` | Yes | Terraform variables for prod |
 
 ## Terraform Workspaces
 
@@ -116,12 +182,12 @@ Each environment has its own Terraform workspace and `.tfvars` file:
 ```bash
 cd terraform
 
-# Stage (current)
-terraform workspace select default   # or: terraform workspace new stage
+# Stage (default workspace)
+terraform workspace select default
 terraform apply -var-file=stage.tfvars
 
-# Production (future)
-terraform workspace new prod
+# Production
+terraform workspace select prod
 terraform apply -var-file=prod.tfvars
 ```
 

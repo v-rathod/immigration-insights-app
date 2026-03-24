@@ -279,6 +279,10 @@ resource "aws_cloudfront_function" "url_rewriter" {
       return request;
     }
   EOF
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # =============================================================================
@@ -365,6 +369,7 @@ resource "aws_cloudfront_distribution" "site" {
   http_version        = "http2and3"
   price_class         = "PriceClass_100"
   comment             = "Compass Immigration Insights App"
+  aliases             = var.domain_name != "" ? [var.domain_name] : []
 
   # Origin: S3 via OAC
   origin {
@@ -431,7 +436,7 @@ resource "aws_cloudfront_distribution" "site" {
   # HTTPS: CloudFront default cert (no custom domain needed)
   viewer_certificate {
     cloudfront_default_certificate = var.domain_name == ""
-    acm_certificate_arn            = var.domain_name != "" && var.create_certificate ? aws_acm_certificate.cert[0].arn : null
+    acm_certificate_arn            = var.domain_name != "" && var.create_certificate ? aws_acm_certificate_validation.cert[0].certificate_arn : null
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
     minimum_protocol_version       = "TLSv1.2_2021"
   }
@@ -475,28 +480,11 @@ resource "aws_acm_certificate" "cert" {
 }
 
 # =============================================================================
-# Route 53 (optional — only when zone ID + domain provided)
-# =============================================================================
-
-resource "aws_route53_record" "site" {
-  count   = var.domain_name != "" && var.route53_zone_id != "" ? 1 : 0
-  zone_id = var.route53_zone_id
-  name    = var.domain_name
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.site.domain_name
-    zone_id                = aws_cloudfront_distribution.site.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-# =============================================================================
 # CloudWatch Dashboard — Operational Visibility
 # =============================================================================
 
 resource "aws_cloudwatch_dashboard" "compass" {
-  dashboard_name = "Compass-Operations"
+  dashboard_name = "Compass-${title(var.environment)}-Operations"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -606,8 +594,8 @@ resource "aws_cloudwatch_dashboard" "compass" {
 # =============================================================================
 
 resource "aws_cloudwatch_metric_alarm" "high_4xx_rate" {
-  alarm_name          = "compass-high-4xx-error-rate"
-  alarm_description   = "4xx error rate > 10% for 5 minutes"
+  alarm_name          = "compass-${var.environment}-high-4xx-error-rate"
+  alarm_description   = "[${upper(var.environment)}] 4xx error rate > 10% for 5 minutes"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "4xxErrorRate"
@@ -628,8 +616,8 @@ resource "aws_cloudwatch_metric_alarm" "high_4xx_rate" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "high_5xx_rate" {
-  alarm_name          = "compass-high-5xx-error-rate"
-  alarm_description   = "5xx error rate > 1% for 5 minutes"
+  alarm_name          = "compass-${var.environment}-high-5xx-error-rate"
+  alarm_description   = "[${upper(var.environment)}] 5xx error rate > 1% for 5 minutes"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "5xxErrorRate"

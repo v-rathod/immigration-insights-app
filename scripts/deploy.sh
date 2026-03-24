@@ -31,6 +31,7 @@ load_env_config() {
   CF_DIST=$(grep "^${env_upper}_CF_DIST=" "$CONF_FILE" | cut -d= -f2)
   REGION=$(grep "^${env_upper}_REGION=" "$CONF_FILE" | cut -d= -f2)
   DEPLOY_URL=$(grep "^${env_upper}_URL=" "$CONF_FILE" | cut -d= -f2)
+  POSTHOG_KEY=$(grep "^${env_upper}_NEXT_PUBLIC_POSTHOG_KEY=" "$CONF_FILE" | cut -d= -f2)
 
   if [[ -z "$BUCKET" || -z "$CF_DIST" || -z "$REGION" ]]; then
     echo "[deploy] ERROR: Missing config for environment '$1' in $CONF_FILE" >&2
@@ -45,6 +46,7 @@ BUCKET=""
 CF_DIST=""
 REGION=""
 DEPLOY_URL=""
+POSTHOG_KEY=""
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="$PROJECT_DIR/out"
 
@@ -156,9 +158,10 @@ do_build() {
   cd "$PROJECT_DIR"
   rm -rf out .next
 
-  # Set NEXT_PUBLIC_APP_ENV so Next.js bakes the environment into the bundle.
-  # .env.stage / .env.production set it too, but explicit export guarantees it.
+  # Bake environment and analytics key into the bundle at build time.
+  # NEXT_PUBLIC_* vars are inlined by Next.js during static export.
   export NEXT_PUBLIC_APP_ENV="$DEPLOY_ENV"
+  [[ -n "$POSTHOG_KEY" ]] && export NEXT_PUBLIC_POSTHOG_KEY="$POSTHOG_KEY"
   npx next build
 
   BUILD_DURATION=$(_elapsed $BUILD_START)
