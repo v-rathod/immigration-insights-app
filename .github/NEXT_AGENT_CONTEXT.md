@@ -1,7 +1,7 @@
 # Next Agent Context & Handoff Guide
 
 **Created**: 2026-03-23 after Milestone 16.1 (Employer name normalization comprehensive fix)  
-**Updated**: 2026-03-23 — Multi-environment architecture complete  
+**Updated**: 2026-03-24 — Production go-live in progress (Milestone 18.0)  
 **Purpose**: Quick reference for the next agent starting a session. This supplements but doesn't replace PROGRESS.md, copilot-instructions.md, or ARCHITECTURE.md.
 
 ---
@@ -26,20 +26,29 @@
 
 | Resource | Stage | Prod |
 |----------|-------|------|
-| **URL** | `stage.immigrationcompass.fyi` | `immigrationcompass.fyi` |
+| **URL** | `d10immmzyp7xgr.cloudfront.net` (no custom domain) | `immigrationcompass.fyi` |
 | **S3 Bucket** | `compass-stage-883107059193` | `compass-prod-883107059193` |
 | **CloudFront** | `E1LPLTVZ0035Q5` (`d10immmzyp7xgr.cloudfront.net`) | `EWRFYZRXA7HFE` (`d3sr5zz19rlvju.cloudfront.net`) |
-| **ACM Cert** | `32f7f9f4...` (ISSUED) | `3dbb1567...` (ISSUED) |
+| **ACM Cert** | None (removed: Zscaler blocks custom domains) | `3dbb1567...` (ISSUED) |
 | **Terraform** | Default workspace / `stage.tfvars` | Prod workspace / `prod.tfvars` |
 | **CloudWatch** | `Compass-Stage-Operations` | `Compass-Prod-Operations` |
 
-Route 53 zone `Z08038301M0XIKARMVXCB` shared — owned by prod workspace, referenced by stage.
+Route 53 zone `Z08038301M0XIKARMVXCB` owned by prod workspace only. Stage has no DNS/domain.
 
 ---
 
-## What Happened This Session (2026-03-23, cont'd)
+## What Happened This Session (2026-03-24)
 
-### Milestone 17.0: Multi-Environment Architecture (THIS SESSION)
+### Milestone 18.0: Production Go-Live (Phase 2+3) (THIS SESSION)
+- **Stage simplified**: Removed custom domain (Zscaler blocks it), Terraform destroyed 5 resources
+- **URL migration**: All 18+ files updated from CloudFront URL to `immigrationcompass.fyi`
+- **Legal compliance**: Privacy policy (PostHog disclosure), Terms (liability limitation), security.txt
+- **Security headers**: All 7 validated present via CloudFront function
+- **First prod deploy**: Building + uploading (254 main files done, 95K employer shards uploading)
+- **⚠️ Critical**: First deploy used OLD code. Second deploy needed with privacy/terms/URL fixes.
+- **GO_LIVE_STATUS.md**: Phases 1-5 bulk updated
+
+### Milestone 17.0: Multi-Environment Architecture (Previous Session)
 - **Implemented**: Full AWS resource isolation between stage and prod
 - **Terraform refactoring**: dns.tf rewritten with zone ownership model, main.tf cleaned up
 - **New resources**: Stage S3 (`compass-stage-883107059193`), Stage ACM cert, Stage Route 53 records
@@ -283,23 +292,25 @@ immigration-insights-app/
 
 ## Next Session Priorities (If Continuing)
 
-1. **Monitor Deploy**: Keep checking smoke tests are all 47/47 passing.
-2. **Expand Tests**: Cover remaining untested utilities (e.g., search helpers, analytics).
-3. **Performance**: E2E performance tests (Lighthouse, Core Web Vitals).
-4. **Public Launch**: When ready, deploy to prod CloudFront (requires user approval).
-5. **WAF Rules**: If public, apply Azure WAF rules from `.github/` docs.
+1. **Check first prod deploy**: `tail -20 /tmp/prod-deploy2.txt` + `ps aux | grep deploy`
+2. **Verify prod works**: `curl -s -o /dev/null -w "%{http_code}" https://immigrationcompass.fyi/`
+3. **Redeploy prod with updated code**: `bash scripts/deploy.sh --env prod` (includes privacy/URL fixes)
+4. **Redeploy stage**: `bash scripts/deploy.sh --env stage` (updated legal/URL code)
+5. **Run prod smoke tests**: Verify 238/238 pass on production
+6. **Update docs**: Finalize PROGRESS.md and NEXT_AGENT_CONTEXT.md after deploys succeed
 
 ---
 
 ## Contact / Resources
 
-- **Current Deploy**: `d10immmzyp7xgr.cloudfront.net`
+- **Prod Deploy**: `https://immigrationcompass.fyi` (deploying)
+- **Stage Deploy**: `d10immmzyp7xgr.cloudfront.net`
 - **Local Dev**: http://localhost:3000 (when `npm run dev` is running)
-- **Test Command**: `npm test` (1206 tests)
+- **Test Command**: `npm test` (1237 tests)
 - **Build Command**: `npm run build` (18 HTML pages)
 - **CI/CD**: GitHub Actions (checks before merge)
 
 ---
 
-**Last Updated**: 2026-03-22 20:30 UTC  
-**Next Agent**: Read this file first (5 min), then start with PROGRESS.md Milestone 12.0 for full context.
+**Last Updated**: 2026-03-24  
+**Next Agent**: Read this file first (5 min), then check if prod deploy is done. Reference GO_LIVE_STATUS.md for phase tracking.

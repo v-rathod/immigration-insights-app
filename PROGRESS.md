@@ -4,32 +4,82 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-23)
+## Session Quick Snapshot (2026-03-24)
 
-**Current Status**: ✅ Production Ready — Multi-Environment Architecture
+**Current Status**: 🚀 First Production Deploy In Progress
 - **Unit Tests**: 1237 passing (3 skipped) across 40 files
 - **Post-Deploy Tests**: 238 (47 smoke + 191 comprehensive)
 - **Build**: 18 HTML pages + 95K employer shards
-- **Stage Deploy**: Live on `compass-stage-883107059193` → `stage.immigrationcompass.fyi`, all 238 tests passing
-- **Prod Deploy**: Infrastructure ready, bucket empty (awaiting first deploy)
+- **Stage Deploy**: Live on `d10immmzyp7xgr.cloudfront.net` (no custom domain, CloudFront direct)
+- **Prod Deploy**: First deploy running (~50% employer shards uploaded), needs second deploy with updated code
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 
 **What's New This Session**:
-- Multi-environment architecture: Full AWS resource isolation (Milestone 17.0)
-- Stage: `stage.immigrationcompass.fyi` | Prod: `immigrationcompass.fyi`
-- Terraform refactored: zone ownership model, `create_before_destroy` lifecycle
-- GUARDRAILS.md: Commandment #9 (Environment Isolation), #10 (Error Monitoring)
-- ENVIRONMENTS.md: Complete rewrite with isolation documentation
+- Stage simplified: removed custom domain (Zscaler blocks it), using CloudFront URL only
+- All canonical URLs migrated to `https://immigrationcompass.fyi` (18+ files)
+- Legal compliance: Privacy policy (PostHog disclosure), Terms (liability limitation), security.txt
+- Security headers validated (7/7), data attribution verified
+- GO_LIVE_STATUS.md: Phases 1-5 bulk update with completed work
+- First production deploy launched (Milestone 18.0)
 
 **📊 Go-Live Tracking**: See [.github/GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md) for the 9-phase public launch roadmap with all tasks, checklists, bash commands, and progress tracking.
 
 **Next Agent Starting Point**:
-1. **Read [GUARDRAILS.md](.github/GUARDRAILS.md) first** — 10 Non-negotiable rules
-2. Review Milestone 17.0 below for latest context
-3. **Action needed**: Deploy to prod when ready (`bash scripts/deploy.sh --env prod`)
-4. Run `npm test` to validate everything passes
-5. When ready to go public, reference [GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md)
+1. **Check if first prod deploy finished**: `tail -20 /tmp/prod-deploy2.txt` and `ps aux | grep deploy`
+2. **Verify prod works**: `curl -s -o /dev/null -w "%{http_code}" https://immigrationcompass.fyi/`
+3. **Redeploy prod with updated code**: Current prod deploy has OLD code (pre-privacy/URL fixes). Must run `bash scripts/deploy.sh --env prod` again.
+4. **Redeploy stage**: `bash scripts/deploy.sh --env stage` to get updated legal/URL code
+5. Run `npm test` to validate everything passes
+
+---
+
+## 2026-03-24 — Milestone 18.0: Production Go-Live (Phase 2+3)
+
+### Objective
+Complete legal compliance (Phase 2), migrate all canonical URLs to production domain, simplify stage environment, and deploy to production.
+
+### Changes
+
+**Stage Simplification**:
+- Removed custom domain from stage (Zscaler corporate proxy blocks custom domains)
+- `terraform/stage.tfvars`: `domain_name=""`, `create_certificate=false`
+- Terraform applied: 5 resources destroyed (ACM cert, DNS records, CloudFront aliases)
+- Stage now accessible only via CloudFront URL: `https://d10immmzyp7xgr.cloudfront.net`
+
+**Production URL Migration** (18+ files):
+- `src/app/layout.tsx` + 13 route layout.tsx files: SITE_URL → `https://immigrationcompass.fyi`
+- `src/app/dashboard/wage/page.tsx`, `src/app/dashboard/approvals/page.tsx`: OG/canonical URLs updated
+- `public/robots.txt`: sitemap URL + comment updated
+- `public/sitemap.xml`: all 27 URLs + lastmod dates updated
+- `scripts/smoke-test.mjs`: fallback URL updated
+
+**Legal Compliance (Phase 2)**:
+- `src/app/privacy/page.tsx`: Disclosed PostHog analytics (was falsely claiming "no analytics trackers")
+- `src/app/terms/page.tsx`: Added "Limitation of Liability" section with explicit liability waiver
+- `public/.well-known/security.txt`: NEW file (contact, expiry, canonical, policy)
+- Security headers: All 7 verified present via CloudFront function
+- Data attribution: Verified comprehensive on about page + footer
+
+**GO_LIVE_STATUS.md**: Bulk update marking Phases 1-5 progress
+
+### Infrastructure State
+| Resource | Stage | Prod |
+|----------|-------|------|
+| URL | `d10immmzyp7xgr.cloudfront.net` | `immigrationcompass.fyi` |
+| S3 | `compass-stage-883107059193` | `compass-prod-883107059193` |
+| CloudFront | `E1LPLTVZ0035Q5` | `EWRFYZRXA7HFE` |
+| Custom Domain | None (removed) | `immigrationcompass.fyi` |
+| ACM Cert | None | `3dbb1567...` (ISSUED) |
+
+### Verification
+- 1237 unit tests passing, 0 TypeScript errors, 0 ESLint errors
+- Stage terraform apply: SUCCESS (5 resources destroyed cleanly)
+- Stage HTTP 200 verified on CloudFront URL
+- First prod deploy: Build complete (18 pages, 152s), main files uploaded (254), employer shards uploading
+
+### ⚠️ Critical Note
+First prod deploy was built BEFORE the privacy/terms/URL code changes. A second prod deploy is required after the first one completes to push the updated code.
 
 ---
 
