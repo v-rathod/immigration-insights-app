@@ -623,9 +623,11 @@ describe("VisaBulletinPage", () => {
     // Switch to Philippines which has no data
     const phlButton = await screen.findByRole("button", { name: "Philippines" });
     fireEvent.click(phlButton);
-    expect(
-      screen.getByText(/No data for EB2/i)
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText(/No data for EB2/i)
+      ).toBeInTheDocument();
+    });
   });
 
   it("renders sublabels for prediction cards after entering PD", async () => {
