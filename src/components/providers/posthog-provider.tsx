@@ -17,6 +17,7 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, Suspense } from "react";
+import { getEnvironment } from "@/lib/env";
 
 // ---------------------------------------------------------------------------
 // Helper: read page weight + resource transfer sizes from the Performance API
@@ -150,10 +151,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     // Register super properties so ALL events (custom + autocapture)
     // get tagged with environment for filtering.
-    // NEXT_PUBLIC_APP_ENV is set per deployment: dev | stage | prod.
-    // Super properties are attached to every event automatically.
-    const environment =
-      process.env.NEXT_PUBLIC_APP_ENV ?? (process.env.NODE_ENV === "production" ? "prod" : "dev");
+    const environment = getEnvironment();
     posthog.register({ environment });
   }, []);
 

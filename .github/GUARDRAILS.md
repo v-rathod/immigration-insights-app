@@ -26,11 +26,20 @@ No `any`. No unexplained type assertions. All P2 artifact schemas typed in `src/
 
 **Why**: TypeScript strict mode catches an entire class of bugs at compile time. Every `any` is a hole in the safety net.
 
-### 4. Deploy Only Via deploy.sh
+### 4. Deploy Only Via deploy.sh or promote-to-prod.sh
 
-**ALWAYS use `bash scripts/deploy.sh`**. NEVER run `aws s3 sync` directly. The deploy script uses `--exact-timestamps` to prevent stale HTML with mismatched CSS/JS bundle hashes. It runs pre-flight checks and post-deploy smoke tests.
+**ALWAYS deploy through one of these two scripts:**
+- `bash scripts/deploy.sh` — stage deploy (default) or rebuild + deploy for a specific env
+- `bash scripts/promote-to-prod.sh` — **preferred for prod** — stage-gated, artifact-promoted, smoke-tested
 
-**Why**: Direct S3 sync can leave stale HTML files referencing deleted JS bundles, producing blank white pages in production.
+**NEVER run these directly:**
+- `aws s3 sync` — bypasses CloudFront invalidation, kills the site
+- `aws s3 cp` — same risk
+- Manual file edits in AWS Console
+
+The deploy script uses `--exact-timestamps` to prevent stale HTML with mismatched CSS/JS bundle hashes. It runs pre-flight checks, waits for CloudFront invalidation to complete, and verifies with post-deploy smoke tests. `promote-to-prod.sh` adds a stage-health gate before touching prod and promotes employer shards server-side (no local download of 95 K files).
+
+**Why**: Direct S3 sync has caused a blank production site twice. It omits CloudFront invalidation, leaving cached stale HTML that references deleted JS bundles. Every deploy must go through the script.
 
 ### 5. Client-Side Interactivity Only
 
@@ -97,7 +106,14 @@ If `NEXT_PUBLIC_SENTRY_DSN` is absent, Sentry silently no-ops — dev and test e
 3. **Deploy to stage** (`bash scripts/deploy.sh` — auto-deploys to stage by default)
 4. **Manual verification on stage** — User manually tests the changes on `stage.immigrationcompass.fyi`
 5. **Get explicit approval** — Agent asks user "Verify stage is working, approve prod deployment?"
-6. **Deploy to prod** (`bash scripts/deploy.sh --env prod` — only after user approval)
+6. **Deploy to prod** (`bash scripts/promote-to-prod.sh` — preferred: gates on stage health, promotes shards server-side, rebuilds with prod env vars; OR `bash scripts/deploy.sh --env prod` — full rebuild from scratch)
+
+**Artifact Promotion Model** (`promote-to-prod.sh`):
+- Verifies stage smoke tests pass before touching prod
+- Promotes 95 K employer shards via server-side S3-to-S3 copy (no local download, ~30 s)
+- Rebuilds the main site with `NEXT_PUBLIC_APP_ENV=prod` (same git + same data, ~2 min)
+- Then calls `deploy.sh --skip-build` for CloudFront invalidation + verification + smoke tests
+- **Effectively guarantee**: if stage is green today and you run `promote-to-prod.sh` immediately after, prod receives the same artifact that passed stage testing
 
 **Exception for Config-Only Changes:**
 - For changes that are purely configuration (meta tags, robots.txt, environment variables, headers) and **cannot be meaningfully tested**, you may skip user stage testing

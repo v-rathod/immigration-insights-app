@@ -1,3 +1,5 @@
+import { getEnvironment } from "@/lib/env";
+
 /**
  * Client-side error monitoring via Sentry.
  *
@@ -30,9 +32,7 @@ export function initSentry(): void {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
   if (!dsn) return; // Silently no-op if DSN not configured
 
-  const environment =
-    process.env.NEXT_PUBLIC_APP_ENV ??
-    (process.env.NODE_ENV === "production" ? "prod" : "dev");
+  const environment = getEnvironment();
 
   Sentry.init({
     dsn,

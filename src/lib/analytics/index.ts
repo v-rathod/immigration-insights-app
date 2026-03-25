@@ -1,3 +1,5 @@
+import { getEnvironment } from "@/lib/env";
+
 /**
  * Analytics utility for NorthStar Compass (P3)
  *
@@ -49,11 +51,7 @@ export type PageName =
  */
 function capture(event: string, props?: Record<string, unknown>) {
   try {
-    const environment =
-      process.env.NEXT_PUBLIC_APP_ENV ??
-      (typeof window !== "undefined" && process.env.NODE_ENV === "production"
-        ? "prod"
-        : "dev");
+    const environment = getEnvironment();
     posthog.capture(event, { environment, ...props });
   } catch {
     // PostHog not yet initialised (SSR) — silently swallow

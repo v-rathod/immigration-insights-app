@@ -4,29 +4,35 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-24)
+## Session Quick Snapshot (2026-03-25)
 
-**Current Status**: ✅ **PRODUCTION LIVE** — All tests passing, Zscaler approved, fully operational
-- **Unit Tests**: 1237 passing (3 skipped) across 40 files ✅
+**Current Status**: ✅ **PRODUCTION LIVE** — Deployment stability hardened, artifact promotion ready
+- **Unit Tests**: 1224 passing (32 skipped) across 41 files ✅ (+16 env detection tests)
 - **Post-Deploy Tests**: 238/238 passing (47 smoke + 191 comprehensive) ✅
 - **Build**: 18 HTML pages + 95K employer shards ✅
 - **Stage Deploy**: Live & verified on `d10immmzyp7xgr.cloudfront.net` ✅
 - **Prod Deploy**: Live & verified on `https://immigrationcompass.fyi` ✅
-- **Zscaler Status**: Approved! Corporate network access confirmed (2026-03-24) ✅
 - **TypeScript**: Strict mode, 0 errors ✅
 - **ESLint**: 0 errors ✅
 
 **What's New This Session**:
-- Stage simplified: removed custom domain (Zscaler blocks it), using CloudFront URL only
-- All canonical URLs migrated to `https://immigrationcompass.fyi` (18+ files)
-- Legal compliance: Privacy policy (PostHog disclosure), Terms (liability limitation), security.txt
-- Security headers validated (7/7), data attribution verified
-- Schema.org JSON-LD enhanced: SearchAction, dates, images added
-- Sitemap parsing error fixed: removed duplicate entries and XML comments
-- Facebook cache cleared: meta tags updated and live
-- GO_LIVE_STATUS.md: Phases 1-5 complete
-- Production deploy completed with all tests passing (Milestone 18.0)
-- **NEW**: Zscaler approved site access (corporate network unblocking) (Milestone 19.0)
+- Root cause fix: `animations.tsx` blank-page bug (useMounted pattern — SSR renders visible content)
+- `browser-smoke-test.mjs`: accepts URL arg, https support, FAQ page, timing fix (commit `6e5b52f`)
+- `smoke-test.mjs`: FAQ page check added
+- **NEW**: `src/lib/env.ts` — `getEnvironment()` with hostname-based detection (enables artifact promotion)
+- **NEW**: `scripts/promote-to-prod.sh` — stage-gated, shard-promoted, prod-rebuilt deployment script
+- **NEW**: `src/__tests__/env.test.ts` — 16 tests for env detection
+- **Updated**: GUARDRAILS.md Commandments #4 and #11 — promote-to-prod.sh doctrine
+
+**Next Agent Starting Point**:
+1. **✅ Stage is current** — 15/15 pages HTTP 200 after `6e5b52f` commit + CF invalidation
+2. **✅ Prod is current** — `6e5b52f` not yet deployed to prod (pending user approval)
+3. **Stage deploy**: `bash scripts/deploy.sh` (deploys to stage, runs smoke tests)
+4. **Prod deploy**: `bash scripts/promote-to-prod.sh` (after user approves stage)
+5. See GO_LIVE_STATUS.md Phases 4-9 for continued rollout
+
+---
+
 
 **📊 Go-Live Tracking**: See [.github/GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md) for the 9-phase public launch roadmap with all tasks, checklists, bash commands, and progress tracking.
 
@@ -36,6 +42,72 @@
 3. **✅ All deploys completed**: Prod + Stage fully deployed with latest code
 4. **Next**: Monitor Phase 4-5 (SEO, analytics dashboards, backlink building)
 5. See GO_LIVE_STATUS.md Phases 4-9 for continued rollout
+
+---
+
+## 2026-03-25 — Milestone 20.0: Deployment Stability + Artifact Promotion
+
+### Objective
+Diagnose and permanently fix the root causes of stage going blank after deploy. Design a deployment model that gives confidence that if stage works, prod will work with the same reliability.
+
+### Root Causes Fixed (commit `6e5b52f`)
+
+**1. Framer Motion blank-page bug** (`src/components/ui/animations.tsx`):
+- Root cause: All animations used `initial={{ opacity: 0 }}` with no fallback
+- If JS mismatch or slow hydration, all page content was invisible
+- Fix: `useMounted()` hook — SSR renders a plain visible `<div>`, Framer Motion only activates after hydration
+- Pattern: `const mounted = useMounted(); if (!mounted) return <div className={className}>{children}</div>;`
+
+**2. Smoke test hardcoded to localhost** (`scripts/browser-smoke-test.mjs`):
+- Root cause: `const BASE_URL = "http://localhost:3000"` — URL argument was accepted but never read
+- Stage was never actually tested post-deploy; failures were invisible
+- Fix: `const BASE_URL = process.env.SMOKE_TEST_URL ?? process.argv[2] ?? "http://localhost:3000"`, `import https from 'https'`, protocol-based client selection, `timeMslowMs` typo fixed to `loadTimeMs`
+- FAQ page added, timeout bumped to 8000ms
+
+**3. FAQ page missing from smoke tests** (`scripts/smoke-test.mjs`):
+- Fix: Added `/faq/` entry with `minSize: 5_000`
+
+### New Capabilities (commit — this session)
+
+**Hostname-based env detection** (`src/lib/env.ts`):
+- New `getEnvironment()` utility: checks `window.location.hostname` first (runtime truth)
+- `immigrationcompass.fyi` → "prod", `localhost` → "dev", anything else → "stage"
+- Hostname check overrides `NEXT_PUBLIC_APP_ENV` build-time value
+- Enables artifact promotion: same bundle works on both stage/prod with correct env tagging
+- Updated: `src/lib/analytics/index.ts`, `src/lib/monitoring/index.ts`, `src/components/providers/posthog-provider.tsx`
+
+**Artifact promotion** (`scripts/promote-to-prod.sh`):
+- Stage-health gate: verifies stage S3 index.html + _search.json size + smoke tests pass
+- Shard promotion: `aws s3 sync s3://stage/employers/ s3://prod/employers/ --size-only` (server-side, ~30s)
+- Prod rebuild: `NEXT_PUBLIC_APP_ENV=prod npx next build` (~2 min, same code + data = deterministic output)
+- Delegates: `deploy.sh --env prod --skip-build` (CF invalidation + S3 verify + smoke tests)
+- Net: prod gets validated stage data + freshly built prod-tagged bundle, all in ~5 min total
+
+**GUARDRAILS updated**:
+- Commandment #4: Expanded to name both `deploy.sh` and `promote-to-prod.sh`, explicitly list forbidden commands (`aws s3 sync`, `aws s3 cp`, Console edits)
+- Commandment #11: Added artifact promotion model and `promote-to-prod.sh` as preferred prod deployment method
+
+### Tests
+
+**New**: `src/__tests__/env.test.ts` — 16 tests for `getEnvironment()`:
+- Hostname detection: prod domain, www prefix, localhost, 127.0.0.1, LAN IP, stage CF domain, stage subdomain, unknown domain (safe default)
+- Artifact promotion scenario: bundle built with NEXT_PUBLIC_APP_ENV=stage, served from prod hostname → returns "prod"
+- SSR fallback: all valid NEXT_PUBLIC_APP_ENV values, invalid value handling, NODE_ENV fallback
+
+**All tests**: 1224 passing / 32 skipped / 41 files — 0 failures ✅
+
+### Files Modified
+- `src/components/ui/animations.tsx` — useMounted() blank-page fix (commit `6e5b52f`)
+- `src/lib/env.ts` — NEW: getEnvironment() with hostname detection
+- `src/lib/analytics/index.ts` — use getEnvironment()
+- `src/lib/monitoring/index.ts` — use getEnvironment()
+- `src/components/providers/posthog-provider.tsx` — use getEnvironment()
+- `scripts/promote-to-prod.sh` — NEW: artifact promotion script
+- `scripts/browser-smoke-test.mjs` — URL arg + https + FAQ (commit `6e5b52f`)
+- `scripts/smoke-test.mjs` — FAQ page (commit `6e5b52f`)
+- `.github/GUARDRAILS.md` — Commandments #4, #11 updated
+- `src/__tests__/env.test.ts` — NEW: 16 env detection tests
+- `PROGRESS.md` — this entry
 
 ---
 
