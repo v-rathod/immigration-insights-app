@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+.pytest_cache/
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -41,6 +44,10 @@ yarn-error.log*
 
 # Terraform secrets (credentials, API keys)
 *.secrets.tfvars
+terraform/tfplan
+
+# Deploy logs
+deploy*.log
 
 # vercel
 .vercel

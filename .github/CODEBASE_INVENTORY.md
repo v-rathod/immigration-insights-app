@@ -33,8 +33,8 @@ find src/__tests__ -name "*.test.*" | wc -l  # Update test file count
 
 ## Snapshot Metadata
 
-- **Generated**: 2026-03-20 14:35
-- **Total Files**: 75+ source files + 32 tests + 2 E2E specs
+- **Generated**: 2026-03-25
+- **Total Files**: 75+ source files + 42 tests + 3 E2E specs
 - **Lines of Code**: ~15,000 (src/) + ~8,000 (tests)
 - **Language**: TypeScript (strict mode)
 - **Framework**: Next.js 16 (App Router, static export)

@@ -13,7 +13,7 @@ P1: Horizon               P2: Meridian              P3: Compass (This Project)
 Data Collection      →    Analytics & ML         →    Web Dashboard
 ├ Fetch PDFs              ├ Build forecasts         ├ Static Next.js site
 ├ Parse tables            ├ Compute scores          ├ 9 interactive dashboards
-└ Store raw data          └ Generate artifacts      └ 948+ regression tests
+└ Store raw data          └ Generate artifacts      └ 1,265+ regression tests
 ```
 
 **Program Overview:** [NORTHSTAR_VISION.md](../northstar-docs/NORTHSTAR_VISION.md) • **Guardrails:** [GUARDRAILS.md](../northstar-docs/GUARDRAILS.md) • **Setup Guide:** [SETUP_GUIDE.md](../northstar-docs/SETUP_GUIDE.md) • **Best Practices:** [BEST_PRACTICES.md](../northstar-docs/BEST_PRACTICES.md)
@@ -24,7 +24,7 @@ Data Collection      →    Analytics & ML         →    Web Dashboard
 
 > **Immigration Insights App** — the user experience layer of the NorthStar program
 
-[![Tests](https://img.shields.io/badge/tests-1206%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1265%20passing-brightgreen)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 [![Dashboards](https://img.shields.io/badge/dashboards-9%2B%2B-brightgreen)]()
@@ -163,10 +163,10 @@ Translates Meridian's curated models into personalized guidance: When will my pr
 
 - See [PROGRESS.md](PROGRESS.md) for full milestone history and current status.
 - Snapshot highlights:
-  - **P3 (Compass)**: 9 dashboards live, shard-based employer data architecture (95K+ shards), employer name normalization (ALL-CAPS→Title Case), Optum regression suite; **601/601 tests passing**.
-  - **P2 (Meridian)**: All 46 artifacts + 341 RAG chunks exported; **562/562 tests passing**.
+  - **P3 (Compass)**: 9 dashboards live, shard-based employer data architecture (95K+ shards), employer name normalization (ALL-CAPS→Title Case), Optum regression suite; **1,265/1,265 tests passing**.
+  - **P2 (Meridian)**: All 46 artifacts + 341 RAG chunks exported.
   - **Data freshness**: Last synced from P2 on 2026-03-11 (check `public/data/employers/_freshness.json`).
-  - **AWS deployment**: Live at `https://d10immmzyp7xgr.cloudfront.net` · Deploy via `bash scripts/deploy.sh --skip-build`.
+  - **AWS deployment**: Live at `https://immigrationcompass.fyi` · Deploy via `bash scripts/deploy.sh` (stage) or `bash scripts/promote-to-prod.sh` (prod).
 
 ┌─────────────────────────────────────────────────────────────┐
 │                    NorthStar Program                        │
@@ -218,10 +218,11 @@ next build → out/        (Pure HTML/CSS/JS, 18 pages)
         │
         ▼
 S3 + CloudFront          (Static hosting, ~$1–3/mo)
-https://d10immmzyp7xgr.cloudfront.net
+https://immigrationcompass.fyi (prod)
+https://stage.immigrationcompass.fyi (stage)
 ```
 
-### Artifact Inventory (as of 2026-02-27)
+### Artifact Inventory (as of 2026-03-25)
 
 - **Dimensions (6):** `dim_country`, `dim_soc`, `dim_area`, `dim_employer`, `dim_visa_ceiling`, `dim_visa_class`
 - **Fact Tables (18):** `fact_perm`, `fact_lca`, `fact_oews`, `fact_cutoffs`, `fact_h1b_employer_hub`, `fact_niv_issuance`, `fact_visa_issuance`, `fact_visa_applications`, `fact_perm_unique_case`, `fact_perm_all`, `fact_cutoffs_all`, `fact_uscis_approvals`, `fact_dhs_admissions`, `fact_waiting_list`, `fact_warn_events`, `fact_bls_ces`, `fact_processing_times`, `fact_trac_adjudications`
@@ -401,8 +402,8 @@ No Lambda, no database, no API Gateway, no EC2.
 | Environment | URL | `NEXT_PUBLIC_APP_ENV` |
 |-------------|-----|----------------------|
 | **Dev** | `http://localhost:3000` | `dev` |
-| **Stage** | `https://d10immmzyp7xgr.cloudfront.net` | `stage` |
-| **Prod** | Custom domain (TBD) | `prod` |
+| **Stage** | `https://stage.immigrationcompass.fyi` | `stage` |
+| **Prod** | `https://immigrationcompass.fyi` | `prod` |
 
 ```bash
 # Deploy to stage (default)
@@ -423,7 +424,7 @@ Three-layer verification ensures deployments are safe:
 
 ### 1. Pre-Deploy Gate: `CI` Workflow
 Runs on every push to `main`/`dev` and every PR to `main`. Blocks merges if any fail:
-- **Unit tests** — 601 tests via Vitest (components, data loaders, security, rendering)
+- **Unit tests** — 1,265 tests via Vitest (components, data loaders, security, rendering)
 - **TypeScript check** — strict mode, catches type regressions
 - **ESLint** — enforces code conventions
 
@@ -438,10 +439,10 @@ npm run smoke                          # Against prod CloudFront
 SMOKE_TEST_URL=http://localhost:3000 npm run smoke  # Against local dev server
 ```
 
-**What it checks (37 total):**
+**What it checks (48 total):**
 - 15 pages return HTTP 200 ✓
 - Employer search index (`_search.json`, 14MB) exists and is correct size ✓
-- 22 critical data files accessible at expected sizes ✓
+- Critical data files accessible at expected sizes ✓
 - `_freshness.json` contains valid `synced_at` timestamp ✓
 - `srs_overview.json` has valid employer counts ✓
 
@@ -496,7 +497,7 @@ bash scripts/deploy.sh --env stage
 # Deploy without rebuilding
 bash scripts/deploy.sh --env stage --skip-build
 
-# Stage URL: https://d10immmzyp7xgr.cloudfront.net
+# Stage URL: https://stage.immigrationcompass.fyi
 ```
 
 > **Never run `aws s3 sync` directly.** Always use `scripts/deploy.sh` which handles `--exact-timestamps` and post-deploy smoke tests.

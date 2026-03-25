@@ -34,7 +34,7 @@
 ## Design System — "Aurora"
 
 ### Aesthetic
-**Linear / Vercel / Raycast-inspired** — dark-first, glassmorphism, fluid micro-interactions, bold typography. Award-winning modern sleek UI.
+**Linear / Vercel / Raycast-inspired** — light-first, glassmorphism, fluid micro-interactions, bold typography. Award-winning modern sleek UI.
 
 ### Color Tokens (CSS variables in `src/app/globals.css`)
 ```
@@ -76,7 +76,7 @@ Every pixel must justify its existence. The UI should feel like it was crafted b
 - **Clarity over cleverness** — Data should be immediately comprehensible
 - **Generous whitespace** — Let content breathe; never crowd
 - **Purposeful animation** — Every motion communicates state change, never decorative
-- **Dark-first luxury** — The dark theme is the primary experience; it should feel premium
+- **Light-first clarity** — The light theme is the primary experience; dark mode is fully supported via toggle
 - **Glass and depth** — Glassmorphic layers create visual hierarchy without heavy borders
 - **Typography hierarchy** — Geist Sans for UI text, Geist Mono for data/numbers; clear size steps
 - **Color restraint** — Use accent colors sparingly and meaningfully; gradient text for headlines only

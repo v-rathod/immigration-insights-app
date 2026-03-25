@@ -28,12 +28,12 @@ npm test 2>&1 | grep -E 'passing|failing'
 
 ---
 
-## Test Status (Updated 2026-03-22)
+## Test Status (Updated 2026-03-25)
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Tests** | 1,206 (3 skipped) | ✅ All passing |
-| **Test Files** | 41 | ✅ +2 new: comprehensive-widgets, anchor-real-data |
+| **Total Tests** | 1,265 (3 skipped) | ✅ All passing |
+| **Test Files** | 42 | ✅ |
 | **E2E Tests** | ~55 (3 files) + visual regression | ✅ Mobile-first + visual |
 | **Visual Tests** | 93 (1 file, 90 PNG baselines) | ✅ Expanded from 22 last session |
 | **Unit Tests** | ~750+ | ✅ Components + utilities + data helpers |

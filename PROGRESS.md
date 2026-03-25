@@ -6,42 +6,47 @@
 
 ## Session Quick Snapshot (2026-03-25)
 
-**Current Status**: ✅ **PRODUCTION LIVE** — Deployment stability hardened, artifact promotion ready
-- **Unit Tests**: 1224 passing (32 skipped) across 41 files ✅ (+16 env detection tests)
-- **Post-Deploy Tests**: 238/238 passing (47 smoke + 191 comprehensive) ✅
-- **Build**: 18 HTML pages + 95K employer shards ✅
-- **Stage Deploy**: Live & verified on `d10immmzyp7xgr.cloudfront.net` ✅
-- **Prod Deploy**: Live & verified on `https://immigrationcompass.fyi` ✅
-- **TypeScript**: Strict mode, 0 errors ✅
-- **ESLint**: 0 errors ✅
-
-**What's New This Session**:
-- Root cause fix: `animations.tsx` blank-page bug (useMounted pattern — SSR renders visible content)
-- `browser-smoke-test.mjs`: accepts URL arg, https support, FAQ page, timing fix (commit `6e5b52f`)
-- `smoke-test.mjs`: FAQ page check added
-- **NEW**: `src/lib/env.ts` — `getEnvironment()` with hostname-based detection (enables artifact promotion)
-- **NEW**: `scripts/promote-to-prod.sh` — stage-gated, shard-promoted, prod-rebuilt deployment script
-- **NEW**: `src/__tests__/env.test.ts` — 16 tests for env detection
-- **Updated**: GUARDRAILS.md Commandments #4 and #11 — promote-to-prod.sh doctrine
-
-**Next Agent Starting Point**:
-1. **✅ Stage is current** — 15/15 pages HTTP 200 after `6e5b52f` commit + CF invalidation
-2. **✅ Prod is current** — `6e5b52f` not yet deployed to prod (pending user approval)
-3. **Stage deploy**: `bash scripts/deploy.sh` (deploys to stage, runs smoke tests)
-4. **Prod deploy**: `bash scripts/promote-to-prod.sh` (after user approves stage)
-5. See GO_LIVE_STATUS.md Phases 4-9 for continued rollout
+**Current Status**: **MILESTONE 21.0 FREEZE POINT** — Production and Stage stable
+- **Unit Tests**: 1,265 passing (3 skipped) across 42 files
+- **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
+- **Build**: 19 HTML pages + 95,151 employer shards
+- **Stage**: `https://stage.immigrationcompass.fyi` (basic auth)
+- **Prod**: `https://immigrationcompass.fyi` (public, live traffic)
+- **TypeScript**: Strict mode, 0 errors
+- **ESLint**: 0 errors
+- **PD Forecast**: v2.2 (V1 deleted)
+- **Theme**: Light-first (dark/system via toggle)
 
 ---
 
+## 2026-03-25 — Milestone 21.0: Freeze Point
 
-**📊 Go-Live Tracking**: See [.github/GO_LIVE_STATUS.md](.github/GO_LIVE_STATUS.md) for the 9-phase public launch roadmap with all tasks, checklists, bash commands, and progress tracking.
+### V1 PD Forecast Cleanup
+- Deleted `pd_forecast.py` (V1 model) from P2
+- Promoted `pd_forecast_v2.py` outputs to standard names (`pd_forecasts.parquet`, `pd_forecast_model.json`)
+- Removed V2-to-V1 rename mappings in P3 `sync_p2_data.py`
 
-**Next Agent Starting Point**:
-1. **✅ Production is LIVE** — All tests passing (238/238), Zscaler approved
-2. **✅ Domain accessible**: `curl -s -o /dev/null -w "%{http_code}" https://immigrationcompass.fyi/` returns HTTP 200 ✅
-3. **✅ All deploys completed**: Prod + Stage fully deployed with latest code
-4. **Next**: Monitor Phase 4-5 (SEO, analytics dashboards, backlink building)
-5. See GO_LIVE_STATUS.md Phases 4-9 for continued rollout
+### Production Deployment
+- Promoted stage to prod via `promote-to-prod.sh` (same-artifact S3-to-S3 copy)
+- 262 post-deploy tests all green on prod (48 smoke + 191 comprehensive + 23 Playwright e2e)
+
+### Theme Fixes (from prior session)
+- Light-first theme: removed `@media prefers-color-scheme: dark` from globals.css
+- Added `.light` class, fixed blocking script brace
+- Mobile toggle: 44px touch targets, active feedback
+
+### Documentation Overhaul
+- Deleted 5 stale files: GO_LIVE_STATUS.md, DEPLOYMENT_UPGRADE_PLAN.md, DOCUMENTATION_REFACTORING.md, REDESIGN_V2.md, H1B_SRS_EXTENSION_ANALYSIS.md
+- Rewrote NEXT_AGENT_CONTEXT.md with current metrics
+- Updated all satellite docs: TEST_AUDIT, CODEBASE_INVENTORY, UI_DESIGN_PRINCIPLES, SEO_STRATEGY, ARCHITECTURE_DECISIONS, MOBILE_DEVELOPMENT_GUIDE
+- Updated README.md: test badge, URLs, environment table
+- Updated ARCHITECTURE.md: shard count 94,843 to 95,151
+- Updated GitHub workflow YAMLs: old CF domain to immigrationcompass.fyi
+- Updated northstar-docs: README.md, SETUP_GUIDE.md test counts
+- Added test-results/, playwright-report/, terraform/tfplan, deploy*.log to .gitignore
+- Removed tracked artifacts from git (test-results, playwright-report, tfplan, deploy log)
+- Fixed promote-to-prod.sh BSD sed pattern
+- Commit: `811a471` (V1 cleanup + sed fix), plus documentation overhaul commit
 
 ---
 

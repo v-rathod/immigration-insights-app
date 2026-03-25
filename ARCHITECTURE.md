@@ -167,7 +167,7 @@ All data files are served statically from `public/data/`. The browser fetches th
 
 ### Employer Shard Architecture
 
-Employer-specific data (SRS scores, wage trends, LCA filings, H-1B petitions, monthly metrics) is consolidated into **94,843 per-employer JSON shard files** rather than served as monolithic JSONs. This ensures every file stays under CloudFront's 20MB auto-compression limit.
+Employer-specific data (SRS scores, wage trends, LCA filings, H-1B petitions, monthly metrics) is consolidated into **95,151 per-employer JSON shard files** rather than served as monolithic JSONs. This ensures every file stays under CloudFront's 20MB auto-compression limit.
 
 ```
 public/data/employers/
@@ -185,7 +185,7 @@ public/data/employers/
 │   ├── wage_role_trends[]  # Per-role percentile data
 │   ├── srs{}            # SRS scores + subscores (efs→srs remapped on read)
 │   └── srs_monthly[]    # Monthly filing metrics
-└── ... (94,843 shards total)
+└── ... (95,151 shards total)
 ```
 
 **Loading pattern** (implemented in `src/lib/data/employer-shard.ts`):

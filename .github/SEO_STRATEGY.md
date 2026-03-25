@@ -261,8 +261,8 @@ For **every new page or page update**:
 | Environment | URL | Config | Use Case |
 |-------------|-----|--------|----------|
 | `dev` | `http://localhost:3000` | `.env.local` | Local development |
-| `stage` | `https://d10immmzyp7xgr.cloudfront.net` | `.env.stage` + `scripts/deploy-envs.conf` | Staging, pre-prod validation |
-| `prod` | Custom domain (`compass-immigration.app`, TBD) | `.env.production` + `scripts/deploy-envs.conf` | Production, live site |
+| `stage` | `https://stage.immigrationcompass.fyi` | `.env.stage` + `scripts/deploy-envs.conf` | Staging, pre-prod validation |
+| `prod` | `https://immigrationcompass.fyi` | `.env.production` + `scripts/deploy-envs.conf` | Production, live site |
 
 ### Deployment
 

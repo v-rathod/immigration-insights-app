@@ -133,7 +133,7 @@
 
 ## Known Limitations & Future Improvements
 
-1. **H-1B SRS Extension** — Current SRS scores PERM-only. H-1B-only employers show "Unrated". Strategic options documented in H1B_SRS_EXTENSION_ANALYSIS.md. Blocked: data staleness (FY2023, wait for FY2024+).
+1. **H-1B SRS Extension** — Current SRS scores PERM-only. H-1B-only employers show "Unrated". Blocked: data staleness (FY2023, wait for FY2024+).
 
 2. **Data Freshness Banner** — P2 publishes sync date in `_freshness.json`. Future: add banner on app showing "Last updated: March 20". Currently in backlog (Phase 6).
 

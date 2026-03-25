@@ -32,7 +32,7 @@ on:
       url:
         description: 'URL to test against (leave blank for prod)'
         required: false
-        default: 'https://d10immmzyp7xgr.cloudfront.net'
+        default: 'https://immigrationcompass.fyi'
 
   # Scheduled: every 6 hours — synthetic monitoring
   schedule:
@@ -55,7 +55,7 @@ jobs:
       - name: Run smoke tests
         env:
           # Manual run: use provided URL. Scheduled run: use prod.
-          SMOKE_TEST_URL: ${{ github.event.inputs.url || 'https://d10immmzyp7xgr.cloudfront.net' }}
+          SMOKE_TEST_URL: ${{ github.event.inputs.url || 'https://immigrationcompass.fyi' }}
         run: node scripts/smoke-test.mjs
 
       - name: Report failure summary
