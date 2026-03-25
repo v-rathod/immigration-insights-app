@@ -122,6 +122,18 @@ if [[ -n "$STAGE_CF_DOMAIN" ]]; then
   STAGE_SMOKE_URL="https://$STAGE_CF_DOMAIN"
 fi
 
+# Load stage basic auth credentials for smoke tests
+SECRETS_FILE="$PROJECT_DIR/terraform/stage.secrets.tfvars"
+if [[ -f "$SECRETS_FILE" ]]; then
+  STAGE_AUTH_CREDS=$(grep 'basic_auth_credentials' "$SECRETS_FILE" \
+    | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d '[:space:]')
+  if [[ -n "${STAGE_AUTH_CREDS:-}" ]]; then
+    export BASIC_AUTH_B64
+    BASIC_AUTH_B64=$(printf '%s' "$STAGE_AUTH_CREDS" | base64)
+    log "Stage basic auth loaded (BASIC_AUTH_B64 exported for stage smoke tests)"
+  fi
+fi
+
 if command -v node &>/dev/null && [[ -f "$SCRIPT_DIR/browser-smoke-test.mjs" ]]; then
   log "Running stage smoke check against $STAGE_SMOKE_URL ..."
   if ! node "$SCRIPT_DIR/browser-smoke-test.mjs" "$STAGE_SMOKE_URL"; then
@@ -208,6 +220,9 @@ if [[ -n "$PROD_CF_DOMAIN" ]]; then
 fi
 
 log "Running prod smoke tests against $PROD_SMOKE_URL ..."
+
+# CRITICAL: Unset stage auth — prod must NEVER send auth headers
+unset BASIC_AUTH_B64
 
 # Quick browser smoke (15 pages, HTTP 200)
 if [[ -f "$SCRIPT_DIR/browser-smoke-test.mjs" ]]; then

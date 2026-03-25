@@ -12,6 +12,8 @@ import https from "https";
 
 // Accept an optional URL argument: node scripts/browser-smoke-test.mjs [base-url]
 const BASE_URL = process.argv[2] || "http://localhost:3000";
+const BASIC_AUTH_B64 = process.env.BASIC_AUTH_B64 || '';
+const AUTH_HEADERS = BASIC_AUTH_B64 ? { 'Authorization': `Basic ${BASIC_AUTH_B64}` } : {};
 const PAGES = [
   { path: "/", name: "Home" },
   { path: "/about/", name: "About" },
@@ -36,7 +38,7 @@ function fetchUrl(path, timeoutMs = 8000) {
     const url = new URL(path, BASE_URL);
     const client = url.protocol === "https:" ? https : http;
 
-    const request = client.get(url, { timeout: timeoutMs }, (response) => {
+    const request = client.get(url, { timeout: timeoutMs, headers: AUTH_HEADERS }, (response) => {
       let data = "";
 
       response.on("data", (chunk) => {

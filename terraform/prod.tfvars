@@ -12,3 +12,6 @@ environment        = "prod"
 domain_name        = "immigrationcompass.fyi"
 route53_zone_id    = ""  # Empty = zone created in this workspace (prod owns the zone)
 create_certificate = true
+
+# SECURITY: basic_auth MUST be empty for prod — no authentication prompt on public site
+basic_auth_credentials = ""

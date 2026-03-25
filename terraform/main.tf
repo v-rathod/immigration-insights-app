@@ -252,33 +252,52 @@ resource "aws_cloudfront_response_headers_policy" "security" {
 # Rewrites /about → /about/index.html so Next.js static export routes work
 # =============================================================================
 
-resource "aws_cloudfront_function" "url_rewriter" {
-  name    = "${var.s3_bucket_name}-url-rewriter"
-  runtime = "cloudfront-js-2.0"
-  comment = "Rewrite clean URLs to index.html for Next.js static export"
-  publish = true
-
-  code = <<-EOF
+locals {
+  # Auth-enabled function: Basic Auth check + URL rewriting
+  cf_function_with_auth = <<-CODE
+    var EXPECTED = "Basic ${base64encode(var.basic_auth_credentials)}";
     async function handler(event) {
-      const request = event.request;
-      let uri = request.uri;
-
-      // Already has a file extension — let it pass through unchanged
-      if (/\.[a-zA-Z0-9]+$/.test(uri)) {
-        return request;
+      var request = event.request;
+      var auth = request.headers.authorization;
+      if (!auth || auth.value !== EXPECTED) {
+        return {
+          statusCode: 401,
+          statusDescription: "Unauthorized",
+          headers: {
+            "www-authenticate": { value: 'Basic realm="Stage"' },
+            "content-type": { value: "text/plain" }
+          },
+          body: { encoding: "text", data: "Authentication required" }
+        };
       }
-
-      // Ends with / → append index.html
-      if (uri.endsWith('/')) {
-        request.uri = uri + 'index.html';
-        return request;
-      }
-
-      // No extension, no trailing slash → append /index.html
+      var uri = request.uri;
+      if (/\.[a-zA-Z0-9]+$/.test(uri)) return request;
+      if (uri.endsWith('/')) { request.uri = uri + 'index.html'; return request; }
       request.uri = uri + '/index.html';
       return request;
     }
-  EOF
+  CODE
+
+  # Plain function: URL rewriting only (no auth — for prod)
+  cf_function_no_auth = <<-CODE
+    async function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      if (/\.[a-zA-Z0-9]+$/.test(uri)) return request;
+      if (uri.endsWith('/')) { request.uri = uri + 'index.html'; return request; }
+      request.uri = uri + '/index.html';
+      return request;
+    }
+  CODE
+}
+
+resource "aws_cloudfront_function" "url_rewriter" {
+  name    = "${var.s3_bucket_name}-url-rewriter"
+  runtime = "cloudfront-js-2.0"
+  comment = "URL rewriter + optional basic auth for non-prod environments"
+  publish = true
+
+  code = var.basic_auth_credentials != "" ? local.cf_function_with_auth : local.cf_function_no_auth
 
   lifecycle {
     create_before_destroy = true

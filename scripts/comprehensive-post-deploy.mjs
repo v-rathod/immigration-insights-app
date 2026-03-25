@@ -29,6 +29,12 @@ const QUICK_MODE = args.includes('--quick');
 const TIMEOUT_MS = 30_000;
 const CONCURRENCY = 8;
 
+// Basic auth support (for stage environments with CloudFront auth)
+const BASIC_AUTH_B64 = process.env.BASIC_AUTH_B64 || '';
+const AUTH_HEADERS = BASIC_AUTH_B64
+  ? { 'Authorization': `Basic ${BASIC_AUTH_B64}` }
+  : {};
+
 // ── ANSI ─────────────────────────────────────────────────────────────────────
 const C = {
   G: '\x1b[32m', R: '\x1b[31m', Y: '\x1b[33m', B: '\x1b[34m',
@@ -53,7 +59,7 @@ async function fetchJSON(path, timeoutMs = TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${BASE_URL}${path}`, { signal: controller.signal });
+    const res = await fetch(`${BASE_URL}${path}`, { signal: controller.signal, headers: AUTH_HEADERS });
     clearTimeout(timer);
     if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
@@ -69,7 +75,7 @@ async function fetchHead(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}${path}`, { method: 'HEAD', signal: controller.signal });
+    const res = await fetch(`${BASE_URL}${path}`, { method: 'HEAD', signal: controller.signal, headers: AUTH_HEADERS });
     clearTimeout(timer);
     return { status: res.status, contentLength: parseInt(res.headers.get('content-length') ?? '0', 10) };
   } catch (e) {
@@ -82,7 +88,7 @@ async function fetchHTML(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}${path}`, { signal: controller.signal });
+    const res = await fetch(`${BASE_URL}${path}`, { signal: controller.signal, headers: AUTH_HEADERS });
     clearTimeout(timer);
     if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
     return await res.text();
@@ -173,7 +179,7 @@ async function testPages() {
         .map(m => m[1]).filter(h => h.startsWith('/'));
       assertGTE(cssHrefs.length, 1, 'CSS links found');
       for (const href of cssHrefs) {
-        const res = await fetch(`${BASE_URL}${href}`);
+        const res = await fetch(`${BASE_URL}${href}`, { headers: AUTH_HEADERS });
         assert(res.status === 200, `CSS ${href}: HTTP ${res.status}`);
         const ct = res.headers.get('content-type') ?? '';
         assert(!ct.includes('text/html'), `CSS ${href}: serving HTML not CSS`);
@@ -194,7 +200,7 @@ async function testPages() {
       assertGTE(jsHrefs.length, 1, 'JS links found');
       // Check first 3 JS bundles
       for (const href of jsHrefs.slice(0, 3)) {
-        const res = await fetch(`${BASE_URL}${href}`);
+        const res = await fetch(`${BASE_URL}${href}`, { headers: AUTH_HEADERS });
         assert(res.status === 200, `JS ${href}: HTTP ${res.status}`);
         const ct = res.headers.get('content-type') ?? '';
         assert(!ct.includes('text/html'), `JS ${href}: HTML instead of JS`);

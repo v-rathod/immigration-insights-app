@@ -356,8 +356,11 @@ verify_deployment() {
   CF_URL=$(aws cloudfront get-distribution --id "$CF_DIST" --region "$REGION" \
     --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
   if [[ -n "$CF_URL" ]] && command -v curl &>/dev/null; then
-    local HTTP_STATUS
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$CF_URL/" 2>/dev/null || echo "000")
+    local HTTP_STATUS CURL_AUTH_ARGS=()
+    if [[ -n "${BASIC_AUTH_B64:-}" ]]; then
+      CURL_AUTH_ARGS=(-H "Authorization: Basic $BASIC_AUTH_B64")
+    fi
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${CURL_AUTH_ARGS[@]}" "https://$CF_URL/" 2>/dev/null || echo "000")
     if [[ "$HTTP_STATUS" == "200" ]]; then
       log "  ✓ CloudFront returning HTTP 200 at https://$CF_URL/"
       (( PASS++ ))
@@ -529,6 +532,21 @@ main() {
 
   # Load environment-specific AWS config
   load_env_config "$DEPLOY_ENV"
+
+  # ── Stage basic auth: export BASIC_AUTH_B64 for smoke tests ─────────────
+  if [[ "$DEPLOY_ENV" == "stage" ]]; then
+    local SECRETS_FILE="$PROJECT_DIR/terraform/stage.secrets.tfvars"
+    if [[ -f "$SECRETS_FILE" ]]; then
+      local BASIC_AUTH_CREDS
+      BASIC_AUTH_CREDS=$(grep 'basic_auth_credentials' "$SECRETS_FILE" \
+        | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d '[:space:]')
+      if [[ -n "$BASIC_AUTH_CREDS" ]]; then
+        export BASIC_AUTH_B64
+        BASIC_AUTH_B64=$(printf '%s' "$BASIC_AUTH_CREDS" | base64)
+        log "Stage basic auth configured (BASIC_AUTH_B64 exported for smoke tests)"
+      fi
+    fi
+  fi
 
   cd "$PROJECT_DIR"
   DEPLOY_START=$SECONDS

@@ -24,6 +24,12 @@ const BASE_URL = (urlFlagIdx !== -1 ? args[urlFlagIdx + 1] : null)
 const TIMEOUT_MS = 20_000;
 const CONCURRENCY = 5; // parallel requests per batch
 
+// Basic auth support (for stage environments with CloudFront auth)
+const BASIC_AUTH_B64 = process.env.BASIC_AUTH_B64 || '';
+const AUTH_HEADERS = BASIC_AUTH_B64
+  ? { 'Authorization': `Basic ${BASIC_AUTH_B64}` }
+  : {};
+
 // ── ANSI colors ──────────────────────────────────────────────────────────────
 const GREEN  = '\x1b[32m';
 const RED    = '\x1b[31m';
@@ -352,7 +358,7 @@ async function runCheck(check) {
 
   try {
     const method = check.headOnly ? 'HEAD' : 'GET';
-    const res = await fetch(url, { method, signal: controller.signal, redirect: 'follow' });
+    const res = await fetch(url, { method, signal: controller.signal, redirect: 'follow', headers: AUTH_HEADERS });
     clearTimeout(timer);
 
     if (res.status !== 200) {
@@ -421,7 +427,7 @@ async function runRenderingChecks() {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch(`${BASE_URL}/`, { signal: controller.signal });
+    const res = await fetch(`${BASE_URL}/`, { signal: controller.signal, headers: AUTH_HEADERS });
     clearTimeout(timer);
     if (res.status !== 200) {
       return [{ label: 'Homepage HTML (for CSS extraction)', ok: false,
@@ -455,7 +461,7 @@ async function runRenderingChecks() {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      const res = await fetch(cssUrl, { signal: controller.signal });
+      const res = await fetch(cssUrl, { signal: controller.signal, headers: AUTH_HEADERS });
       clearTimeout(timer);
 
       if (res.status !== 200) {
@@ -506,7 +512,7 @@ async function runRenderingChecks() {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      const res = await fetch(jsUrl, { signal: controller.signal });
+      const res = await fetch(jsUrl, { signal: controller.signal, headers: AUTH_HEADERS });
       clearTimeout(timer);
 
       const contentType = res.headers.get('content-type') ?? '';

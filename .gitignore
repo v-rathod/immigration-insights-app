@@ -39,6 +39,9 @@ yarn-error.log*
 !.env.stage
 !.env.production
 
+# Terraform secrets (credentials, API keys)
+*.secrets.tfvars
+
 # vercel
 .vercel
 

@@ -1,9 +1,11 @@
 # Compass: Stage Environment
-# Usage: terraform workspace select default && terraform apply -var-file=stage.tfvars
+# Usage: terraform workspace select default && terraform apply -var-file=stage.tfvars -var-file=stage.secrets.tfvars
+#
+# stage.secrets.tfvars contains basic auth credentials (gitignored).
+# If the secrets file is missing, stage deploys without auth protection.
 #
 # Stage uses BOTH CloudFront URL (d10immmzyp7xgr.cloudfront.net) and custom domain
 # (stage.immigrationcompass.fyi). Both resolve to the same CloudFront distribution.
-# Once Zscaler approves the subdomain, the CloudFront URL can be retired.
 
 s3_bucket_name     = "compass-stage-883107059193"
 aws_region         = "us-east-1"

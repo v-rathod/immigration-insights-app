@@ -18,6 +18,8 @@ import { defineConfig } from "@playwright/test";
 const DEPLOY_URL =
   process.env.DEPLOY_URL ?? "https://d10immmzyp7xgr.cloudfront.net";
 
+const BASIC_AUTH_B64 = process.env.BASIC_AUTH_B64 ?? "";
+
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "post-deploy.spec.ts",
@@ -34,5 +36,9 @@ export default defineConfig({
     browserName: "chromium",
     // Reasonable desktop viewport
     viewport: { width: 1280, height: 800 },
+    // Pass basic auth header for stage environment
+    ...(BASIC_AUTH_B64
+      ? { extraHTTPHeaders: { Authorization: `Basic ${BASIC_AUTH_B64}` } }
+      : {}),
   },
 });

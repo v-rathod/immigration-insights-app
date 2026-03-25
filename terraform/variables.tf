@@ -47,3 +47,15 @@ variable "create_certificate" {
   type        = bool
   default     = false
 }
+
+variable "basic_auth_credentials" {
+  description = "Basic auth credentials as 'username:password'. When non-empty, CloudFront requires authentication. Use ONLY for non-prod environments. Leave empty for prod."
+  type        = string
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition     = var.basic_auth_credentials == "" || can(regex("^[^:]+:.+$", var.basic_auth_credentials))
+    error_message = "basic_auth_credentials must be empty or in 'username:password' format"
+  }
+}
