@@ -1,7 +1,18 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { motion, type Variants } from "framer-motion";
+
+/**
+ * Returns true only after the component has mounted (client-side).
+ * Used to prevent Framer Motion from SSR-rendering opacity:0, which causes
+ * a blank page if JS is blocked or slow.
+ */
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
 
 // ---------------------------------------------------------------------------
 // Animation Constants
@@ -36,6 +47,8 @@ export function StaggerContainer({
   staggerDelay = 0.08,
   className,
 }: StaggerContainerProps) {
+  const mounted = useMounted();
+
   const variants: Variants = {
     hidden: {},
     visible: {
@@ -45,6 +58,10 @@ export function StaggerContainer({
       },
     },
   };
+
+  if (!mounted) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div
@@ -79,7 +96,7 @@ const itemVariants: Variants = {
 
 export function StaggerItem({ children, className }: StaggerItemProps) {
   return (
-    <motion.div variants={itemVariants} className={className}>
+    <motion.div variants={itemVariants} className={className ?? undefined}>
       {children}
     </motion.div>
   );
@@ -110,9 +127,14 @@ export function FadeIn({
   duration = 0.5,
   className,
 }: FadeInProps) {
+  const mounted = useMounted();
   const axis = direction === "up" || direction === "down" ? "y" : "x";
   const sign = direction === "up" || direction === "left" ? 1 : -1;
   const offset = distance * sign;
+
+  if (!mounted) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div
@@ -137,6 +159,12 @@ interface ScaleInProps {
 }
 
 export function ScaleIn({ children, delay = 0, className }: ScaleInProps) {
+  const mounted = useMounted();
+
+  if (!mounted) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}

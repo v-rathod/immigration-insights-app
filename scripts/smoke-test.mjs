@@ -48,6 +48,7 @@ const CHECKS = [
   { path: '/about/',                   label: 'About page',                       minSize: 3_000 },
   { path: '/insights/',                label: 'My Insights page',                 minSize: 5_000 },
   { path: '/ask/',                     label: 'Ask page',                         minSize: 3_000 },
+  { path: '/faq/',                     label: 'FAQ page',                         minSize: 5_000 },
   { path: '/privacy/',                 label: 'Privacy page',                     minSize: 2_000 },
   { path: '/terms/',                   label: 'Terms page',                       minSize: 2_000 },
   { path: '/dashboard/employer/',      label: 'Employer / SRS dashboard',         minSize: 5_000 },

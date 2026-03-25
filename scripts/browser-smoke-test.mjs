@@ -8,31 +8,35 @@
  */
 
 import http from "http";
+import https from "https";
 
-const BASE_URL = "http://localhost:3000";
+// Accept an optional URL argument: node scripts/browser-smoke-test.mjs [base-url]
+const BASE_URL = process.argv[2] || "http://localhost:3000";
 const PAGES = [
   { path: "/", name: "Home" },
-  { path: "/about", name: "About" },
-  { path: "/privacy", name: "Privacy" },
-  { path: "/terms", name: "Terms" },
-  { path: "/insights", name: "Insights" },
-  { path: "/ask", name: "Ask" },
-  { path: "/dashboard/visa-bulletin", name: "Visa Bulletin" },
-  { path: "/dashboard/employer", name: "Employer" },
-  { path: "/dashboard/wage", name: "Wage" },
-  { path: "/dashboard/eb-category", name: "EB Category" },
-  { path: "/dashboard/geographic", name: "Geographic" },
-  { path: "/dashboard/job-demand", name: "Job Demand" },
-  { path: "/dashboard/processing", name: "Processing" },
-  { path: "/dashboard/backlog", name: "Backlog" },
+  { path: "/about/", name: "About" },
+  { path: "/privacy/", name: "Privacy" },
+  { path: "/terms/", name: "Terms" },
+  { path: "/faq/", name: "FAQ" },
+  { path: "/insights/", name: "Insights" },
+  { path: "/ask/", name: "Ask" },
+  { path: "/dashboard/visa-bulletin/", name: "Visa Bulletin" },
+  { path: "/dashboard/employer/", name: "Employer" },
+  { path: "/dashboard/wage/", name: "Wage" },
+  { path: "/dashboard/eb-category/", name: "EB Category" },
+  { path: "/dashboard/geographic/", name: "Geographic" },
+  { path: "/dashboard/job-demand/", name: "Job Demand" },
+  { path: "/dashboard/processing/", name: "Processing" },
+  { path: "/dashboard/backlog/", name: "Backlog" },
 ];
 
-function fetchUrl(path, timeoutMs = 5000) {
+function fetchUrl(path, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     const url = new URL(path, BASE_URL);
+    const client = url.protocol === "https:" ? https : http;
 
-    const request = http.get(url, { timeout: timeoutMs }, (response) => {
+    const request = client.get(url, { timeout: timeoutMs }, (response) => {
       let data = "";
 
       response.on("data", (chunk) => {
@@ -45,7 +49,7 @@ function fetchUrl(path, timeoutMs = 5000) {
           path,
           status: response.statusCode || 0,
           size: data.length,
-          timeMslowMs: loadTimeMs,
+          loadTimeMs,
           hasContent: data.length > 100,
         });
       });
@@ -116,7 +120,7 @@ async function runTests() {
     console.log(`\n✨ All tests passed! Website is accessible and responsive.\n`);
     process.exit(0);
   } else {
-    console.log(`\n⚠️  ${failed} test(s) failed. Check server on http://localhost:3000\n`);
+    console.log(`\n⚠️  ${failed} test(s) failed. Check server on ${BASE_URL}\n`);
     process.exit(1);
   }
 }
