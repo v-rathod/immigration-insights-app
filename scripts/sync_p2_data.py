@@ -82,14 +82,23 @@ DIMENSION_ARTIFACTS = [
 ]
 
 MODEL_ARTIFACTS = [
-    "pd_forecasts.parquet",
+    "pd_forecasts_v2.parquet",       # V2: windowed 8yr history + anomaly weighting
     "pd_forecasts_retrograde.parquet",
 ]
 
 MODEL_JSON = [
-    "pd_forecast_model.json",
+    "pd_forecast_v2_model.json",     # V2 model parameters
     "pd_forecast_retrograde_model.json",
 ]
+
+# Output name overrides — V2 artifacts are consumed under the V1 filenames
+# so no P3 component code changes are needed.
+MODEL_ARTIFACT_OUTPUT_NAMES = {
+    "pd_forecasts_v2": "pd_forecasts",
+}
+MODEL_JSON_RENAMES = {
+    "pd_forecast_v2_model.json": "pd_forecast_model.json",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -271,19 +280,23 @@ def sync_models():
         if df.empty:
             continue
         stem = Path(artifact_name).stem
-        out_path = OUT_MODELS / f"{stem}.json"
+        output_stem = MODEL_ARTIFACT_OUTPUT_NAMES.get(stem, stem)
+        out_path = OUT_MODELS / f"{output_stem}.json"
         n = df_to_json(df, out_path)
         size_kb = out_path.stat().st_size / 1024
-        print(f"  ✓ {stem}: {n:,} rows → {size_kb:.0f} KB")
+        label = f"{stem} → {output_stem}" if output_stem != stem else stem
+        print(f"  ✓ {label}: {n:,} rows → {size_kb:.0f} KB")
 
     for json_name in MODEL_JSON:
         src = P2_MODELS / json_name
         if src.exists():
-            dst = OUT_MODELS / json_name
+            out_json_name = MODEL_JSON_RENAMES.get(json_name, json_name)
+            dst = OUT_MODELS / out_json_name
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             size_kb = dst.stat().st_size / 1024
-            print(f"  ✓ {json_name}: → {size_kb:.0f} KB")
+            label = f"{json_name} → {out_json_name}" if out_json_name != json_name else json_name
+            print(f"  ✓ {label}: → {size_kb:.0f} KB")
 
 
 def sync_rag():

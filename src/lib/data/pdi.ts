@@ -58,7 +58,7 @@ export const CHART_LABELS: Record<string, string> = {
 // Raw data loader
 // ---------------------------------------------------------------------------
 
-/** Load all 1,344 forecast records (optimistic model — base v2.1) */
+/** Load all forecast records (model v2.2 — windowed 8yr history + anomaly weighting) */
 export async function loadPdForecasts(): Promise<PdForecast[]> {
   return loadModelData<PdForecast>("pd_forecasts");
 }
