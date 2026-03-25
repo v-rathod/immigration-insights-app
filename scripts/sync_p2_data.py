@@ -82,23 +82,18 @@ DIMENSION_ARTIFACTS = [
 ]
 
 MODEL_ARTIFACTS = [
-    "pd_forecasts_v2.parquet",       # V2: windowed 8yr history + anomaly weighting
+    "pd_forecasts.parquet",
     "pd_forecasts_retrograde.parquet",
 ]
 
 MODEL_JSON = [
-    "pd_forecast_v2_model.json",     # V2 model parameters
+    "pd_forecast_model.json",
     "pd_forecast_retrograde_model.json",
 ]
 
-# Output name overrides — V2 artifacts are consumed under the V1 filenames
-# so no P3 component code changes are needed.
-MODEL_ARTIFACT_OUTPUT_NAMES = {
-    "pd_forecasts_v2": "pd_forecasts",
-}
-MODEL_JSON_RENAMES = {
-    "pd_forecast_v2_model.json": "pd_forecast_model.json",
-}
+# No output name overrides needed — V2 model now outputs standard names.
+MODEL_ARTIFACT_OUTPUT_NAMES = {}
+MODEL_JSON_RENAMES = {}
 
 
 # ---------------------------------------------------------------------------

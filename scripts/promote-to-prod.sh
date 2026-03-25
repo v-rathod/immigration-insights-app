@@ -122,7 +122,7 @@ log "  ✓ Stage _search.json found (${SEARCH_SIZE} bytes)"
 SECRETS_FILE="$PROJECT_DIR/terraform/stage.secrets.tfvars"
 if [[ -f "$SECRETS_FILE" ]]; then
   STAGE_AUTH_CREDS=$(grep 'basic_auth_credentials' "$SECRETS_FILE" \
-    | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d '[:space:]')
+    | sed 's/.*"\(.*\)".*/\1/')
   if [[ -n "${STAGE_AUTH_CREDS:-}" ]]; then
     export BASIC_AUTH_B64
     BASIC_AUTH_B64=$(printf '%s' "$STAGE_AUTH_CREDS" | base64)
