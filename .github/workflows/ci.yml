@@ -5,7 +5,7 @@
 # Acts as the pre-deploy gate: no merge is safe if this is red.
 #
 # What it checks:
-#   1. Unit tests (Vitest) — 600+ tests covering components, data loaders,
+#   1. Unit tests (Vitest) — 1,265+ tests covering components, data loaders,
 #      security utilities, and full page rendering with mocked data.
 #   2. TypeScript type check — strict mode, catches type regressions.
 #   3. ESLint — enforces coding conventions.

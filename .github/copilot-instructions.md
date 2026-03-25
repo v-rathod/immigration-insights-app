@@ -292,7 +292,7 @@ The V2 redesign is complete. Key design rules that persist:
 
 ---
 
-## Verified State (2026-03-25 | Milestone 21.0 Freeze Point)
+## Verified State (2026-03-25 | Milestone 21.1)
 
 | Metric | Value |
 |--------|-------|
@@ -305,5 +305,5 @@ The V2 redesign is complete. Key design rules that persist:
 | Prod | `immigrationcompass.fyi` (live, public) |
 | Theme | Light-first (dark/system via toggle) |
 | PD Forecast | v2.2 (V1 deleted) |
-| Last commit | `811a471` on main |
+| Last commit | `5c7ddd5` on main |
 | Deploy status | Stage and Prod both current and stable |

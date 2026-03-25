@@ -1,13 +1,13 @@
 # Next Agent Context
 
-**Updated**: 2026-03-25 | **Milestone**: 21.0 (Freeze Point)
+**Updated**: 2026-03-25 | **Milestone**: 21.1
 **Purpose**: Quick reference for the next agent. Supplements PROGRESS.md and copilot-instructions.md.
 
 ---
 
 ## Current State
 
-**Status**: Production and Stage are live, stable, and fully tested. Freeze point.
+**Status**: Production and Stage are live, stable, and fully tested. Both at commit `5c7ddd5`.
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
@@ -84,6 +84,14 @@ bash scripts/promote-to-prod.sh   # Promote stage -> prod
 | Product guide | `PRODUCT_GUIDE.md` |
 
 ---
+
+## Milestone 21.1 (2026-03-25): CI/Agent Stability + Doc Cleanup
+
+- Fixed agent commit crash: Copilot agents were calling image-vision tools on PNG filenames in git status, crashing with "vision is not enabled". Prevention: playwright-report/ and test-results/ are in .gitignore.
+- Fixed `visa-bulletin.test.tsx`: wrapped Philippines no-data assertion in `waitFor()` for async stability
+- Deployed to stage (262/262 tests green) and promoted to prod (262/262 tests green)
+- All docs updated: commit hash, milestone, CI test count
+- Last commit: `5c7ddd5` on main
 
 ## Milestone 21.0 (2026-03-25): Freeze Point
 

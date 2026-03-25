@@ -6,7 +6,7 @@
 
 ## Session Quick Snapshot (2026-03-25)
 
-**Current Status**: **MILESTONE 21.0 FREEZE POINT** — Production and Stage stable
+**Current Status**: **MILESTONE 21.1** — Production and Stage stable, both at commit `5c7ddd5`
 - **Unit Tests**: 1,265 passing (3 skipped) across 42 files
 - **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
 - **Build**: 19 HTML pages + 95,151 employer shards
@@ -16,6 +16,29 @@
 - **ESLint**: 0 errors
 - **PD Forecast**: v2.2 (V1 deleted)
 - **Theme**: Light-first (dark/system via toggle)
+
+---
+
+## 2026-03-25 — Milestone 21.1: CI/Agent Stability + Doc Cleanup
+
+### Agent Commit Stability Fix
+- Root cause identified: staged PNG files (playwright-report, test-results) caused Copilot agents to invoke image-vision tools, crashing with `"vision is not enabled for this organization"` error
+- Fix: playwright-report/ and test-results/ already in .gitignore (added in M21.0) — future deploy artifacts won't be tracked
+- Workaround for other agents: run `git commit` directly without tool wrapping to avoid binary file processing
+
+### Test Fix
+- Fixed `visa-bulletin.test.tsx`: wrapped Philippines no-data assertion in `waitFor()` for async rendering stability
+- All 1,265 tests passing, 3 skipped (42 files)
+
+### Deployments
+- Stage: `bash scripts/deploy.sh` — 48/48 smoke + 191/191 comprehensive + 23/23 Playwright e2e
+- Prod: `bash scripts/promote-to-prod.sh` — 262/262 all green
+- Both environments now at commit `5c7ddd5`
+
+### Documentation Review
+- Updated PROGRESS.md, NEXT_AGENT_CONTEXT.md, copilot-instructions.md with current commit hash and milestone
+- Fixed stale "600+ tests" comment in ci.yml (actual count: 1,265+)
+- All satellite docs verified accurate: no stale references, deleted docs removed from inventory
 
 ---
 
