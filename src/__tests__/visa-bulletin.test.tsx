@@ -600,7 +600,7 @@ describe("VisaBulletinPage", () => {
     render(<VisaBulletinPage />);
     const moreButton = await screen.findByText("More");
     fireEvent.click(moreButton);
-    expect(screen.getByText("EB4")).toBeInTheDocument();
+    expect(await screen.findByText("EB4")).toBeInTheDocument();
     expect(screen.getByText("EB5")).toBeInTheDocument();
     expect(screen.getByText("EB3-Other")).toBeInTheDocument();
   });
