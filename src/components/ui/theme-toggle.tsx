@@ -15,7 +15,7 @@ export function ThemeToggle() {
 
   return (
     <div
-      className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--muted)]/50 p-1"
+      className="w-full flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--muted)]/50 p-1"
       role="radiogroup"
       aria-label="Color theme"
     >
@@ -27,10 +27,10 @@ export function ThemeToggle() {
           aria-label={`${label} theme`}
           onClick={() => setTheme(value)}
           className={cn(
-            "rounded-full p-1.5 transition-all duration-200",
+            "flex-1 rounded-full p-1.5 transition-all duration-200 min-h-[44px] flex items-center justify-center",
             theme === value
-              ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
-              : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm active:scale-95"
+              : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] active:scale-95"
           )}
         >
           <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />

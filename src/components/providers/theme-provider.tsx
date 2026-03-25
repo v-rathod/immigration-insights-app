@@ -62,7 +62,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
  * Must be inserted as `<script dangerouslySetInnerHTML={{ __html: themeScript }}>`
  * in the root layout's <head>.
  */
-export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");var d=document.documentElement;d.classList.remove("light","dark");if(t==="dark"){d.classList.add("dark")}else if(t==="system"){d.classList.add(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}else{d.classList.add("light")}}catch(e){document.documentElement.classList.add("light")}})();`;
+export const themeScript = `(function(){try{var d=document.documentElement;d.classList.remove("light","dark");var t=localStorage.getItem("${STORAGE_KEY}");if(t==="dark"){d.classList.add("dark")}else if(t==="system"){d.classList.add(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}else{d.classList.add("light")}}catch(e){document.documentElement.classList.add("light")}})();`;
 
 // ---------------------------------------------------------------------------
 // Provider

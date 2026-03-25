@@ -315,7 +315,7 @@ export function Sidebar({
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-[var(--sidebar-border)] px-4 py-3">
+      <div className="border-t border-[var(--sidebar-border)] px-4 py-4 w-full">
         <ThemeToggle />
       </div>
     </>
