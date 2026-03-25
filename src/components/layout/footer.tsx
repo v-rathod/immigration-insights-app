@@ -16,6 +16,7 @@ import { DataFreshnessChip } from "@/components/ui/data-freshness-chip";
 
 const PROJECT_LINKS = [
   { label: "About", href: "/about" },
+  { label: "FAQ", href: "/faq" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
 ] as const;

@@ -89,8 +89,8 @@ const TECH_STACK = [
   },
   {
     label: "Vitest 4",
-    detail: "Unit + component testing (1,024 tests)",
-    explanation: "Vitest runs 1,024 tests across 34 files covering every component, data loader, utility, and live-data regression. happy-dom replaces jsdom for lighter ESM compatibility. Includes optum regression tests, visa-bulletin live-data regression, and a smart-sort correctness suite.",
+    detail: "Unit + component testing (1,237 tests)",
+    explanation: "Vitest runs 1,237 tests across 40 files covering every component, data loader, utility, and live-data regression. happy-dom replaces jsdom for lighter ESM compatibility. Includes optum regression tests, visa-bulletin live-data regression, and a smart-sort correctness suite.",
   },
   {
     label: "Playwright",
@@ -115,14 +115,14 @@ const TECH_STACK = [
     explanation: "XGBoost powers Meridian's Sponsor Reliability Score (SRS) model: predicts employer approval likelihood from case history, wages, SOC mix, and geographic diversity. Outperforms linear models in SHAP-based validation.",
   },
   {
-    label: "Prophet",
-    detail: "Time-series forecasting (priority dates)",
-    explanation: "Facebook's Prophet fits Meridian's Priority Date Index (PDI) base forecasts: extrapolates 14-year Visa Bulletin trends to predict when each EB category becomes current. Handles seasonality and structural breaks.",
+    label: "Blended Velocity Model v2.2",
+    detail: "Priority date forecasting (windowed + anomaly-weighted)",
+    explanation: "Meridian's PDI model uses a 50/25/25 blend: 50% long-term net velocity (last 8 years of Visa Bulletin history), 25% anomaly-weighted 24-month mean, and 25% anomaly-weighted 12-month mean. Months with unusually large single-month jumps (above the P90 of the series' recent history) are downweighted to 0.3x to prevent fiscal-year resets from inflating the forecast. A velocity cap prevents short-term optimism from overriding the long-term anchor.",
   },
   {
     label: "Monte Carlo Risk-Adjusted (MCRA)",
     detail: "Stochastic forecasting with retrograde probability",
-    explanation: "Meridian's MCRA model runs 2,000 simulations of future priority date movement, where each month carries a calibrated retrograde probability from 10 years of Visa Bulletin history. Produces P10/P50/P90 confidence bands instead of single-point estimates, capturing uncertainty from policy changes and queue dynamics.",
+    explanation: "Meridian's MCRA model runs 2,000 simulations of future priority date movement, where each month carries a calibrated retrograde probability derived from 10+ years of Visa Bulletin history. The base forecast uses the blended velocity model (v2.2); MCRA layers on per-month retrogression risk to produce risk-adjusted velocity and P10/P50/P90 confidence bands.",
   },
   {
     label: "SHAP",

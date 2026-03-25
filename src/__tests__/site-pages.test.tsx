@@ -94,10 +94,11 @@ describe("Footer", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders project links horizontally (About, Privacy, Terms)", () => {
+  it("renders project links horizontally (About, FAQ, Privacy, Terms)", () => {
     render(<Footer />);
     const footer = screen.getByRole("contentinfo");
     expect(within(footer).getByText("About")).toBeInTheDocument();
+    expect(within(footer).getByText("FAQ")).toBeInTheDocument();
     expect(within(footer).getByText("Privacy")).toBeInTheDocument();
     expect(within(footer).getByText("Terms")).toBeInTheDocument();
   });
@@ -346,7 +347,7 @@ describe("AboutPage", () => {
     expect(screen.getByText("Scikit-learn")).toBeInTheDocument();
     // New ML/AI tools
     expect(screen.getByText("XGBoost")).toBeInTheDocument();
-    expect(screen.getByText("Prophet")).toBeInTheDocument();
+    expect(screen.getByText("Blended Velocity Model v2.2")).toBeInTheDocument();
     expect(screen.getByText("SHAP")).toBeInTheDocument();
     // Horizon (Data Collection)
     expect(screen.getByText("BeautifulSoup4 / Selenium")).toBeInTheDocument();

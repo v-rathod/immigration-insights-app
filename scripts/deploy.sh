@@ -178,10 +178,12 @@ deploy_main() {
   local upload_count
   # --exact-timestamps ensures HTML files referencing new build hashes are re-uploaded
   # even when S3 already has a file at the same key (prevents stale HTML + new CSS mismatch).
+  # --no-progress suppresses per-file transfer lines (reduces stdout noise).
   upload_count=$(aws s3 sync "$OUT_DIR/" "s3://$BUCKET" \
     --delete \
     --exclude "data/employers/*" \
     --exact-timestamps \
+    --no-progress \
     --region "$REGION" \
     2>&1 | grep -c "upload:" || true)
   MAIN_SYNC_DURATION=$(_elapsed $MAIN_SYNC_START)
@@ -199,6 +201,7 @@ deploy_shards() {
   upload_count=$(aws s3 sync "$OUT_DIR/data/employers/" "s3://$BUCKET/data/employers/" \
     --region "$REGION" \
     --size-only \
+    --no-progress \
     2>&1 | grep -c "upload:" || true)
   SHARD_SYNC_DURATION=$(_elapsed $SHARD_SYNC_START)
   log "Employer shards deployed: ${upload_count} updated in ${SHARD_SYNC_DURATION}s ✓"
@@ -342,8 +345,8 @@ run_smoke_tests() {
   fi
 
   SMOKE_START=$SECONDS
-  log "Waiting 30s for CloudFront invalidation to propagate..."
-  sleep 30
+  # CloudFront invalidation is already waited for in invalidate_cf() above.
+  # No additional sleep needed here.
 
   # Use CloudFront direct URL for smoke tests (avoids Zscaler/corporate proxy blocking custom domains)
   local CF_DOMAIN
