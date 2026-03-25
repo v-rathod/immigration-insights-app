@@ -46,26 +46,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark theme (default visual) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --muted: #18181b;
-    --muted-foreground: #a1a1aa;
-    --border: #27272a;
+/* Light mode class — always shows light theme regardless of OS preference */
+.light {
+  --background: #fafafa;
+  --foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
 
-    --card: rgba(255, 255, 255, 0.03);
-    --card-foreground: #fafafa;
-    --card-border: rgba(255, 255, 255, 0.08);
-    --card-glass: rgba(255, 255, 255, 0.03);
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-glass: rgba(255, 255, 255, 0.8);
 
-    --sidebar: #0a0a0c;
-    --sidebar-border: #1f1f23;
-  }
+  --sidebar: #f9fafb;
+  --sidebar-border: #e5e7eb;
 }
 
-/* Dark mode class override (for manual toggle) */
+/* Dark mode class — applied by ThemeProvider when user or system picks dark */
 .dark {
   --background: #09090b;
   --foreground: #fafafa;

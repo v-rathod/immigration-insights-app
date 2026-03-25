@@ -115,12 +115,8 @@ log "  ✓ Stage _search.json found (${SEARCH_SIZE} bytes)"
 
 # ── 2. Verify stage smoke tests ───────────────────────────────────────────────
 
-# Use the direct CloudFront domain to avoid proxy issues
-STAGE_CF_DOMAIN=$(aws cloudfront get-distribution --id "$STAGE_CF_ID" \
-  --region "$REGION" --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
-if [[ -n "$STAGE_CF_DOMAIN" ]]; then
-  STAGE_SMOKE_URL="https://$STAGE_CF_DOMAIN"
-fi
+# stage.immigrationcompass.fyi is Zscaler-approved — use custom domain directly
+# (no need to fall back to the raw CloudFront domain)
 
 # Load stage basic auth credentials for smoke tests
 SECRETS_FILE="$PROJECT_DIR/terraform/stage.secrets.tfvars"
@@ -211,13 +207,7 @@ done
 
 # ── 5. Post-promotion verification ───────────────────────────────────────────
 
-# Use the direct CloudFront domain for smoke tests (avoids proxy issues)
-PROD_CF_DOMAIN=$(aws cloudfront get-distribution --id "$PROD_CF_ID" \
-  --region "$REGION" --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
 PROD_SMOKE_URL="${PROD_URL}"
-if [[ -n "$PROD_CF_DOMAIN" ]]; then
-  PROD_SMOKE_URL="https://$PROD_CF_DOMAIN"
-fi
 
 log "Running prod smoke tests against $PROD_SMOKE_URL ..."
 

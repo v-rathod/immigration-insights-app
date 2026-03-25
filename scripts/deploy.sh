@@ -398,14 +398,8 @@ run_smoke_tests() {
   # CloudFront invalidation is already waited for in invalidate_cf() above.
   # No additional sleep needed here.
 
-  # Use CloudFront direct URL for smoke tests (avoids Zscaler/corporate proxy blocking custom domains)
-  local CF_DOMAIN
-  CF_DOMAIN=$(aws cloudfront get-distribution --id "$CF_DIST" --region "$REGION" \
-    --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
+  # Use the custom domain directly (stage.immigrationcompass.fyi is Zscaler-approved)
   local SMOKE_URL="${DEPLOY_URL}"
-  if [[ -n "$CF_DOMAIN" ]]; then
-    SMOKE_URL="https://$CF_DOMAIN"
-  fi
 
   log "Running HTTP smoke tests against ${SMOKE_URL}..."
   SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
@@ -461,7 +455,7 @@ notify_github() {
     -H "Authorization: token ${token}" \
     -H "Accept: application/vnd.github.v3+json" \
     "https://api.github.com/repos/${repo}/dispatches" \
-    -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"environment\":\"${DEPLOY_ENV}\",\"cloudfront_url\":\"${DEPLOY_URL:-https://d10immmzyp7xgr.cloudfront.net}\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
+    -d "{\"event_type\":\"deploy-completed\",\"client_payload\":{\"environment\":\"${DEPLOY_ENV}\",\"deploy_url\":\"${DEPLOY_URL}\",\"commit\":\"${commit}\",\"build_duration_s\":${BUILD_DURATION},\"main_sync_duration_s\":${MAIN_SYNC_DURATION},\"shard_sync_duration_s\":${SHARD_SYNC_DURATION},\"total_duration_s\":${total_duration}}}" \
     2>/dev/null || echo "000")
 
   if [[ "$http_status" == "204" ]]; then

@@ -16,7 +16,7 @@
 import { defineConfig } from "@playwright/test";
 
 const DEPLOY_URL =
-  process.env.DEPLOY_URL ?? "https://d10immmzyp7xgr.cloudfront.net";
+  process.env.DEPLOY_URL ?? "https://stage.immigrationcompass.fyi";
 
 const BASIC_AUTH_B64 = process.env.BASIC_AUTH_B64 ?? "";
 
