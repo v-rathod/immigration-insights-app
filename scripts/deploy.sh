@@ -170,6 +170,53 @@ do_build() {
   log "Build complete: ${pages} HTML pages in ${BUILD_DURATION}s [$DEPLOY_ENV] ✓"
 }
 
+# ── Rollback support ──────────────────────────────────────────────────────
+
+# Snapshots the current index.html S3 version ID before a deploy.
+# If smoke tests fail, rollback_deploy() restores the previous version.
+# Requires S3 versioning enabled (already the case — terraform/main.tf).
+
+ROLLBACK_VERSION_ID=""
+
+snapshot_before_deploy() {
+  ROLLBACK_VERSION_ID=$(aws s3api head-object \
+    --bucket "$BUCKET" --key "index.html" --region "$REGION" \
+    --query 'VersionId' --output text 2>/dev/null || echo "")
+  if [[ -n "$ROLLBACK_VERSION_ID" && "$ROLLBACK_VERSION_ID" != "null" ]]; then
+    log "Saved rollback snapshot: index.html version $ROLLBACK_VERSION_ID"
+  else
+    ROLLBACK_VERSION_ID=""
+    warn "No existing index.html version found — rollback not available (first deploy?)"
+  fi
+}
+
+rollback_deploy() {
+  if [[ -z "$ROLLBACK_VERSION_ID" ]]; then
+    error "No rollback snapshot available. Manual intervention required."
+    return 1
+  fi
+  warn "ROLLING BACK: restoring index.html version $ROLLBACK_VERSION_ID"
+  # Copy the previous version back as the current version
+  aws s3api copy-object \
+    --bucket "$BUCKET" \
+    --copy-source "$BUCKET/index.html?versionId=$ROLLBACK_VERSION_ID" \
+    --key "index.html" \
+    --region "$REGION" \
+    --metadata-directive COPY \
+    --output text &>/dev/null || {
+      error "Rollback copy-object failed. Manual intervention required."
+      return 1
+    }
+  # Invalidate CloudFront so users get the rolled-back version immediately
+  aws cloudfront create-invalidation \
+    --distribution-id "$CF_DIST" \
+    --paths "/*" \
+    --region "$REGION" \
+    --output text &>/dev/null || true
+  warn "Rollback complete. Previous index.html restored + CloudFront invalidated."
+  warn "The site may take 30-60s to fully propagate."
+}
+
 # ── Deploy main site ───────────────────────────────────────────────────────
 
 deploy_main() {
@@ -360,7 +407,7 @@ run_smoke_tests() {
   log "Running HTTP smoke tests against ${SMOKE_URL}..."
   SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
     error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
-    exit 1
+    return 1
   }
 
   # ── Comprehensive post-deploy validation ────────────────────────────────
@@ -368,7 +415,17 @@ run_smoke_tests() {
     log "Running comprehensive post-deploy validation..."
     SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || {
       error "Comprehensive post-deploy tests FAILED — data integrity issues. Check above output."
-      exit 1
+      return 1
+    }
+  fi
+
+  # ── Playwright e2e (browser rendering + user flows) ─────────────────────
+  if [[ -f "$PROJECT_DIR/playwright.deploy.config.ts" ]] && command -v npx &>/dev/null; then
+    log "Running Playwright post-deploy e2e tests against ${SMOKE_URL}..."
+    DEPLOY_URL="$SMOKE_URL" npx playwright test --config=playwright.deploy.config.ts 2>&1 || {
+      warn "Playwright e2e tests had failures — review the output above"
+      # Non-fatal: smoke + comprehensive tests already passed.
+      # Playwright failures may indicate visual regressions but not broken functionality.
     }
   fi
 
@@ -486,20 +543,22 @@ main() {
 
   if $SHARDS_ONLY; then
     preflight
+    snapshot_before_deploy
     deploy_shards
     invalidate_cf
     verify_deployment
-    run_smoke_tests
+    run_smoke_tests || { rollback_deploy; exit 1; }
   else
     if ! $SKIP_BUILD; then
       do_build
     fi
     preflight
+    snapshot_before_deploy
     deploy_main
     deploy_shards
     invalidate_cf
     verify_deployment
-    run_smoke_tests
+    run_smoke_tests || { rollback_deploy; exit 1; }
   fi
 
   print_timing_summary

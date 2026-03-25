@@ -65,7 +65,7 @@ export default function FaqLayout({ children }: { children: React.ReactNode }) {
         "name": "How is this site funded? Is it free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Compass is completely free and has no ads, subscriptions, or paid tiers. It is an open-source personal project built by an engineer who navigated the EB immigration process and wanted better data tooling. The entire infrastructure costs less than $5/month (S3 static hosting + CloudFront CDN). There are no monetization plans.",
+          "text": "Compass is completely free and has no ads, subscriptions, or paid tiers. It is an open-source personal project built by an engineer who navigated the EB immigration process and wanted better data tooling. The site is hosted on AWS and maintained as an open-source project. There are no monetization plans.",
         },
       },
       {

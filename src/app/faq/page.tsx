@@ -60,7 +60,7 @@ const FAQ_ITEMS = [
     icon: Heart,
     question: "How is this site funded? Is it free?",
     answer:
-      "Compass is completely free with no ads, subscriptions, or paid tiers. It's an open-source personal project built by an engineer who navigated the EB immigration backlog and wanted better data tooling. The full infrastructure costs under $5/month (S3 static hosting + CloudFront CDN). There are no monetization plans.",
+      "Compass is completely free with no ads, subscriptions, or paid tiers. It's an open-source personal project built by an engineer who navigated the EB immigration backlog and wanted better data tooling. The site is hosted on AWS and maintained as an open-source project. There are no monetization plans.",
   },
   {
     icon: RefreshCw,

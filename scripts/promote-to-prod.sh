@@ -1,27 +1,31 @@
 #!/usr/bin/env bash
 # scripts/promote-to-prod.sh
 #
-# Stage → Production Promotion
+# Stage → Production Promotion (Same-Artifact, Zero Rebuild)
 # ─────────────────────────────────────────────────────────────────────────────
-# THE CORE PRINCIPLE: Prod gets exactly the same artifact as stage.
+# THE CORE PRINCIPLE: Prod gets exactly the same bytes as stage.
+# No rebuild. No drift. Like deploying the same Docker image to prod.
 #
 #   Step 1  Verify stage smoke tests pass (gate before touching prod).
-#   Step 2  Promote employer shards: stage S3 → prod S3 (server-side copy,
-#           no local download, ~30 s regardless of shard count).
-#   Step 3  Rebuild the main site with NEXT_PUBLIC_APP_ENV=prod (~2 min).
-#           Same git commit + same public/data/ = functionally identical bundle.
-#           Hostname-based env detection means the same bundle would work either
-#           way, but we rebuild so Sentry release tags show "prod" correctly.
-#   Step 4  Deploy main site to prod via deploy.sh --skip-build.
-#           deploy.sh runs CloudFront invalidation + verification + smoke tests.
+#   Step 2  S3-to-S3 sync: copy ALL files from stage bucket to prod bucket.
+#           Server-side copy, no local download, instant for unchanged files.
+#   Step 3  CloudFront invalidation on prod CDN.
+#   Step 4  Run prod smoke tests + comprehensive post-deploy validation.
+#   Step 5  (Optional) Run Playwright e2e against prod.
+#
+# Why no rebuild? getEnvironment() in src/lib/env.ts detects environment at
+# runtime from window.location.hostname. The same JS bundle built for stage
+# correctly identifies as "prod" when served from immigrationcompass.fyi.
+# PostHog, Sentry, and analytics all use getEnvironment(), so events are
+# tagged correctly regardless of the NEXT_PUBLIC_APP_ENV baked at build time.
 #
 # Usage:
 #   bash scripts/promote-to-prod.sh
 #
 # Requirements:
-#   - AWS credentials configured (aws sts get-caller-identity succeeds)
+#   - AWS credentials configured
 #   - Node.js available
-#   - Must run from within the immigration-insights-app repo
+#   - Stage must be deployed and healthy
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -39,11 +43,11 @@ source "$DEPLOY_CONF"
 
 STAGE_BUCKET="$STAGE_S3_BUCKET"
 PROD_BUCKET="$PROD_S3_BUCKET"
-PROD_CF_DIST="$PROD_CF_DIST"
-STAGE_CF_DOMAIN=
+STAGE_CF_ID="$STAGE_CF_DIST"
+PROD_CF_ID="$PROD_CF_DIST"
 REGION="${PROD_REGION:-us-east-1}"
 STAGE_SMOKE_URL="$STAGE_URL"
-PROD_POSTHOG="$PROD_NEXT_PUBLIC_POSTHOG_KEY"
+PROD_URL="$PROD_URL"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -60,12 +64,13 @@ PROMOTE_START=$SECONDS
 
 echo ""
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}${CYAN}  Compass Stage → Prod Promotion${NC}"
+echo -e "${BOLD}${CYAN}  Compass Stage → Prod Promotion (Same-Artifact)${NC}"
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "  Source (stage) : ${CYAN}s3://$STAGE_BUCKET/${NC}"
 echo -e "  Dest   (prod)  : ${CYAN}s3://$PROD_BUCKET/${NC}"
 echo -e "  Region         : ${CYAN}$REGION${NC}"
+echo -e "  Model          : ${CYAN}Zero rebuild — same bytes promoted${NC}"
 echo ""
 warn "This will publish the CURRENT stage build to production."
 warn "Ensure you have tested stage at: $STAGE_SMOKE_URL"
@@ -89,7 +94,7 @@ if ! aws sts get-caller-identity --region "$REGION" &>/dev/null; then
 fi
 log "  ✓ AWS credentials valid"
 
-# Verify stage has an index.html before promoting
+# Verify stage has an index.html
 if ! aws s3api head-object --bucket "$STAGE_BUCKET" --key "index.html" \
      --region "$REGION" &>/dev/null; then
   error "Stage index.html not found in S3. Stage may not be deployed. Aborting."
@@ -110,8 +115,8 @@ log "  ✓ Stage _search.json found (${SEARCH_SIZE} bytes)"
 
 # ── 2. Verify stage smoke tests ───────────────────────────────────────────────
 
-# Use the direct CloudFront domain to avoid any proxy issues
-STAGE_CF_DOMAIN=$(aws cloudfront get-distribution --id "$STAGE_CF_DIST" \
+# Use the direct CloudFront domain to avoid proxy issues
+STAGE_CF_DOMAIN=$(aws cloudfront get-distribution --id "$STAGE_CF_ID" \
   --region "$REGION" --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
 if [[ -n "$STAGE_CF_DOMAIN" ]]; then
   STAGE_SMOKE_URL="https://$STAGE_CF_DOMAIN"
@@ -130,11 +135,26 @@ fi
 
 echo ""
 
-# ── 3. Promote employer shards: stage S3 → prod S3 ───────────────────────────
+# ── 3. S3-to-S3 promotion: stage → prod ──────────────────────────────────────
 #
-# This is a server-side S3-to-S3 copy — no local download required.
-# ~95 K shards, but --size-only means only changed ones transfer.
-# Typical time: 30 s if nothing changed, 3-4 min on first promote.
+# Server-side copy. No local download/upload. AWS moves bytes within the region.
+# --exact-timestamps ensures HTML files (same key, different content) get updated.
+# --delete removes files from prod that no longer exist on stage.
+# Employer shards use --size-only (content-addressed names, 95K+ files).
+
+MAIN_START=$SECONDS
+log "Promoting main site: s3://$STAGE_BUCKET/ → s3://$PROD_BUCKET/ (excluding employer shards)..."
+MAIN_COUNT=$(aws s3 sync \
+  "s3://$STAGE_BUCKET/" \
+  "s3://$PROD_BUCKET/" \
+  --delete \
+  --exclude "data/employers/*" \
+  --exact-timestamps \
+  --no-progress \
+  --region "$REGION" \
+  2>&1 | grep -c "copy:" || true)
+MAIN_DURATION=$(_elapsed "$MAIN_START")
+log "  ✓ Main site promoted: $MAIN_COUNT files updated in ${MAIN_DURATION}s"
 
 SHARD_START=$SECONDS
 log "Promoting employer shards: s3://$STAGE_BUCKET/data/employers/ → s3://$PROD_BUCKET/data/employers/"
@@ -144,54 +164,101 @@ SHARD_COUNT=$(aws s3 sync \
   --size-only \
   --no-progress \
   --region "$REGION" \
-  2>&1 | grep -c "upload:" || true)
+  2>&1 | grep -c "copy:" || true)
 SHARD_DURATION=$(_elapsed "$SHARD_START")
 log "  ✓ Employer shards promoted: $SHARD_COUNT updated in ${SHARD_DURATION}s"
 
-# ── 4. Rebuild main site with prod env vars ───────────────────────────────────
-#
-# We rebuild (not copy) so that SENTRY_DSN release tags and any server-side
-# metadata reflect the prod environment. The bundle is functionally identical
-# to stage thanks to hostname-based env detection (src/lib/env.ts), but Sentry
-# traces benefit from the explicit NEXT_PUBLIC_APP_ENV=prod tag.
-#
-# This uses npx next build directly (same as deploy.sh), bypassing the
-# sync_p2_data.py prebuild hook — the JSON data files in public/data/ are
-# already current from the most recent P2 sync.
+# ── 4. CloudFront invalidation ───────────────────────────────────────────────
 
-BUILD_START=$SECONDS
-log "Building main site with NEXT_PUBLIC_APP_ENV=prod..."
-cd "$PROJECT_DIR"
-rm -rf out .next
-export NEXT_PUBLIC_APP_ENV="prod"
-[[ -n "$PROD_POSTHOG" ]] && export NEXT_PUBLIC_POSTHOG_KEY="$PROD_POSTHOG"
-npx next build
-BUILD_DURATION=$(_elapsed "$BUILD_START")
-HTML_COUNT=$(find out -name "*.html" | wc -l | tr -d ' ')
-log "  ✓ Build complete: ${HTML_COUNT} HTML pages in ${BUILD_DURATION}s"
+log "Creating CloudFront invalidation on prod ($PROD_CF_ID)..."
+INV_ID=$(aws cloudfront create-invalidation \
+  --distribution-id "$PROD_CF_ID" \
+  --paths "/*" \
+  --region "$REGION" \
+  --query 'Invalidation.Id' \
+  --output text 2>&1)
+log "  Invalidation created: $INV_ID"
 
-# ── 5. Deploy to prod via deploy.sh --skip-build ──────────────────────────────
-#
-# deploy.sh handles: S3 sync + CloudFront invalidation + verification + smoke.
-# --skip-build skips npx next build (we just did it above with prod env vars).
-# The employer shards in out/data/employers/ will already be on prod S3 from
-# Step 3, so deploy_shards() will upload 0 files (--size-only finds no diffs).
+# Poll until complete (max 3 minutes)
+ELAPSED=0
+while [[ $ELAPSED -lt 180 ]]; do
+  sleep 10
+  ELAPSED=$((ELAPSED + 10))
+  STATUS=$(aws cloudfront get-invalidation \
+    --distribution-id "$PROD_CF_ID" \
+    --id "$INV_ID" \
+    --region "$REGION" \
+    --query 'Invalidation.Status' \
+    --output text 2>/dev/null || echo "Unknown")
+  log "  Invalidation status: $STATUS (${ELAPSED}s elapsed)"
+  if [[ "$STATUS" == "Completed" ]]; then
+    log "  ✓ CloudFront invalidation complete"
+    break
+  fi
+done
 
-log "Deploying to prod (S3 sync + CloudFront invalidation + smoke tests)..."
-bash "$SCRIPT_DIR/deploy.sh" --env prod --skip-build
+# ── 5. Post-promotion verification ───────────────────────────────────────────
 
-# ── 6. Print summary ──────────────────────────────────────────────────────────
+# Use the direct CloudFront domain for smoke tests (avoids proxy issues)
+PROD_CF_DOMAIN=$(aws cloudfront get-distribution --id "$PROD_CF_ID" \
+  --region "$REGION" --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
+PROD_SMOKE_URL="${PROD_URL}"
+if [[ -n "$PROD_CF_DOMAIN" ]]; then
+  PROD_SMOKE_URL="https://$PROD_CF_DOMAIN"
+fi
+
+log "Running prod smoke tests against $PROD_SMOKE_URL ..."
+
+# Quick browser smoke (15 pages, HTTP 200)
+if [[ -f "$SCRIPT_DIR/browser-smoke-test.mjs" ]]; then
+  node "$SCRIPT_DIR/browser-smoke-test.mjs" "$PROD_SMOKE_URL" || {
+    error "Prod smoke check FAILED. Check S3 and CloudFront."
+    exit 1
+  }
+fi
+
+# Full smoke suite (47 checks)
+if [[ -f "$SCRIPT_DIR/smoke-test.mjs" ]]; then
+  log "Running full smoke test suite..."
+  SMOKE_TEST_URL="$PROD_SMOKE_URL" node "$SCRIPT_DIR/smoke-test.mjs" || {
+    error "Prod smoke tests FAILED. Check above output."
+    exit 1
+  }
+fi
+
+# Comprehensive post-deploy (191 checks)
+if [[ -f "$SCRIPT_DIR/comprehensive-post-deploy.mjs" ]]; then
+  log "Running comprehensive post-deploy validation..."
+  SMOKE_TEST_URL="$PROD_SMOKE_URL" node "$SCRIPT_DIR/comprehensive-post-deploy.mjs" || {
+    error "Comprehensive post-deploy tests FAILED. Check above output."
+    exit 1
+  }
+fi
+
+log "  ✓ All prod smoke tests passed"
+
+# ── 6. Playwright e2e (if available) ─────────────────────────────────────────
+
+if [[ -f "$PROJECT_DIR/playwright.deploy.config.ts" ]] && command -v npx &>/dev/null; then
+  log "Running Playwright e2e tests against $PROD_SMOKE_URL ..."
+  DEPLOY_URL="$PROD_SMOKE_URL" npx playwright test --config=playwright.deploy.config.ts 2>&1 || {
+    warn "Playwright e2e tests failed — site may have visual regressions"
+    # Don't exit 1 — smoke tests already passed, Playwright failures are non-fatal warnings
+  }
+fi
+
+# ── 7. Print summary ──────────────────────────────────────────────────────────
 
 TOTAL=$(( SECONDS - PROMOTE_START ))
 echo ""
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}${CYAN}  Promotion Complete${NC}"
+echo -e "${BOLD}${CYAN}  Promotion Complete (Same-Artifact)${NC}"
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-printf "  %-30s %s\n" "Shard promotion (S3→S3):"  "${SHARD_DURATION}s"
-printf "  %-30s %s\n" "Main site rebuild (prod):"  "${BUILD_DURATION}s"
-printf "  %-30s %s\n" "deploy.sh --skip-build:"    "(see above)"
+printf "  %-30s %s\n" "Main site (S3→S3):"      "${MAIN_DURATION}s"
+printf "  %-30s %s\n" "Shard promotion (S3→S3):" "${SHARD_DURATION}s"
+printf "  %-30s %s\n" "CF invalidation + smoke:"  "(see above)"
 echo -e "${BOLD}${CYAN}  ─────────────────────────────────────────────────────────${NC}"
 printf "  ${BOLD}%-30s %s${NC}\n" "Total:" "${TOTAL}s ($(( TOTAL / 60 ))m $(( TOTAL % 60 ))s)"
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-log "Prod is live at $PROD_URL 🚀"
+log "Prod is live at $PROD_URL (same bytes as stage)"
