@@ -1,8 +1,21 @@
 # Deployment Stability & Testing Upgrade Plan
 
 **Date**: March 25, 2026  
-**Status**: DRAFT — Pending user review  
-**Milestone**: 21.0
+**Status**: IMPLEMENTED — Deployed to stage  
+**Milestone**: 21.0  
+**Commit**: `1916a5c`
+
+### Implementation Status
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Part 1: FAQ cost removal | ✅ Done | Deployed to stage, verified |
+| Part 2: Playwright e2e in deploy pipeline | ✅ Done | `e2e/post-deploy.spec.ts` + `playwright.deploy.config.ts` |
+| Part 2: Automated rollback | ✅ Done | S3 versioning + `snapshot_before_deploy()` / `rollback_deploy()` in `deploy.sh` |
+| Part 3: Single deployment script | ✅ Already existed | `deploy.sh` + `deploy-envs.conf` |
+| Part 4: `stage.immigrationcompass.fyi` | ✅ Done | Terraform applied, DNS resolves, HTTPS works |
+| Part 5: True same-artifact promotion | ✅ Done | `promote-to-prod.sh` rewritten: S3-to-S3, zero rebuild |
+| Part 6: Playwright post-deploy spec | ✅ Done | 20+ browser tests wired into `deploy.sh` |
 
 ---
 
@@ -61,7 +74,7 @@ Files: `src/app/faq/page.tsx`, `src/app/faq/layout.tsx`
 | Env | Where | URL | Purpose |
 |-----|-------|-----|---------|
 | **Dev** | Your MacBook | `http://localhost:3000` | Local development, `npm run dev` |
-| **Stage** | AWS S3 + CloudFront | `https://d10immmzyp7xgr.cloudfront.net` | Pre-production testing |
+| **Stage** | AWS S3 + CloudFront | `https://stage.immigrationcompass.fyi` (also `https://d10immmzyp7xgr.cloudfront.net`) | Pre-production testing |
 | **Prod** | AWS S3 + CloudFront | `https://immigrationcompass.fyi` | Public-facing site |
 
 ### Are stage and prod the same deployment?
