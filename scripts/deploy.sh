@@ -533,7 +533,7 @@ main() {
     if [[ -f "$SECRETS_FILE" ]]; then
       local BASIC_AUTH_CREDS
       BASIC_AUTH_CREDS=$(grep 'basic_auth_credentials' "$SECRETS_FILE" \
-        | sed 's/.*=\s*"\(.*\)"/\1/' | tr -d '[:space:]')
+        | sed 's/.*"\(.*\)".*/\1/')
       if [[ -n "$BASIC_AUTH_CREDS" ]]; then
         export BASIC_AUTH_B64
         BASIC_AUTH_B64=$(printf '%s' "$BASIC_AUTH_CREDS" | base64)
