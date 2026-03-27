@@ -25,6 +25,14 @@ export const metadata: Metadata = {
     "data scientist immigration wage",
     "prevailing wage",
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
   openGraph: {
     title: "Wage Competitiveness: H-1B & PERM Salary Data | Compass",
     description:
