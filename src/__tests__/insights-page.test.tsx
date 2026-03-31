@@ -908,6 +908,7 @@ describe("InsightsPage — employer asScores mapping", () => {
       latest_year: 2025,
       srs_score: 78.5,
       srs_tier: "Good",
+      activity_status: "active",
     };
     (shard.loadEmployerSearch as ReturnType<typeof vi.fn>).mockResolvedValue([mockEntry]);
     await renderPage();

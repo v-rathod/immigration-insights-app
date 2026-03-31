@@ -149,6 +149,14 @@ def consolidate_entries(entries: list[dict]) -> list[dict]:
                 emp_id = e["id"]
                 break
 
+        # Prefer most-active activity status across variants
+        # Priority: "a" (active) > "l" (legacy) > "h" (historical)
+        _ac_priority = {"a": 3, "l": 2, "h": 1}
+        best_ac = max(
+            (e.get("ac", "a") for e in group),
+            key=lambda x: _ac_priority.get(x, 0),
+        )
+
         merged = {
             "n": clean_canonical_name(canonical["n"]),  # fix "Us"→"US", "Llc"→"LLC" etc.
             "id": emp_id,
@@ -158,6 +166,7 @@ def consolidate_entries(entries: list[dict]) -> list[dict]:
             "y": max_year,
             "ss": srs_score,
             "st": srs_tier,
+            "ac": best_ac,
         }
         consolidated.append(merged)
 

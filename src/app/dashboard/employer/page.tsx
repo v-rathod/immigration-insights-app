@@ -98,6 +98,7 @@ function SrsDashboardPageContent() {
             srs: e.srs_score,
             srs_tier: e.srs_tier,
             n_36m: e.total_filings,  // drives case-count display + smart-sort volume ranking
+            activity_status: e.activity_status,
           } as SponsorReliabilityScore));
         setOverallScores(asScores);
         setMlScores(mlData);

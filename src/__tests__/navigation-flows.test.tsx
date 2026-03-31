@@ -179,12 +179,12 @@ describe("WelcomeBackBanner — real component behavior", () => {
 // ============================================================================
 
 const MOCK_EMPLOYER_ENTRIES = [
-  { employer_name: "Infosys Limited",       employer_id: "infosys1", total_filings: 227000, n_soc_codes: 30, latest_median_salary: 95000,  latest_year: 2025, srs_score: 89.3, srs_tier: "Excellent" },
-  { employer_name: "Tata Consultancy",      employer_id: "tcs1",     total_filings: 180000, n_soc_codes: 25, latest_median_salary: 92000,  latest_year: 2025, srs_score: 84.0, srs_tier: "Good"      },
-  { employer_name: "Microsoft Corporation", employer_id: "msft1",    total_filings: 50000,  n_soc_codes: 45, latest_median_salary: 180000, latest_year: 2025, srs_score: 76.0, srs_tier: "Good"      },
-  { employer_name: "Amazon.com Services",   employer_id: "amzn1",    total_filings: 48000,  n_soc_codes: 40, latest_median_salary: 175000, latest_year: 2025, srs_score: 72.0, srs_tier: "Moderate"  },
-  { employer_name: "Google LLC",            employer_id: "goog1",    total_filings: 35000,  n_soc_codes: 38, latest_median_salary: 200000, latest_year: 2025, srs_score: 81.0, srs_tier: "Good"      },
-  { employer_name: "Wipro Limited",         employer_id: "wipro1",   total_filings: 30000,  n_soc_codes: 22, latest_median_salary: 90000,  latest_year: 2025, srs_score: 78.0, srs_tier: "Good"      },
+  { employer_name: "Infosys Limited",       employer_id: "infosys1", total_filings: 227000, n_soc_codes: 30, latest_median_salary: 95000,  latest_year: 2025, srs_score: 89.3, srs_tier: "Excellent", activity_status: "active" as const },
+  { employer_name: "Tata Consultancy",      employer_id: "tcs1",     total_filings: 180000, n_soc_codes: 25, latest_median_salary: 92000,  latest_year: 2025, srs_score: 84.0, srs_tier: "Good",      activity_status: "active" as const },
+  { employer_name: "Microsoft Corporation", employer_id: "msft1",    total_filings: 50000,  n_soc_codes: 45, latest_median_salary: 180000, latest_year: 2025, srs_score: 76.0, srs_tier: "Good",      activity_status: "active" as const },
+  { employer_name: "Amazon.com Services",   employer_id: "amzn1",    total_filings: 48000,  n_soc_codes: 40, latest_median_salary: 175000, latest_year: 2025, srs_score: 72.0, srs_tier: "Moderate",  activity_status: "active" as const },
+  { employer_name: "Google LLC",            employer_id: "goog1",    total_filings: 35000,  n_soc_codes: 38, latest_median_salary: 200000, latest_year: 2025, srs_score: 81.0, srs_tier: "Good",      activity_status: "active" as const },
+  { employer_name: "Wipro Limited",         employer_id: "wipro1",   total_filings: 30000,  n_soc_codes: 22, latest_median_salary: 90000,  latest_year: 2025, srs_score: 78.0, srs_tier: "Good",      activity_status: "active" as const },
 ];
 
 vi.mock("@/lib/data/employer-shard", () => ({

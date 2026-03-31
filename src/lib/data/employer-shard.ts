@@ -29,6 +29,9 @@ import type { SrsOverviewStats } from "@/lib/data/srs";
 // Types
 // ---------------------------------------------------------------------------
 
+/** Employer activity classification: active (recent filings), legacy (4-8 years ago), historical (9+ years). */
+export type ActivityStatus = 'active' | 'legacy' | 'historical';
+
 /** Compact entry format used in _search.json (short keys to stay under 20 MB). */
 interface CompactSearchEntry {
   n: string;       // employer_name
@@ -39,6 +42,7 @@ interface CompactSearchEntry {
   y?: number;      // latest_year
   ss?: number;     // srs_score
   st?: string;     // srs_tier
+  ac?: string;     // activity_status compact code: "a" | "l" | "h"
 }
 
 /** Expanded search entry used by UI components. */
@@ -51,6 +55,7 @@ export interface EmployerSearchEntry {
   latest_year: number;
   srs_score: number | null;
   srs_tier: string;
+  activity_status: ActivityStatus;
 }
 
 /** Full enriched employer shard loaded on demand. */
@@ -115,6 +120,7 @@ export async function loadEmployerSearch(): Promise<EmployerSearchEntry[]> {
           latest_year: (e.y as number) ?? 0,
           srs_score: (e.ss as number) ?? null,
           srs_tier: (e.st as string) ?? "Unrated",
+          activity_status: ({ a: 'active', l: 'legacy', h: 'historical' } as Record<string, ActivityStatus>)[(e.ac as string) ?? 'a'] ?? 'active',
         }
       : {
           employer_name: e.employer_name as string,
@@ -125,6 +131,7 @@ export async function loadEmployerSearch(): Promise<EmployerSearchEntry[]> {
           latest_year: (e.latest_year as number) ?? 0,
           srs_score: (e.srs_score as number) ?? null,
           srs_tier: (e.srs_tier as string) ?? "Unrated",
+          activity_status: 'active',
         }
   );
 }

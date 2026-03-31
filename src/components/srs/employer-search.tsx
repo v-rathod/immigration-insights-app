@@ -313,6 +313,12 @@ export function EmployerSearch({
                           </span>
                         </>
                       )}
+                      {employer.activity_status === "historical" && employer.srs_tier === "Unrated" && (
+                        <>
+                          <span className="text-white/10">•</span>
+                          <span className="text-zinc-500">Historical</span>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

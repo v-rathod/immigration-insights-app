@@ -33,6 +33,7 @@ interface CompactSearchEntry {
   y?: number;
   ss?: number | null;
   st?: string;
+  ac?: string;
 }
 
 interface EmployerSearchEntry {
@@ -44,6 +45,7 @@ interface EmployerSearchEntry {
   latest_year: number;
   srs_score: number | null;
   srs_tier: string;
+  activity_status: string;
 }
 
 interface SponsorReliabilityScore {
@@ -53,6 +55,7 @@ interface SponsorReliabilityScore {
   srs: number | null;
   srs_tier: string;
   n_36m: number;
+  activity_status?: string;
 }
 
 interface FuseResult {
@@ -79,6 +82,7 @@ function loadSearchIndex(): EmployerSearchEntry[] {
 
   const isCompact = "n" in data[0];
 
+  const AC_MAP: Record<string, string> = { a: "active", l: "legacy", h: "historical" };
   return data.map((e) =>
     isCompact
       ? {
@@ -90,6 +94,7 @@ function loadSearchIndex(): EmployerSearchEntry[] {
           latest_year: (e.y as number) ?? 0,
           srs_score: (e.ss as number) ?? null,
           srs_tier: (e.st as string) ?? "Unrated",
+          activity_status: AC_MAP[(e.ac as string) ?? "a"] ?? "active",
         }
       : {
           employer_name: e.n ?? "",
@@ -100,6 +105,7 @@ function loadSearchIndex(): EmployerSearchEntry[] {
           latest_year: 0,
           srs_score: null,
           srs_tier: "Unrated",
+          activity_status: "active",
         }
   );
 }
@@ -117,6 +123,7 @@ function buildAsScores(entries: EmployerSearchEntry[]): SponsorReliabilityScore[
       srs: e.srs_score,
       srs_tier: e.srs_tier,
       n_36m: e.total_filings,
+      activity_status: e.activity_status,
     }));
 }
 
@@ -179,11 +186,18 @@ function sortEmployerResults(
       result.item.srs != null && !isNaN(result.item.srs)
         ? normalize(result.item.srs, 0, Math.max(maxScore, 100))
         : 0;
+    let activityPenalty = 0;
+    if (qualityScore === 0) {
+      const status = result.item.activity_status;
+      if (status === "historical") activityPenalty = 0.15;
+      else if (status === "legacy") activityPenalty = 0.05;
+    }
     const composite =
       textRelevance * 0.4 +
       nameBonus * 0.3 +
       volumeScore * 0.2 +
-      qualityScore * 0.1;
+      qualityScore * 0.1 -
+      activityPenalty;
     return { item: result.item, composite };
   });
 

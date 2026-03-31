@@ -165,8 +165,8 @@ vi.mock("../lib/data/wage", async () => {
 
 vi.mock("../lib/data/employer-shard", () => ({
   loadEmployerSearch: vi.fn().mockResolvedValue([
-    { employer_name: "Google LLC", employer_id: "abc123", total_filings: 50000, n_soc_codes: 5, latest_median_salary: 185000, latest_year: 2025, srs_score: 82, srs_tier: "Good" },
-    { employer_name: "Microsoft Corp", employer_id: "def456", total_filings: 40000, n_soc_codes: 4, latest_median_salary: 175000, latest_year: 2025, srs_score: 85, srs_tier: "Good" },
+    { employer_name: "Google LLC", employer_id: "abc123", total_filings: 50000, n_soc_codes: 5, latest_median_salary: 185000, latest_year: 2025, srs_score: 82, srs_tier: "Good", activity_status: "active" },
+    { employer_name: "Microsoft Corp", employer_id: "def456", total_filings: 40000, n_soc_codes: 4, latest_median_salary: 175000, latest_year: 2025, srs_score: 85, srs_tier: "Good", activity_status: "active" },
   ]),
   loadEmployerShard: vi.fn().mockResolvedValue({
     employer_name: "Google LLC",

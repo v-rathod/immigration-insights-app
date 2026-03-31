@@ -119,6 +119,7 @@ vi.mock("@/lib/data/employer-shard", () => ({
         latest_year: 2024,
         srs_score: 82,
         srs_tier: "Good",
+        activity_status: "active",
       },
     ])
   ),

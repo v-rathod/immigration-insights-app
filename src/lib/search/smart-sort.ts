@@ -6,6 +6,10 @@
  */
 
 import type { SponsorReliabilityScore } from "@/types/p2-artifacts";
+import type { ActivityStatus } from "@/lib/data/employer-shard";
+
+/** Employer result with optional activity classification for sort demoting. */
+type SortableEmployer = SponsorReliabilityScore & { activity_status?: ActivityStatus };
 
 /**
  * Result from Fuse.js search with attached metadata for re-sorting
@@ -50,11 +54,17 @@ function getNameMatchBonus(query: string, name: string): number {
  * - Name pattern match: 30% (exact match likely most relevant)
  * - Volume: 20% (popular employers more useful)
  * - Quality: 10% (SRS score as tiebreaker)
+ *
+ * Activity penalty (applied to unrated employers only):
+ * - historical: −0.15 composite penalty (strong demotion)
+ * - legacy: −0.05 composite penalty (mild demotion)
+ * - active: no penalty
+ * SRS-rated employers are verified active by definition, so no penalty applies.
  */
 export function sortEmployerResults(
-  results: FuseResultWithScore<SponsorReliabilityScore>[],
+  results: FuseResultWithScore<SortableEmployer>[],
   query: string
-): SponsorReliabilityScore[] {
+): SortableEmployer[] {
   if (results.length === 0) return [];
 
   // Find normalization bounds from current result set
@@ -81,12 +91,22 @@ export function sortEmployerResults(
       ? normalize(result.item.srs, 0, Math.max(maxScore, 100))
       : 0;
 
+    // Activity penalty: demote legacy/historical employers that have no SRS rating.
+    // Rated employers (qualityScore > 0) are inherently active, so no penalty.
+    let activityPenalty = 0;
+    if (qualityScore === 0) {
+      const status = result.item.activity_status;
+      if (status === "historical") activityPenalty = 0.15;
+      else if (status === "legacy") activityPenalty = 0.05;
+    }
+
     // Composite score with weights
     const composite =
       textRelevance * 0.4 +
       nameBonus * 0.3 +
       volumeScore * 0.2 +
-      qualityScore * 0.1;
+      qualityScore * 0.1 -
+      activityPenalty;
 
     return {
       item: result.item,

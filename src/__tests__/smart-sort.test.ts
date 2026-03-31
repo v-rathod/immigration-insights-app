@@ -162,6 +162,42 @@ describe("sortEmployerResults", () => {
     // Perfect Match: text=1.0*0.4=0.4, vol≈0*0.2=0, quality≈0.1*0.1=0.01 → 0.41
     expect(sorted[0].employer_name).toBe("Poor Match");
   });
+
+  it("demotes historical unrated employers below active unrated employers", () => {
+    // Both unrated with same volume + Fuse score. Historical gets -0.15 penalty.
+    const active = { ...employer("Active Corp", 500, null, "Unrated"), activity_status: "active" as const };
+    const historical = { ...employer("Historical Corp", 500, null, "Unrated"), activity_status: "historical" as const };
+    const results = [
+      fuseResult(historical, 0.1),
+      fuseResult(active, 0.1),
+    ];
+    const sorted = sortEmployerResults(results, "corp");
+    expect(sorted[0].employer_name).toBe("Active Corp");
+  });
+
+  it("does NOT penalize historical employers that have an SRS rating", () => {
+    // SRS-rated employers are verified active; no penalty applies.
+    const rated = { ...employer("Rated Historical", 500, 80, "Good"), activity_status: "historical" as const };
+    const unrated = { ...employer("Unrated Active", 500, null, "Unrated"), activity_status: "active" as const };
+    const results = [
+      fuseResult(unrated, 0.1),
+      fuseResult(rated, 0.1),
+    ];
+    const sorted = sortEmployerResults(results, "corp");
+    // Rated employer gets quality boost (10%); unrated gets 0 quality. Rated wins.
+    expect(sorted[0].employer_name).toBe("Rated Historical");
+  });
+
+  it("legacy unrated gets mild -0.05 penalty (less than historical -0.15)", () => {
+    const legacy = { ...employer("Legacy Corp", 500, null, "Unrated"), activity_status: "legacy" as const };
+    const historical = { ...employer("Historical Corp", 500, null, "Unrated"), activity_status: "historical" as const };
+    const results = [
+      fuseResult(historical, 0.1),
+      fuseResult(legacy, 0.1),
+    ];
+    const sorted = sortEmployerResults(results, "corp");
+    expect(sorted[0].employer_name).toBe("Legacy Corp");
+  });
 });
 
 /* ------------------------------------------------------------------ */

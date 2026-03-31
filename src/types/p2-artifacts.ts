@@ -120,6 +120,8 @@ export interface SponsorReliabilityScore {
   employer_name: string;
   scope: string;           // "overall" | "SOC"
   soc_code: string | null;
+  /** Activity classification from P2 employer_activity artifact */
+  activity_status?: "active" | "legacy" | "historical";
   n_12m: number;
   n_24m: number;
   n_36m: number;

@@ -42,9 +42,9 @@ vi.mock("next/link", () => ({
 // Mock data
 // ---------------------------------------------------------------------------
 const MOCK_EMPLOYERS = [
-  { employer_name: "Microsoft Corporation", employer_id: "abc123", total_filings: 50000, n_soc_codes: 45, latest_median_salary: 180000, latest_year: 2025, srs_score: 76.6, srs_tier: "Good" },
-  { employer_name: "Infosys Limited", employer_id: "def456", total_filings: 227000, n_soc_codes: 30, latest_median_salary: 95000, latest_year: 2025, srs_score: 89.3, srs_tier: "Excellent" },
-  { employer_name: "Google LLC", employer_id: "ghi789", total_filings: 35000, n_soc_codes: 40, latest_median_salary: 200000, latest_year: 2025, srs_score: 81.0, srs_tier: "Good" },
+  { employer_name: "Microsoft Corporation", employer_id: "abc123", total_filings: 50000, n_soc_codes: 45, latest_median_salary: 180000, latest_year: 2025, srs_score: 76.6, srs_tier: "Good", activity_status: "active" as const },
+  { employer_name: "Infosys Limited", employer_id: "def456", total_filings: 227000, n_soc_codes: 30, latest_median_salary: 95000, latest_year: 2025, srs_score: 89.3, srs_tier: "Excellent", activity_status: "active" as const },
+  { employer_name: "Google LLC", employer_id: "ghi789", total_filings: 35000, n_soc_codes: 40, latest_median_salary: 200000, latest_year: 2025, srs_score: 81.0, srs_tier: "Good", activity_status: "active" as const },
 ];
 
 const MOCK_CUTOFF_TRENDS = [

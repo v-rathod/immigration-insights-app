@@ -1547,6 +1547,7 @@ export default function InsightsPage() {
             srs: e.srs_score,
             srs_tier: e.srs_tier,
             n_36m: e.total_filings, // drives smart-sort volume ranking
+            activity_status: e.activity_status,
           } as SponsorReliabilityScore));
         setOverallScores(asScores);
         setMlScores(ml);

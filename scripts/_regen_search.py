@@ -47,20 +47,41 @@ if srs_path.exists():
             }
     print(f"  SRS scores loaded: {len(srs_lookup):,} employers")
 
+# Load employer activity classification (from make_employer_activity.py)
+# Maps employer_id → activity_status ("active" / "legacy" / "historical")
+activity_lookup = {}
+activity_path = P2 / "employer_activity.parquet"
+if activity_path.exists():
+    act = pd.read_parquet(activity_path, columns=["employer_id", "activity_status"])
+    for _, row in act.iterrows():
+        eid = row.get("employer_id")
+        if eid:
+            activity_lookup[eid] = row["activity_status"]
+    print(f"  Activity classification loaded: {len(activity_lookup):,} employers")
+else:
+    print("  ⚠ employer_activity.parquet not found — all entries will default to 'active'")
+
+# Compact activity status codes for search index size efficiency
+ACTIVITY_CODE = {"active": "a", "legacy": "l", "historical": "h"}
+
 # Build compact entries
 entries = []
 for _, row in stats.iterrows():
     name = row["employer_name"]
     srs = srs_lookup.get(name, {})
+    eid = emp_index.get(name, "")
+    # Look up activity status by employer_id; default to "a" (active) if not found
+    raw_status = activity_lookup.get(eid, "active")
     entries.append({
         "n": name,
-        "id": emp_index.get(name, ""),
+        "id": eid,
         "f": int(row["total_filings"]),
         "sc": int(row["n_soc_codes"]),
         "ms": int(row["latest_median_salary"]),
         "y": int(row["latest_year"]),
         "ss": srs.get("ss"),
         "st": srs.get("st", "Unrated"),
+        "ac": ACTIVITY_CODE.get(raw_status, "a"),
     })
 
 # Apply employer name consolidation (deduplicate U S/US, typo variants)
