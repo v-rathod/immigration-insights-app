@@ -75,7 +75,10 @@ async function fetchHead(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}${path}`, { method: 'HEAD', signal: controller.signal, headers: AUTH_HEADERS });
+    // Use Accept-Encoding: identity to prevent CloudFront from compressing
+    // the response, which strips the content-length header.
+    const hdrs = { ...AUTH_HEADERS, 'Accept-Encoding': 'identity' };
+    const res = await fetch(`${BASE_URL}${path}`, { method: 'HEAD', signal: controller.signal, headers: hdrs });
     clearTimeout(timer);
     return { status: res.status, contentLength: parseInt(res.headers.get('content-length') ?? '0', 10) };
   } catch (e) {

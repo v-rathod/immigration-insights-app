@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 sync_p2_data.py — Sync P2 Meridian artifacts to P3 Compass static JSON
 
