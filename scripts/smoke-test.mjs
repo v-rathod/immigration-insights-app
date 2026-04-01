@@ -265,13 +265,12 @@ const CHECKS = [
   { path: '/data/dashboards/wage/employer_wage_rankings.json',     label: 'Employer wage rankings',    headOnly: true, minSize: 100_000 },
   { path: '/data/dashboards/wage/soc_salary_market.json',          label: 'SOC salary market data',    headOnly: true, minSize: 100_000 },
 
-  // These monolithic files drive the per-shard consolidation step.
-  // headOnly is intentional — they are large (50–200 MB) and we only need to
-  // confirm they are present and non-empty; a HEAD request is sufficient.
-  // If these are absent, run: python3 scripts/sync_p2_data.py
-  { path: '/data/dashboards/wage/employer_role_profiles.json',     label: 'Employer role profiles (wage_roles consolidation source — wage card)', headOnly: true, minSize: 50_000_000 },
-  { path: '/data/dashboards/wage/employer_salary_trend.json',      label: 'Employer salary trend (wage_trend consolidation source — salary chart)', headOnly: true, minSize: 1_000_000 },
-  { path: '/data/dashboards/wage/employer_role_trends.json',       label: 'Employer role-level yearly wage trend (wage_role_trends source)', headOnly: true, minSize: 1_000_000 },
+  // Note: employer_role_profiles.json, employer_salary_trend.json, employer_role_trends.json
+  // are intermediate consolidation inputs consumed into per-employer shards during
+  // the _regen_search.py step. They do not persist in S3 after deploy. Wage data
+  // presence is verified via shard integrity tests in comprehensive-post-deploy.mjs.
+  { path: '/data/dashboards/wage/salary_benchmarks_national.json', label: 'National salary benchmarks by SOC role', headOnly: true, minSize: 50_000 },
+  { path: '/data/dashboards/wage/salary_benchmarks_states.json',   label: 'State salary benchmarks (51 geographic areas)', headOnly: true, minSize: 500_000 },
 
   // ── Visa Bulletin dashboard data ─────────────────────────────────────────────
   { path: '/data/dashboards/visa-bulletin/fact_cutoff_trends.json', label: 'Visa bulletin cutoff trends', headOnly: true, minSize: 10_000 },
