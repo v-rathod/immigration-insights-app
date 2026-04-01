@@ -632,30 +632,40 @@ async function testDashboardData() {
     }
   });
 
+  // Note: employer_salary_trend.json, employer_role_profiles.json, employer_role_trends.json
+  // are intermediate consolidation inputs. After running _regen_search.py they are consumed
+  // into per-employer shards and removed from public/data. Verify wage data is embedded in
+  // shards (section 3) and that the final dashboard files have quality data instead.
+
   tests.push({
-    label: 'Wage: employer_salary_trend source exists (consolidation input)',
+    label: 'Wage: employer_wage_rankings has 500+ ranked employers',
     fn: async () => {
-      const head = await fetchHead('/data/dashboards/wage/employer_salary_trend.json');
-      assert(head.status === 200, `HTTP ${head.status}`);
-      assertGT(head.contentLength, 1000000, 'salary_trend source size');
+      const d = await fetchJSON('/data/dashboards/wage/employer_wage_rankings.json');
+      assert(Array.isArray(d), 'not an array');
+      assertGTE(d.length, 500, 'employer wage rankings count');
+      // Verify required fields
+      assert('employer_name' in d[0], 'missing employer_name');
+      assert('median' in d[0], 'missing median field');
     }
   });
 
   tests.push({
-    label: 'Wage: employer_role_profiles source exists (wage_roles input)',
+    label: 'Wage: national salary benchmarks has 20+ role profiles',
     fn: async () => {
-      const head = await fetchHead('/data/dashboards/wage/employer_role_profiles.json');
-      assert(head.status === 200, `HTTP ${head.status}`);
-      assertGT(head.contentLength, 50000000, 'role_profiles source size');
+      const d = await fetchJSON('/data/dashboards/wage/salary_benchmarks_national.json');
+      assert(Array.isArray(d), 'not an array');
+      assertGTE(d.length, 20, 'national benchmark role count');
+      assert('soc_title' in d[0] || 'job_title' in d[0] || 'role' in d[0], 'missing title field');
     }
   });
 
   tests.push({
-    label: 'Wage: employer_role_trends source exists (drill-down input)',
+    label: 'Wage: Infosys shard has 10+ wage role entries (consolidation verified)',
     fn: async () => {
-      const head = await fetchHead('/data/dashboards/wage/employer_role_trends.json');
-      assert(head.status === 200, `HTTP ${head.status}`);
-      assertGT(head.contentLength, 1000000, 'role_trends source size');
+      const shard = await fetchJSON('/data/employers/shards/infosys.json');
+      assert(shard && typeof shard === 'object', 'invalid shard');
+      assert(Array.isArray(shard.wage_roles), 'wage_roles not array');
+      assertGTE(shard.wage_roles.length, 10, 'Infosys wage_roles count');
     }
   });
 
