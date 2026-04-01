@@ -72,13 +72,13 @@ describe("Sidebar", () => {
     }
   });
 
-  it("renders Core Tools group with PDI, SRS, and Wage Intelligence", async () => {
+  it("renders Core Tools group with PDI, SRS, and Wage Competitiveness", async () => {
     renderSidebar();
     const pdiItems = await screen.findAllByText("Priority Date Cortex");
     expect(pdiItems.length).toBeGreaterThanOrEqual(1);
-    const srsItems = await screen.findAllByText("Employer Sponsor Score");
+    const srsItems = await screen.findAllByText("Sponsor Reliability Score");
     expect(srsItems.length).toBeGreaterThanOrEqual(1);
-    const wageItems = await screen.findAllByText("Wage Intelligence");
+    const wageItems = await screen.findAllByText("Wage Competitiveness");
     expect(wageItems.length).toBeGreaterThanOrEqual(1);
   });
 

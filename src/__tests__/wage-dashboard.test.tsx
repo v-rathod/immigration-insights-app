@@ -889,7 +889,7 @@ describe("RegionalBreakdown", () => {
 
   it("shows empty message when no data provided", () => {
     render(<RegionalBreakdown states={[]} />);
-    expect(screen.getByText(/No state data available/i)).toBeInTheDocument();
+    expect(screen.getByText(/No state-level breakdown available/i)).toBeInTheDocument();
   });
 });
 
@@ -947,10 +947,10 @@ describe("EmployerProfile", () => {
       />
     );
     expect(screen.getByText(/Loading salary data for Optum Services/i)).toBeInTheDocument();
-    expect(screen.queryByText(/No trend data available/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No salary trend data/i)).not.toBeInTheDocument();
   });
 
-  it("shows 'No trend data available' when isLoading=false and trend is empty", () => {
+  it("shows 'No salary trend data' when isLoading=false and trend is empty", () => {
     render(
       <EmployerProfile
         employerName="Optum Services"
@@ -959,7 +959,8 @@ describe("EmployerProfile", () => {
         isLoading={false}
       />
     );
-    expect(screen.getByText(/No trend data available for Optum Services/i)).toBeInTheDocument();
+    expect(screen.getByText(/No salary trend data available for Optum Services/i)).toBeInTheDocument();
+    expect(screen.getByText(/Wage trends require multiple years/i)).toBeInTheDocument();
   });
 
   it("does NOT show skeleton or loading message when data has loaded (trend non-empty)", () => {
@@ -974,7 +975,7 @@ describe("EmployerProfile", () => {
       />
     );
     expect(screen.queryByText(/Loading salary data/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/No trend data available/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No salary trend data/i)).not.toBeInTheDocument();
   });
 
   // ── Profile content when loaded ──────────────────────────────────────────

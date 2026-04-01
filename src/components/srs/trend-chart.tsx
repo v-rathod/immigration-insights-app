@@ -49,12 +49,16 @@ export function SrsTrendChart({
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-12",
+          "flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-12",
           className
         )}
       >
         <p className="text-sm text-[var(--muted-foreground)]">
-          No monthly filing data available for this employer
+          No monthly filing trend available
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)]/60 max-w-xs text-center">
+          Monthly PERM filing breakdowns are available for employers with consistent activity over the 36-month analysis window.
+          This employer may have too few filings or only recent/intermittent activity.
         </p>
       </div>
     );

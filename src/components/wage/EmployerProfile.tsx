@@ -273,9 +273,14 @@ export function EmployerProfile({
     }
     return (
       <GlassCard variant="elevated" padding="md">
-        <p className="text-sm text-[var(--muted-foreground)] text-center py-6">
-          No trend data available for {employerName}
-        </p>
+        <div className="text-center py-6 space-y-2">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            No salary trend data available for {employerName}
+          </p>
+          <p className="text-xs text-[var(--muted-foreground)]/60 max-w-sm mx-auto">
+            Wage trends require multiple years of LCA filing data. This employer may be too new, too small, or may not have consistent salary records in DOL filings.
+          </p>
+        </div>
       </GlassCard>
     );
   }

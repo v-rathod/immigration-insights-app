@@ -202,8 +202,9 @@ export function PdQuickCheck() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-center text-xs text-[var(--muted-foreground)]">
-          No data for {category} {country}
+        <div className="rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-center text-xs text-[var(--muted-foreground)] space-y-1">
+          <p>No data for {category} {country}</p>
+          <p className="text-[var(--muted-foreground)]/50">This combination may not have separate cutoff tracking.</p>
         </div>
       )}
     </GlassCard>

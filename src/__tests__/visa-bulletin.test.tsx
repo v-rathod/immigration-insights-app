@@ -343,6 +343,9 @@ describe("PriorityDateChart", () => {
     expect(
       screen.getByText("No data for this combination")
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Priority date cutoffs are not tracked/i)
+    ).toBeInTheDocument();
   });
 
   it("renders with historical data only (no forecast)", () => {

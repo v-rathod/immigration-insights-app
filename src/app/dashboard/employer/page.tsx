@@ -313,6 +313,8 @@ function SrsDashboardPageContent() {
                   sustainability: selectedEmployer.sustainability_subscore,
                 }}
                 mlScore={selectedEmployer.srs_ml}
+                activityStatus={selectedEmployer.activity_status}
+                caseCount={selectedEmployer.n_36m}
               />
             </div>
 

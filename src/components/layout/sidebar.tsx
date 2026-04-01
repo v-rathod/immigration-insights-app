@@ -39,8 +39,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/insights", label: "My Insights", icon: User },
   { href: "/dashboard/visa-bulletin", label: "Priority Date Cortex", icon: Calendar, group: "Core Tools" },
-  { href: "/dashboard/employer", label: "Employer Sponsor Score", icon: Shield, group: "Core Tools" },
-  { href: "/dashboard/wage", label: "Wage Intelligence", icon: DollarSign, group: "Core Tools" },
+  { href: "/dashboard/employer", label: "Sponsor Reliability Score", icon: Shield, group: "Core Tools" },
+  { href: "/dashboard/wage", label: "Wage Competitiveness", icon: DollarSign, group: "Core Tools" },
   { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Explore" },
   { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Explore" },
   { href: "/dashboard/job-demand", label: "Occupation Demand", icon: Briefcase, group: "Explore" },

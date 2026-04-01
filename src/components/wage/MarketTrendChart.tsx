@@ -85,8 +85,11 @@ export function MarketTrendChart({ data, visaType, userWage, className }: Market
 
   if (chartData.length === 0) {
     return (
-      <div className={cn("flex items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.02] p-12", className)}>
+      <div className={cn("flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-12", className)}>
         <p className="text-sm text-[var(--muted-foreground)]">No trend data available</p>
+        <p className="text-xs text-[var(--muted-foreground)]/60 max-w-xs text-center">
+          Market wage trends for this visa type are not yet available. Data depends on sufficient LCA filing volume across multiple years.
+        </p>
       </div>
     );
   }

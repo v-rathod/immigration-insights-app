@@ -6,11 +6,13 @@
  * - Tier color coding
  * - Score number with spring animation
  * - Subscore breakdown bars
+ * - Interactive "Why not rated?" explanation for unrated employers
  */
 "use client";
 
-import { useMemo } from "react";
-import { motion, useSpring, useTransform } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { HelpCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { srsTierHex, srsTierColor } from "@/lib/utils/format";
 
@@ -23,6 +25,10 @@ interface SrsScoreGaugeProps {
     sustainability: number;
   };
   mlScore?: number;
+  /** Employer activity classification from P2 pipeline */
+  activityStatus?: "active" | "legacy" | "historical";
+  /** PERM case count in the last 36 months */
+  caseCount?: number;
   className?: string;
 }
 
@@ -38,11 +44,14 @@ export function SrsScoreGauge({
   tier,
   subscores,
   mlScore,
+  activityStatus,
+  caseCount,
   className,
 }: SrsScoreGaugeProps) {
   const normalizedScore = score != null && !isNaN(score) ? score : 0;
   const fillPercent = normalizedScore / 100;
   const color = srsTierHex(tier);
+  const [showWhyUnrated, setShowWhyUnrated] = useState(false);
 
   // Spring-animated score value
   const springValue = useSpring(0, {
@@ -144,6 +153,14 @@ export function SrsScoreGauge({
               <span className="mt-1 text-xs text-[var(--muted-foreground)]">
                 Unrated
               </span>
+              <button
+                onClick={() => setShowWhyUnrated((v) => !v)}
+                className="mt-1.5 flex items-center gap-1 text-[10px] text-blue-400/80 hover:text-blue-400 transition-colors"
+                aria-label="Why is this employer not rated?"
+              >
+                <HelpCircle className="h-3 w-3" />
+                Why?
+              </button>
             </>
           )}
         </div>
@@ -163,8 +180,36 @@ export function SrsScoreGauge({
         </div>
       )}
 
-      {/* Unrated explanation — shown when subscores exist but composite is withheld */}
-      {!isRated && hasSubscores && (
+      {/* Unrated explanation — interactive panel triggered by "Why?" button */}
+      <AnimatePresence>
+        {!isRated && showWhyUnrated && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-full max-w-[260px] overflow-hidden"
+          >
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] text-blue-300/90 leading-snug">
+                  <UnratedReason activityStatus={activityStatus} caseCount={caseCount} hasSubscores={hasSubscores} />
+                </p>
+                <button
+                  onClick={() => setShowWhyUnrated(false)}
+                  className="shrink-0 rounded p-0.5 text-blue-400/60 hover:text-blue-400 transition-colors"
+                  aria-label="Close explanation"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Partial subscores note — shown when subscores exist but composite is withheld */}
+      {!isRated && hasSubscores && !showWhyUnrated && (
         <div className="w-full max-w-[240px] rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2">
           <p className="text-[11px] text-amber-400/80 text-center leading-snug">
             Too few recent filings for an overall score. Component scores below are based on available LCA data.
@@ -242,5 +287,57 @@ function SubscoreBar({
         />
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Unrated Reason — explains WHY an employer isn't scored
+// ---------------------------------------------------------------------------
+
+function UnratedReason({
+  activityStatus,
+  caseCount,
+  hasSubscores,
+}: {
+  activityStatus?: "active" | "legacy" | "historical";
+  caseCount?: number;
+  hasSubscores: boolean;
+}) {
+  if (activityStatus === "historical") {
+    return (
+      <>
+        This employer has no recent green card (PERM) filings.
+        Their last activity was before the 36-month scoring window, so a current reliability score cannot be computed.
+        {hasSubscores && " Partial component scores below are based on available LCA data."}
+      </>
+    );
+  }
+
+  if (activityStatus === "legacy") {
+    return (
+      <>
+        This employer has limited recent filing activity.
+        SRS requires consistent sponsorship volume over 36 months to produce a statistically reliable score.
+        {hasSubscores && " Partial component scores below use available LCA data."}
+      </>
+    );
+  }
+
+  if (caseCount != null && caseCount < 3) {
+    return (
+      <>
+        This employer has only {caseCount} green card {caseCount === 1 ? "filing" : "filings"} in the last 36 months.
+        A minimum of 3 PERM filings is needed for a meaningful score.
+        {hasSubscores && " Component scores below are based on available data."}
+      </>
+    );
+  }
+
+  return (
+    <>
+      This employer does not meet the minimum filing thresholds for SRS scoring.
+      The score requires sufficient PERM (green card) application history within the 36-month analysis window.
+      {hasSubscores && " Component scores below are based on available data."}
+    </>
   );
 }

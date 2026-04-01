@@ -159,7 +159,7 @@ describe("Landing Page", () => {
     renderLanding();
     const dashboards = [
       "Visa Bulletin Trends",
-      "Employer Sponsor Score",
+      "Sponsor Reliability Score",
       "EB Category Comparison",
       "Geographic Heatmaps",
       "Wage Competitiveness",

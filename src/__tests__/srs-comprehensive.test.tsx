@@ -1270,7 +1270,7 @@ describe("SrsTrendChart — Comprehensive", () => {
 
   it("shows empty message when no metrics", () => {
     render(<SrsTrendChart metrics={[]} employerName="Acme" />);
-    expect(screen.getByText(/No monthly filing data/)).toBeDefined();
+    expect(screen.getByText(/No monthly filing trend/)).toBeDefined();
   });
 
   it("renders chart container when data present", () => {

@@ -371,12 +371,15 @@ export function PriorityDateChart({
     return (
       <div
         className={cn(
-          "flex items-center justify-center aspect-[4/3] sm:aspect-[16/7] min-h-48 rounded-2xl border border-white/[0.08] bg-white/[0.02]",
+          "flex flex-col items-center justify-center gap-2 aspect-[4/3] sm:aspect-[16/7] min-h-48 rounded-2xl border border-white/[0.08] bg-white/[0.02]",
           className
         )}
       >
         <p className="text-sm text-[var(--muted-foreground)]">
           No data for this combination
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)]/60 max-w-xs text-center">
+          Priority date cutoffs are not tracked for all category and country combinations. Some may always be &quot;current&quot; with no movement history.
         </p>
       </div>
     );

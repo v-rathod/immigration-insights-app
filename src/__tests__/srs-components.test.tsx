@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
@@ -461,6 +462,106 @@ describe("SrsScoreGauge", () => {
 
     expect(screen.queryByText(/ML Score/)).toBeNull();
   });
+
+  it("shows 'Why?' button for unrated employer", () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+      />
+    );
+
+    expect(screen.getByText("Why?")).toBeDefined();
+  });
+
+  it("does not show 'Why?' button for rated employer", () => {
+    render(
+      <SrsScoreGauge
+        score={82}
+        tier="Good"
+        subscores={{ outcome: 90, wage: 75, sustainability: 60 }}
+      />
+    );
+
+    expect(screen.queryByText("Why?")).toBeNull();
+  });
+
+  it("shows historical employer explanation when Why? is clicked", async () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+        activityStatus="historical"
+      />
+    );
+
+    await userEvent.click(screen.getByText("Why?"));
+    expect(screen.getByText(/no recent green card/i)).toBeDefined();
+  });
+
+  it("shows legacy employer explanation when Why? is clicked", async () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+        activityStatus="legacy"
+      />
+    );
+
+    await userEvent.click(screen.getByText("Why?"));
+    expect(screen.getByText(/limited recent filing activity/i)).toBeDefined();
+  });
+
+  it("shows low case count explanation when Why? is clicked", async () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+        caseCount={2}
+      />
+    );
+
+    await userEvent.click(screen.getByText("Why?"));
+    expect(screen.getByText(/only 2 green card/i)).toBeDefined();
+  });
+
+  it("shows generic explanation when no activity status or case count", async () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+      />
+    );
+
+    await userEvent.click(screen.getByText("Why?"));
+    expect(screen.getByText(/does not meet the minimum/i)).toBeDefined();
+  });
+
+  it("can dismiss the Why explanation with close button", async () => {
+    render(
+      <SrsScoreGauge
+        score={null}
+        tier="Unrated"
+        subscores={{ outcome: 0, wage: 0, sustainability: 0 }}
+        activityStatus="historical"
+      />
+    );
+
+    await userEvent.click(screen.getByText("Why?"));
+    expect(screen.getByText(/no recent green card/i)).toBeDefined();
+
+    await userEvent.click(screen.getByLabelText("Close explanation"));
+    // After AnimatePresence exit, the text should be gone
+    // (In test env framer-motion exits instantly)
+    await waitFor(() =>
+      expect(screen.queryByText(/no recent green card/i)).toBeNull()
+    );
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -514,7 +615,8 @@ describe("SrsTrendChart", () => {
     render(
       <SrsTrendChart metrics={[]} employerName="Acme Corp" />
     );
-    expect(screen.getByText(/No monthly filing data/)).toBeDefined();
+    expect(screen.getByText(/No monthly filing trend/)).toBeDefined();
+    expect(screen.getByText(/consistent activity/)).toBeDefined();
   });
 
   it("renders chart container when data present", () => {

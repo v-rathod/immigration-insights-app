@@ -425,8 +425,8 @@ export default function VisaBulletinPage() {
               No data for {category} /{" "}
               {COUNTRY_LABELS[country] ?? country}
             </p>
-            <p className="mt-1 text-xs text-[var(--muted-foreground)]/60">
-              Try a different category or country combination
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]/60 max-w-sm mx-auto">
+              This combination may not have separate visa bulletin tracking. Some categories are &quot;current&quot; for certain countries or have no historical cutoff dates published by USCIS.
             </p>
           </div>
         </FadeIn>
@@ -843,9 +843,12 @@ function PredictionCard({
             </p>
           </div>
         ) : (
-          <div className="py-3 text-center">
+          <div className="py-3 text-center space-y-1">
             <p className="text-xs text-[var(--muted-foreground)]">
               No forecast data available
+            </p>
+            <p className="text-[10px] text-[var(--muted-foreground)]/50">
+              Forecasts require sufficient historical movement data for this category/country combination
             </p>
           </div>
         )}

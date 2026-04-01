@@ -54,7 +54,7 @@ const DASHBOARDS = [
     icon: CalendarClock,
   },
   {
-    title: "Employer Sponsor Score",
+    title: "Sponsor Reliability Score",
     description:
       "Search any employer and see their SRS: approval rates, wage competitiveness, and risk signals",
     href: "/dashboard/employer/",
