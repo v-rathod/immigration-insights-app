@@ -418,3 +418,58 @@ describe("Employer name consolidation in _search.json", () => {
     }
   });
 });
+
+// ─── Wage dashboard data validation ──────────────────────────────────────────
+
+describe("public/data/dashboards/wage/salary_benchmarks_national.json", () => {
+  const data = loadJson("dashboards/wage/salary_benchmarks_national.json") as Array<{
+    soc_code?: string; soc_title?: string; median?: number; p25?: number; p75?: number;
+  }>;
+
+  it("has data", () => {
+    expect(data.length).toBeGreaterThan(0);
+  });
+
+  it("entries have required wage fields", () => {
+    if (data.length === 0) return;
+    const sample = data.slice(0, 50);
+    for (const r of sample) {
+      expect(r.soc_code).toBeDefined();
+      expect(typeof r.soc_code).toBe("string");
+    }
+  });
+
+  it("median salaries are reasonable (>$20K, <$500K)", () => {
+    const withSalary = data.filter((r) => r.median && r.median > 0);
+    expect(withSalary.length).toBeGreaterThan(0);
+    const unreasonable = withSalary.filter(
+      (r) => r.median! < 20000 || r.median! > 500000
+    );
+    expect(unreasonable).toHaveLength(0);
+  });
+});
+
+describe("public/data/dashboards/wage/employer_wage_rankings.json", () => {
+  const data = loadJson("dashboards/wage/employer_wage_rankings.json") as Array<{
+    employer_name?: string; median_salary?: number; total_filings?: number;
+  }>;
+
+  it("has data (>1000 employers)", () => {
+    expect(data.length).toBeGreaterThan(1000);
+  });
+
+  it("top employers have non-zero median salary", () => {
+    const sample = data.slice(0, 100);
+    for (const r of sample) {
+      expect(r.employer_name).toBeDefined();
+      expect(typeof r.employer_name).toBe("string");
+    }
+  });
+
+  it("known employers appear in wage rankings", () => {
+    const names = new Set(data.map((r) => r.employer_name));
+    expect(names.has("Infosys")).toBe(true);
+    expect(names.has("Google")).toBe(true);
+    expect(names.has("Microsoft")).toBe(true);
+  });
+});

@@ -618,3 +618,214 @@ describe("Real Data: UI display simulation", () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 7. ACTIVITY CLASSIFICATION VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("Real Data: Activity classification distribution", () => {
+  it("every entry has a valid activity_status", () => {
+    const validStatuses = new Set(["active", "legacy", "historical"]);
+    const bad = entries.filter((e) => !validStatuses.has(e.activity_status));
+    expect(bad).toHaveLength(0);
+  });
+
+  it("majority of entries are active (>50%)", () => {
+    const active = entries.filter((e) => e.activity_status === "active");
+    expect(active.length).toBeGreaterThan(entries.length * 0.5);
+  });
+
+  it("has meaningful legacy and historical populations", () => {
+    const legacy = entries.filter((e) => e.activity_status === "legacy");
+    const historical = entries.filter((e) => e.activity_status === "historical");
+    expect(legacy.length).toBeGreaterThan(10000);
+    expect(historical.length).toBeGreaterThan(10000);
+  });
+
+  it("top employers (FAANG) are all active", () => {
+    const faang = ["Google", "Microsoft", "Apple", "Meta Platforms", "Amazon Com Services"];
+    for (const name of faang) {
+      const emp = entries.find((e) => e.employer_name === name);
+      expect(emp).toBeDefined();
+      expect(emp!.activity_status).toBe("active");
+    }
+  });
+
+  it("historical employers have latest_year < 2024 (no recent filings)", () => {
+    const historical = entries.filter(
+      (e) => e.activity_status === "historical" && e.latest_year > 0
+    );
+    const sample = historical.slice(0, 200);
+    const recentHistorical = sample.filter((e) => e.latest_year >= 2024);
+    // Allow small fraction of edge cases from data pipeline
+    expect(recentHistorical.length).toBeLessThan(sample.length * 0.1);
+  });
+
+  it("search sort penalizes historical employers correctly", () => {
+    const hits = fuseSearch(asScores, "Services");
+    const sorted = sortEmployerResults(hits, "Services").slice(0, 50);
+    // Active employers with similar filings should rank above historical ones
+    const activeInTop10 = sorted.slice(0, 10).filter(
+      (s) => s.activity_status === "active" || s.activity_status === undefined
+    );
+    expect(activeInTop10.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. FAANG + MAJOR TECH EMPLOYER VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("Real Data: FAANG employer validation", () => {
+  const findEmployer = (name: string) =>
+    asScores.find((s) => s.employer_name === name);
+
+  it("Meta Platforms has n_36m > 20K", () => {
+    const e = findEmployer("Meta Platforms");
+    expect(e).toBeDefined();
+    expect(e!.n_36m).toBeGreaterThan(20000);
+  });
+
+  it("Meta Platforms has SRS score", () => {
+    const e = findEmployer("Meta Platforms");
+    expect(e).toBeDefined();
+    expect(e!.srs).not.toBeNull();
+    expect(e!.srs!).toBeGreaterThan(70);
+  });
+
+  it("Apple has n_36m > 35K", () => {
+    const e = findEmployer("Apple");
+    expect(e).toBeDefined();
+    expect(e!.n_36m).toBeGreaterThan(35000);
+  });
+
+  it("Apple has SRS score", () => {
+    const e = findEmployer("Apple");
+    expect(e).toBeDefined();
+    expect(e!.srs).not.toBeNull();
+    expect(e!.srs!).toBeGreaterThan(50);
+  });
+
+  it("search for 'Meta' returns Meta Platforms first", () => {
+    const hits = fuseSearch(asScores, "Meta");
+    const sorted = sortEmployerResults(hits, "Meta").slice(0, 12);
+    expect(sorted[0].employer_name).toBe("Meta Platforms");
+  });
+
+  it("search for 'Apple' returns Apple first", () => {
+    const hits = fuseSearch(asScores, "Apple");
+    const sorted = sortEmployerResults(hits, "Apple").slice(0, 12);
+    expect(sorted[0].employer_name).toBe("Apple");
+  });
+});
+
+describe("Real Data: Major consulting firm validation", () => {
+  const findEmployer = (name: string) =>
+    asScores.find((s) => s.employer_name === name);
+
+  it("Wipro has SRS score and > 50K filings", () => {
+    const e = findEmployer("Wipro");
+    expect(e).toBeDefined();
+    expect(e!.n_36m).toBeGreaterThan(50000);
+    expect(e!.srs).not.toBeNull();
+  });
+
+  it("Cognizant Technology Solutions US has merged filings > 150K", () => {
+    const e = findEmployer("Cognizant Technology Solutions US");
+    expect(e).toBeDefined();
+    expect(e!.n_36m).toBeGreaterThan(150000);
+  });
+
+  it("Accenture has SRS score and > 30K filings", () => {
+    const e = findEmployer("Accenture");
+    expect(e).toBeDefined();
+    expect(e!.n_36m).toBeGreaterThan(30000);
+    expect(e!.srs).not.toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. EMPLOYER SHARD CONTENT VALIDATION (real files on disk)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("Real Data: Employer shard content validation", () => {
+  const EMPLOYERS_DIR = join(process.cwd(), "public", "data", "employers");
+
+  function loadShard(employerId: string): Record<string, unknown> | null {
+    const shardPath = join(EMPLOYERS_DIR, `${employerId}.json`);
+    try {
+      const raw = readFileSync(shardPath, "utf-8");
+      const sanitized = raw.replace(/\bNaN\b|-?\bInfinity\b/g, "null");
+      return JSON.parse(sanitized);
+    } catch {
+      return null;
+    }
+  }
+
+  // Infosys shard (top H-1B filer)
+  const infosysId = entries.find((e) => e.employer_name === "Infosys")?.employer_id;
+
+  it("Infosys shard exists and has employer_name", () => {
+    if (!infosysId) return;
+    const shard = loadShard(infosysId);
+    expect(shard).not.toBeNull();
+    expect(shard!.employer_name).toBe("Infosys");
+  });
+
+  it("Infosys shard has LCA data", () => {
+    if (!infosysId) return;
+    const shard = loadShard(infosysId);
+    expect(shard).not.toBeNull();
+    expect(Array.isArray(shard!.lca)).toBe(true);
+    expect((shard!.lca as unknown[]).length).toBeGreaterThan(1000);
+  });
+
+  it("Infosys shard has wage_roles data (post-consolidation)", () => {
+    if (!infosysId) return;
+    const shard = loadShard(infosysId);
+    expect(shard).not.toBeNull();
+    expect(Array.isArray(shard!.wage_roles)).toBe(true);
+    expect((shard!.wage_roles as unknown[]).length).toBeGreaterThan(5);
+  });
+
+  it("Infosys shard has wage_trend data (post-consolidation)", () => {
+    if (!infosysId) return;
+    const shard = loadShard(infosysId);
+    expect(shard).not.toBeNull();
+    expect(Array.isArray(shard!.wage_trend)).toBe(true);
+    expect((shard!.wage_trend as unknown[]).length).toBeGreaterThan(3);
+  });
+
+  it("Infosys shard has SRS data", () => {
+    if (!infosysId) return;
+    const shard = loadShard(infosysId);
+    expect(shard).not.toBeNull();
+    expect(typeof shard!.srs).toBe("object");
+    expect(shard!.srs).not.toBeNull();
+  });
+
+  // Google shard
+  const googleId = entries.find((e) => e.employer_name === "Google")?.employer_id;
+
+  it("Google shard has all required sections", () => {
+    if (!googleId) return;
+    const shard = loadShard(googleId);
+    expect(shard).not.toBeNull();
+    expect(shard!.employer_name).toBe("Google");
+    expect(Array.isArray(shard!.lca)).toBe(true);
+    expect(Array.isArray(shard!.wage_roles)).toBe(true);
+    expect(typeof shard!.srs).toBe("object");
+  });
+
+  // Microsoft shard
+  const msftId = entries.find((e) => e.employer_name === "Microsoft")?.employer_id;
+
+  it("Microsoft shard has all required sections", () => {
+    if (!msftId) return;
+    const shard = loadShard(msftId);
+    expect(shard).not.toBeNull();
+    expect(shard!.employer_name).toBe("Microsoft");
+    expect(Array.isArray(shard!.lca)).toBe(true);
+    expect(Array.isArray(shard!.wage_roles)).toBe(true);
+  });
+});

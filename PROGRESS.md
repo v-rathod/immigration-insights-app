@@ -4,18 +4,44 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-31)
+## Session Quick Snapshot (2026-04-01)
 
-**Current Status**: **MILESTONE 22.0** — Main ahead of deployed environments
-- **Unit Tests**: 1,268 passing (3 skipped) across 42 files
+**Current Status**: **MILESTONE 22.1** — Main ahead of deployed environments
+- **Unit Tests**: 1,295 passing (3 skipped) across 42 files
 - **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
-- **Build**: 19 HTML pages + 95,151 employer shards
+- **Build**: 19 HTML pages + 94,843 employer shards
 - **Stage**: `https://stage.immigrationcompass.fyi` (basic auth)
 - **Prod**: `https://immigrationcompass.fyi` (public, live traffic)
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 - **PD Forecast**: v2.2 (V1 deleted)
 - **Theme**: Light-first (dark/system via toggle)
+
+---
+
+## 2026-04-01 — Milestone 22.1: Data Refresh + Test Expansion
+
+### P2 Data Re-sync + Employer Consolidation
+- Re-synced P2 wage dashboard artifacts: generated `employer_salary_trend.json`, `employer_role_profiles.json`, `employer_role_trends.json`
+- Re-ran `_regen_search.py` with employer name consolidation: 102,424 raw entries consolidated to 102,225 (199 merged name variants)
+- Top merges: "Cognizant Technology Solutions Us" + "U S" variant → single "Cognizant Technology Solutions US" (152,125 combined filings), "Ernst Young U S" variants merged, 197 total groups consolidated
+
+### Predeploy Test Fixes
+- Updated 3 predeploy tests: wage monolithic file-existence checks replaced with shard-embedded data validation
+- These files are intermediary (deleted after consolidation); tests now verify the data is embedded in employer shards instead
+- Fixed `visa-bulletin.test.tsx` radiogroup timing (from prior session)
+
+### New Test Scenarios (27 tests added)
+- **Activity classification validation** (6 tests): distribution checks, FAANG active status, historical employer year validation, sort penalties
+- **FAANG employer validation** (6 tests): Meta Platforms, Apple data presence, SRS scores, search ranking
+- **Major consulting firm validation** (3 tests): Wipro, Cognizant TS (post-consolidation merged count), Accenture
+- **Employer shard content validation** (6 tests): Infosys/Google/Microsoft shards verified for LCA, wage_roles, wage_trend, SRS sections
+- **Wage dashboard data validation** (6 tests): salary_benchmarks_national.json and employer_wage_rankings.json content, field names, salary ranges
+
+### Test Summary
+- **Total**: 1,295 passing, 3 skipped, 42 files
+- **New tests**: 27 specific employer + data validation tests
+- **Fixed tests**: 10 (7 employer normalization + 3 predeploy)
 
 ---
 
