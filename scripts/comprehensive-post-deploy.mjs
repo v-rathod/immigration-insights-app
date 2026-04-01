@@ -645,7 +645,7 @@ async function testDashboardData() {
       assertGTE(d.length, 500, 'employer wage rankings count');
       // Verify required fields
       assert('employer_name' in d[0], 'missing employer_name');
-      assert('median' in d[0], 'missing median field');
+      assert('median_salary' in d[0], 'missing median_salary field');
     }
   });
 
@@ -660,12 +660,12 @@ async function testDashboardData() {
   });
 
   tests.push({
-    label: 'Wage: Infosys shard has 10+ wage role entries (consolidation verified)',
+    label: 'Wage: state salary benchmarks covers 50+ geographic areas',
     fn: async () => {
-      const shard = await fetchJSON('/data/employers/shards/infosys.json');
-      assert(shard && typeof shard === 'object', 'invalid shard');
-      assert(Array.isArray(shard.wage_roles), 'wage_roles not array');
-      assertGTE(shard.wage_roles.length, 10, 'Infosys wage_roles count');
+      const d = await fetchJSON('/data/dashboards/wage/salary_benchmarks_states.json');
+      assert(Array.isArray(d), 'not an array');
+      const areas = new Set(d.map(r => r.area_title ?? r.worksite_state ?? r.state ?? r.state_code));
+      assertGTE(areas.size, 50, 'geographic areas in salary benchmarks');
     }
   });
 
