@@ -6,16 +6,73 @@
 
 ## Session Quick Snapshot (2026-04-01)
 
-**Current Status**: **MILESTONE 22.1** — Main ahead of deployed environments
-- **Unit Tests**: 1,295 passing (3 skipped) across 42 files
+**Current Status**: **MILESTONE 22.3** — Stage deploy pending (main has 2 commits ahead of origin after push)
+- **Unit Tests**: 1,302 passing (3 skipped) across 42 files
 - **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
 - **Build**: 19 HTML pages + 94,843 employer shards
-- **Stage**: `https://stage.immigrationcompass.fyi` (basic auth)
-- **Prod**: `https://immigrationcompass.fyi` (public, live traffic)
+- **Stage**: `https://stage.immigrationcompass.fyi` (basic auth) — deploy pending
+- **Prod**: `https://immigrationcompass.fyi` (public, live traffic) — at M22.1 (`cce7cc0`)
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 - **PD Forecast**: v2.2 (V1 deleted)
 - **Theme**: Light-first (dark/system via toggle)
+- **Last commit**: `1499279` (nav label fixes)
+
+---
+
+## 2026-04-01 — Milestone 22.3: Nav Label Consistency + UI Polish
+
+### Nav Label Discrepancy Fixes (commit `1499279`)
+- Sidebar: "Employer Sponsor Score" → **"Sponsor Reliability Score"** (matches page h1 + metadata)
+- Sidebar: "Wage Intelligence" → **"Wage Competitiveness"** (matches page h1 + metadata)
+- Landing page card: "Employer Sponsor Score" → **"Sponsor Reliability Score"**
+- Updated test assertions in `app-shell.test.tsx` and `landing-page.test.tsx` to match new labels
+
+### Why This Mattered
+- If nav labels and page headings differ, users think they landed on the wrong page or the app is broken
+- All other abbreviated nav labels ("Geographic", "Approvals", "Processing", "EB Categories") are intentional shorter forms of their page headings — not confusing, left as-is
+
+### Test Summary
+- All 1,302 tests passing (no regressions from label changes)
+
+---
+
+## 2026-04-01 — Milestone 22.2: Transparency + "Why Not Rated?" Feature
+
+### "Why Not Rated?" Explainer (SRS Page)
+- Added interactive "Why?" button in the score gauge when an employer is unrated
+- Click reveals a contextual explanation panel (Framer Motion animated) based on employer data:
+  - **Historical employer**: "no recent green card filings, last activity before the 36-month window"
+  - **Legacy employer**: "limited recent filing activity"
+  - **Low case count**: "only X filings in 36 months, minimum 3 needed"
+  - **Generic**: "does not meet minimum filing thresholds"
+- New props: `activityStatus` and `caseCount` passed from SRS page to `ScoreGauge`
+- Expandable panel with close button and keyboard-accessible
+
+### Transparency Improvements (8 locations across app)
+- **SRS trend chart**: "No monthly filing data available" → added context about minimum activity thresholds
+- **Wage EmployerProfile**: "No trend data available" → added context about multi-year data requirements
+- **Wage MarketTrendChart**: "No trend data available" → added note about LCA filing volume threshold
+- **Wage RegionalBreakdown**: "No state data available" → added note about geographic diversity requirement
+- **Visa bulletin no-data state**: "Try a different combination" → added explanation about tracking coverage
+- **PD quick check no-data**: bare "No data" → added explanation about cutoff tracking
+- **Visa bulletin forecast**: "No forecast data available" → added context about historical data needs
+- **All 8**: Follow Smart Visibility Principle — no widget that outputs only "please provide input"
+
+### New Tests (7 added)
+- `srs-components.test.tsx`: "Why?" button visible when unrated, hidden when rated, panel expand/collapse, contextual reasons per activity status (historical/legacy/low-case/active employer not shown)
+
+### Files Modified
+- `src/components/srs/score-gauge.tsx` — "Why?" button + expandable panel
+- `src/app/dashboard/employer/page.tsx` — pass `activityStatus` + `caseCount` to gauge
+- `src/components/srs/employer-trend-chart.tsx` — improved empty state
+- `src/components/wage/EmployerProfile.tsx` — improved empty state
+- `src/components/wage/MarketTrendChart.tsx` — improved empty state
+- `src/components/wage/RegionalBreakdown.tsx` — improved empty state
+- `src/components/pdi/visa-bulletin-chart.tsx` — improved no-data state
+- `src/components/home/pd-quick-check.tsx` — improved no-data state
+- `src/components/pdi/priority-date-chart.tsx` — improved forecast empty state
+- `src/__tests__/srs-components.test.tsx` — 7 new tests
 
 ---
 

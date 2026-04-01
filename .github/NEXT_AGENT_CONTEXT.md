@@ -1,17 +1,17 @@
 # Next Agent Context
 
-**Updated**: 2026-04-01 | **Milestone**: 22.1
+**Updated**: 2026-04-01 | **Milestone**: 22.3
 **Purpose**: Quick reference for the next agent. Supplements PROGRESS.md and copilot-instructions.md.
 
 ---
 
 ## Current State
 
-**Status**: Main is ahead of deployed environments. Stage/Prod at `cce7cc0`, main has test fixes + new tests + data refresh.
+**Status**: Stage deployed (M22.3). Main 2 commits ahead of origin before push. After push + stage deploy, stage = main.
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
-| **Unit Tests** | 1,295 passing (3 skipped) | 42 test files |
+| **Unit Tests** | 1,302 passing (3 skipped) | 42 test files |
 | **Post-Deploy: Smoke** | 48/48 | Pages + data files + rendering |
 | **Post-Deploy: Comprehensive** | 191/191 | 11 validation sections |
 | **Post-Deploy: Playwright e2e** | 23/23 | Navigation, data integrity, theme |
@@ -19,10 +19,15 @@
 | **TypeScript** | 0 errors | Strict mode |
 | **ESLint** | 0 errors | |
 | **Stage** | `stage.immigrationcompass.fyi` | Basic auth (CF Function), Zscaler-approved |
-| **Prod** | `immigrationcompass.fyi` | Public, live traffic |
+| **Prod** | `immigrationcompass.fyi` | Public, live traffic — at `cce7cc0` (M22.0), needs promotion |
 | **Data** | Fresh (2026-04-01) | 94,843 employer shards, 15.8 MB search index, consolidated |
 | **Theme** | Light-first | Dark/system via toggle |
 | **PD Forecast** | v2.2 | Windowed 8yr + anomaly weighting. V1 deleted. |
+| **Last commit** | `1499279` | Nav label consistency fixes |
+
+### Pending for Prod
+- Awaiting user approval to run `bash scripts/promote-to-prod.sh`
+- Changes pending in prod: M22.1 data refresh, M22.2 "Why not rated?" + transparency, M22.3 nav labels
 
 ### Infrastructure
 
