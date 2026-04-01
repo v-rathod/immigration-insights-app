@@ -645,6 +645,8 @@ describe("VisaBulletinPage", () => {
   it("renders forecast model selector (3-way radiogroup)", async () => {
     mockLoadPdForecasts.mockResolvedValue(buildFullForecasts());
     render(<VisaBulletinPage />);
+    // Wait for data to load and chart to render
+    await screen.findByText("Priority Date Movement");
     // 3-way segmented control should be present (starts in optimistic state)
     const radiogroup = await screen.findByRole("radiogroup");
     expect(radiogroup).toBeInTheDocument();

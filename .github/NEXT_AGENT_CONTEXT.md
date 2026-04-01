@@ -1,17 +1,17 @@
 # Next Agent Context
 
-**Updated**: 2026-03-25 | **Milestone**: 21.1
+**Updated**: 2026-03-31 | **Milestone**: 22.0
 **Purpose**: Quick reference for the next agent. Supplements PROGRESS.md and copilot-instructions.md.
 
 ---
 
 ## Current State
 
-**Status**: Production and Stage are live, stable, and fully tested. Both at commit `5c7ddd5`.
+**Status**: Main is ahead of deployed environments. Stage/Prod at `cce7cc0`, main has additional test fix.
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
-| **Unit Tests** | 1,265 passing (3 skipped) | 42 test files |
+| **Unit Tests** | 1,268 passing (3 skipped) | 42 test files |
 | **Post-Deploy: Smoke** | 48/48 | Pages + data files + rendering |
 | **Post-Deploy: Comprehensive** | 191/191 | 11 validation sections |
 | **Post-Deploy: Playwright e2e** | 23/23 | Navigation, data integrity, theme |
@@ -60,7 +60,7 @@ bash scripts/promote-to-prod.sh
 ## Quick Start
 
 ```bash
-npm test -- --run                 # 1,265 tests (42 files)
+npm test -- --run                 # 1,268 tests (42 files)
 npm run build                     # 19 HTML files in out/
 npm run dev                       # localhost:3000
 python3 scripts/sync_p2_data.py   # Sync P2 -> public/data/
@@ -84,6 +84,18 @@ bash scripts/promote-to-prod.sh   # Promote stage -> prod
 | Product guide | `PRODUCT_GUIDE.md` |
 
 ---
+
+## Milestone 22.0 (2026-03-31): Employer Activity + Infra Fixes
+
+- Employer activity classification: active/legacy/historical badges in search results and employer pages
+- Smart sort updated to boost active employers
+- SEO fix: explicit robots metadata on wage dashboard for indexing
+- CloudFront content-length header fix (Accept-Encoding: identity for HEAD requests)
+- Python 3.9 compatibility fix (future annotations)
+- Visa-bulletin test timing fix: wait for chart render before asserting radiogroup
+- Search baseline snapshot + comparison scripts added
+- 1,268 tests passing (42 files), 3 skipped
+- Stage/Prod need deployment to catch up with main
 
 ## Milestone 21.1 (2026-03-25): CI/Agent Stability + Doc Cleanup
 

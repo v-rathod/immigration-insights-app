@@ -292,11 +292,11 @@ The V2 redesign is complete. Key design rules that persist:
 
 ---
 
-## Verified State (2026-03-25 | Milestone 21.1)
+## Verified State (2026-03-31 | Milestone 22.0)
 
 | Metric | Value |
 |--------|-------|
-| Unit tests | 1,265 passing (3 skipped), 42 files |
+| Unit tests | 1,268 passing (3 skipped), 42 files |
 | Post-deploy tests | 262 (48 smoke + 191 comprehensive + 23 Playwright e2e) |
 | Build output | 19 HTML files (16 pages + 404 variants) |
 | TypeScript | 0 errors (strict mode) |
@@ -305,5 +305,5 @@ The V2 redesign is complete. Key design rules that persist:
 | Prod | `immigrationcompass.fyi` (live, public) |
 | Theme | Light-first (dark/system via toggle) |
 | PD Forecast | v2.2 (V1 deleted) |
-| Last commit | `5c7ddd5` on main |
-| Deploy status | Stage and Prod both current and stable |
+| Last commit | `cce7cc0` on main (+ pending test fix) |
+| Deploy status | Main ahead of deployed environments |

@@ -4,10 +4,10 @@
 
 ---
 
-## Session Quick Snapshot (2026-03-25)
+## Session Quick Snapshot (2026-03-31)
 
-**Current Status**: **MILESTONE 21.1** — Production and Stage stable, both at commit `5c7ddd5`
-- **Unit Tests**: 1,265 passing (3 skipped) across 42 files
+**Current Status**: **MILESTONE 22.0** — Main ahead of deployed environments
+- **Unit Tests**: 1,268 passing (3 skipped) across 42 files
 - **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
 - **Build**: 19 HTML pages + 95,151 employer shards
 - **Stage**: `https://stage.immigrationcompass.fyi` (basic auth)
@@ -18,6 +18,30 @@
 - **Theme**: Light-first (dark/system via toggle)
 
 ---
+
+## 2026-03-31 — Milestone 22.0: Employer Activity + Infra Fixes
+
+### Employer Activity Classification (commit `8c054cd`)
+- Added `activity_status` field to employer type: active (filings in last 2 years), legacy (2-5 years), historical (5+ years)
+- Smart sort boosts active employers in search results
+- Employer search and insights pages show activity badges
+- Updated employer consolidation pipeline with classification logic
+- Added search baseline snapshot/comparison scripts for regression detection
+- 6 new/updated test cases across smart-sort, real-data-integration, and widget tests
+
+### SEO Fix (commit `f1045d3`)
+- Added explicit `robots: { index: true, follow: true }` metadata to wage dashboard page
+
+### Infrastructure Fixes (commit `cce7cc0`)
+- CloudFront content-length header: send `Accept-Encoding: identity` in HEAD requests for accurate size
+- Python 3.9 compatibility: added `from __future__ import annotations` to sync_p2_data.py
+
+### Test Stability Fix (this session)
+- Fixed `visa-bulletin.test.tsx` radiogroup timing: wait for chart header render before asserting radiogroup role
+- 1,268 tests passing (3 skipped), up from 1,265
+
+### Pending
+- Stage and Prod deployments needed to catch up with main
 
 ## 2026-03-25 — Milestone 21.1: CI/Agent Stability + Doc Cleanup
 
