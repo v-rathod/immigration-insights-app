@@ -52,6 +52,25 @@ export function formatCompact(n: number | null | undefined): string {
   return compactFormatter.format(n);
 }
 
+/**
+ * Format as compact range (high-level, rounded down):
+ * 67708 → "60K", 243000 → "240K", 18500000 → "18M"
+ * Used for UI displays where exact precision isn't needed.
+ */
+export function formatCompactRange(n: number | null | undefined): string {
+  if (n == null || isNaN(n)) return "–";
+  
+  if (n >= 1000000) {
+    const millions = Math.floor(n / 1000000);
+    return `${millions}M`;
+  }
+  if (n >= 1000) {
+    const thousands = Math.floor(n / 10000) * 10;
+    return `${thousands}K`;
+  }
+  return Math.floor(n).toString();
+}
+
 /** Format an ISO date string as "Mar 2025" */
 export function formatMonthYear(dateStr: string | null | undefined): string {
   if (!dateStr) return "–";

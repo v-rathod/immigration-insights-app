@@ -38,7 +38,7 @@ const HERO_STATS = [
   {
     label: "Data Points",
     value: 18500000,
-    displayValue: "18.5M",
+    displayValue: "18M",
     suffix: "+",
     icon: BarChart3,
     tooltip: "Total government records processed: USCIS H-1B and PERM approvals/denials, DOL LCA certifications and wage surveys, State Dept visa bulletins, and BLS occupational data. Covers 1992 to 2026.",
@@ -46,9 +46,9 @@ const HERO_STATS = [
   {
     label: "Employers Tracked",
     value: 243000,
-    displayValue: "243K",
+    displayValue: "240K",
     icon: Building2,
-    tooltip: "Unique employer names in our full historical dataset (1992-2026), including legacy employers no longer actively sponsoring. About 68K of these have active filings in the last 36 months and appear in the Sponsor Reliability Score search.",
+    tooltip: "Unique employer names in our full historical dataset (1992-2026), including legacy employers no longer actively sponsoring. About 60K+ of these have active filings in the last 36 months and appear in the Sponsor Reliability Score search.",
   },
   {
     label: "Countries",

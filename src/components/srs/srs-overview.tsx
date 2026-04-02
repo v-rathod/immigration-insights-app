@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { formatNumber, formatCompact, srsTierHex } from "@/lib/utils/format";
+import { formatNumber, formatCompact, formatCompactRange, srsTierHex } from "@/lib/utils/format";
 import { GlassCard, StatCard, StaggerContainer, StaggerItem } from "@/components/ui";
 import type { SrsOverviewStats } from "@/lib/data/srs";
 
@@ -44,8 +44,9 @@ export function SrsOverview({ stats, className }: SrsOverviewProps) {
             label="Total Employers"
             value={stats.totalEmployers}
             icon={Building2}
-            format={formatCompact}
-            tooltip="Employers with at least one H-1B or PERM filing in the last 36 months. This is the active search pool for SRS. The full historical dataset (1992-2026) contains 243K+ unique employer names, including legacy filers."
+            format={formatCompactRange}
+            suffix="+"
+            tooltip="Employers with at least one H-1B or PERM filing in the last 36 months. This is the active search pool for SRS. The full historical dataset (1992-2026) contains 240K+ unique employer names, including legacy filers."
           />
         </StaggerItem>
         <StaggerItem>
@@ -53,7 +54,9 @@ export function SrsOverview({ stats, className }: SrsOverviewProps) {
             label="SRS Rated"
             value={stats.ratedEmployers}
             icon={Award}
-            format={formatCompact}
+            format={formatCompactRange}
+            suffix="+"
+            tooltip="Employers with a calculated Sponsor Reliability Score. An employer is rated if they have at least 3 H-1B or PERM filings in the last 36 months."
           />
         </StaggerItem>
         <StaggerItem>
