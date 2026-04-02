@@ -8,7 +8,16 @@
 #   ./scripts/deploy.sh --env prod        # Deploy to prod (requires prod config)
 #   ./scripts/deploy.sh --skip-build      # Skip build, deploy existing out/
 #   ./scripts/deploy.sh --shards-only     # Only sync employer shards
+#   ./scripts/deploy.sh --skip-shards     # Skip shard sync (code-only deploy)
+#   ./scripts/deploy.sh --force-shards    # Force shard sync even if hash unchanged
 #   ./scripts/deploy.sh --env prod --skip-build  # Combine flags
+#
+# SHARD HASH FINGERPRINT:
+#   Employer shards (95K files, 1.1GB) are only re-uploaded when they change.
+#   A SHA-256 of _search.json is stored in S3 as data/employers/.shard-hash.
+#   If the hash matches, shard sync is skipped — saving ~$0.50 per deploy.
+#   Shards change only when P2 Meridian pipeline runs (rare).
+#   Use --force-shards to override the hash check.
 # -----------------------------------------------------------------------
 set -euo pipefail
 
@@ -239,12 +248,54 @@ deploy_main() {
 
 # ── Deploy employer shards ─────────────────────────────────────────────────
 
+# Compute a fingerprint for the employer shard dataset.
+# Uses _search.json as proxy: if the search index hasn't changed, shards haven't either.
+compute_shard_hash() {
+  if [[ -f "$OUT_DIR/data/employers/_search.json" ]]; then
+    shasum -a 256 "$OUT_DIR/data/employers/_search.json" | cut -d' ' -f1
+  else
+    echo "no_search_index_$(date +%s)"
+  fi
+}
+
 deploy_shards() {
   SHARD_SYNC_START=$SECONDS
-  log "Deploying employer shards to S3..."
-  local shard_count upload_count
+  log "Checking employer shards..."
+
+  local shard_count
   shard_count=$(find "$OUT_DIR/data/employers" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
   log "  Local shards: $shard_count files"
+
+  # ── Hash fingerprint check ──────────────────────────────────────────────
+  # Skip the expensive 95K-file sync when the shard data hasn't changed.
+  # Each full shard sync costs ~$0.50 in S3 Tier-1 API requests (PUT + LIST).
+  # The hash is stored in S3 as data/employers/.shard-hash after each sync.
+  if [[ "${FORCE_SHARDS:-false}" == "false" && "${SKIP_SHARDS:-false}" == "false" ]]; then
+    local local_hash remote_hash
+    local_hash=$(compute_shard_hash)
+    remote_hash=$(aws s3 cp "s3://$BUCKET/data/employers/.shard-hash" - \
+      --region "$REGION" 2>/dev/null || echo "")
+
+    if [[ -n "$remote_hash" && "$local_hash" == "$remote_hash" ]]; then
+      SHARD_SYNC_DURATION=$(_elapsed $SHARD_SYNC_START)
+      log "Employer shards unchanged (hash: ${local_hash:0:16}...) — skipping sync ✓"
+      log "  Saved ~0.50 USD in S3 API costs. Use --force-shards to override."
+      return 0
+    elif [[ -n "$remote_hash" ]]; then
+      log "  Shard data changed (local: ${local_hash:0:12}... remote: ${remote_hash:0:12}...) — syncing"
+    else
+      log "  No remote hash found — first shard deploy or hash missing, syncing"
+    fi
+  fi
+
+  if [[ "${SKIP_SHARDS:-false}" == "true" ]]; then
+    log "Employer shards skipped (--skip-shards flag) ✓"
+    SHARD_SYNC_DURATION=0
+    return 0
+  fi
+
+  log "Deploying employer shards to S3 (this takes ~4 min for 95K files)..."
+  local upload_count
   upload_count=$(aws s3 sync "$OUT_DIR/data/employers/" "s3://$BUCKET/data/employers/" \
     --region "$REGION" \
     --size-only \
@@ -252,6 +303,15 @@ deploy_shards() {
     2>&1 | grep -c "upload:" || true)
   SHARD_SYNC_DURATION=$(_elapsed $SHARD_SYNC_START)
   log "Employer shards deployed: ${upload_count} updated in ${SHARD_SYNC_DURATION}s ✓"
+
+  # Store the new hash so future deploys can skip if nothing changed
+  local new_hash
+  new_hash=$(compute_shard_hash)
+  echo "$new_hash" | aws s3 cp - "s3://$BUCKET/data/employers/.shard-hash" \
+    --content-type "text/plain" \
+    --region "$REGION" &>/dev/null && \
+    log "  Shard hash stored in S3 (${new_hash:0:16}...) ✓" || \
+    warn "  Could not store shard hash in S3 (non-fatal)"
 }
 
 # ── CloudFront invalidation ───────────────────────────────────────────────
@@ -483,6 +543,10 @@ print_timing_summary() {
   fi
   if (( SHARD_SYNC_DURATION > 0 )); then
     printf "  %-28s %s\n" "S3 shard sync:" "${SHARD_SYNC_DURATION}s"
+  elif [[ "${SKIP_SHARDS:-false}" == "true" ]]; then
+    printf "  %-28s %s\n" "S3 shard sync:" "skipped (--skip-shards, ~0.50 USD saved)"
+  else
+    printf "  %-28s %s\n" "S3 shard sync:" "skipped (hash unchanged, ~0.50 USD saved)"
   fi
   if (( SMOKE_DURATION > 0 )); then
     printf "  %-28s %s\n" "Smoke tests (+30s wait):" "${SMOKE_DURATION}s"
@@ -498,18 +562,27 @@ print_timing_summary() {
 main() {
   local SKIP_BUILD=false
   local SHARDS_ONLY=false
+  SKIP_SHARDS=false
+  FORCE_SHARDS=false
 
   for arg in "$@"; do
     case "$arg" in
-      --skip-build)  SKIP_BUILD=true ;;
-      --shards-only) SHARDS_ONLY=true ;;
-      --env=*)       DEPLOY_ENV="${arg#--env=}" ;;
-      --env)         ;; # handled below via shift
+      --skip-build)   SKIP_BUILD=true ;;
+      --shards-only)  SHARDS_ONLY=true ;;
+      --skip-shards)  SKIP_SHARDS=true ;;
+      --force-shards) FORCE_SHARDS=true ;;
+      --env=*)        DEPLOY_ENV="${arg#--env=}" ;;
+      --env)          ;; # handled below via shift
       --help|-h)
-        echo "Usage: $0 [--env stage|prod] [--skip-build] [--shards-only]"
-        echo "  --env ENV      Environment to deploy (default: stage)"
-        echo "  --skip-build   Skip npm build, deploy existing out/"
-        echo "  --shards-only  Only sync employer shards"
+        echo "Usage: $0 [--env stage|prod] [--skip-build] [--shards-only] [--skip-shards] [--force-shards]"
+        echo "  --env ENV       Environment to deploy (default: stage)"
+        echo "  --skip-build    Skip npm build, deploy existing out/"
+        echo "  --shards-only   Only sync employer shards"
+        echo "  --skip-shards   Skip shard sync entirely (code-only deploy, saves ~0.50 USD)"
+        echo "  --force-shards  Force shard sync even if hash unchanged"
+        echo ""
+        echo "Cost tip: Shards change only when P2 pipeline runs. For code-only deploys,"
+        echo "  use --skip-shards. The hash fingerprint auto-detects changes otherwise."
         exit 0
         ;;
       *) # Handle --env stage (space-separated)
