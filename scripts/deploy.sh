@@ -411,23 +411,20 @@ verify_deployment() {
     (( FAIL++ ))
   fi
 
-  # 5. Check CloudFront is serving (if curl available)
-  local CF_URL
-  CF_URL=$(aws cloudfront get-distribution --id "$CF_DIST" --region "$REGION" \
-    --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
-  if [[ -n "$CF_URL" ]] && command -v curl &>/dev/null; then
+  # 5. Check CloudFront is serving via the custom domain
+  #    (raw *.cloudfront.net URL may return 403 on prod due to branded-domain redirect)
+  if [[ -n "${DEPLOY_URL:-}" ]] && command -v curl &>/dev/null; then
     local HTTP_STATUS
-    # Build curl with optional auth — avoid empty array expansion with set -u
     if [[ -n "${BASIC_AUTH_B64:-}" ]]; then
-      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Basic $BASIC_AUTH_B64" "https://$CF_URL/" 2>/dev/null || echo "000")
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Basic $BASIC_AUTH_B64" "${DEPLOY_URL}/" 2>/dev/null || echo "000")
     else
-      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$CF_URL/" 2>/dev/null || echo "000")
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DEPLOY_URL}/" 2>/dev/null || echo "000")
     fi
     if [[ "$HTTP_STATUS" == "200" ]]; then
-      log "  ✓ CloudFront returning HTTP 200 at https://$CF_URL/"
+      log "  ✓ CloudFront returning HTTP 200 at ${DEPLOY_URL}/"
       (( PASS++ ))
     elif [[ "$HTTP_STATUS" == "403" ]]; then
-      error "  ✗ CloudFront returning HTTP 403 (Access Denied) — check S3 bucket policy"
+      error "  ✗ CloudFront returning HTTP 403 (Access Denied) — check S3 bucket policy or basic auth"
       (( FAIL++ ))
     else
       warn "  ⚠ CloudFront returning HTTP $HTTP_STATUS (may need invalidation time)"
