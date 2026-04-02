@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { type LucideIcon } from "lucide-react";
+import { type LucideIcon, Info } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,6 +29,8 @@ interface StatCardProps {
   className?: string;
   /** Format function for the ticker */
   format?: (n: number) => string;
+  /** Short explanation shown as a tooltip on the ⓘ icon */
+  tooltip?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +47,9 @@ export function StatCard({
   trend,
   className,
   format,
+  tooltip,
 }: StatCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
   // Defensive: never allow NaN or undefined to render
   const safeValue = typeof value !== 'number' || isNaN(value) || !isFinite(value) ? 0 : value;
   const safeDisplay = (displayValue == null || displayValue === '' || displayValue === 'NaN' || displayValue === 'undefined' || displayValue === 'null') ? undefined : displayValue;
@@ -57,9 +62,33 @@ export function StatCard({
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
-            {label}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+              {label}
+            </p>
+            {tooltip && (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label={`About ${label}`}
+                  onClick={() => setShowTooltip((v) => !v)}
+                  onBlur={() => setShowTooltip(false)}
+                  className="flex items-center text-[var(--muted-foreground)]/40 hover:text-[var(--muted-foreground)] transition-colors focus:outline-none"
+                >
+                  <Info className="h-3 w-3" strokeWidth={2} />
+                </button>
+                {showTooltip && (
+                  <div
+                    role="tooltip"
+                    className="absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-xs leading-relaxed text-[var(--muted-foreground)] shadow-xl"
+                  >
+                    {tooltip}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--border)]" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex items-baseline gap-1">
             {safeDisplay ? (
               <span className="font-mono text-3xl font-bold tracking-tight text-[var(--foreground)]">

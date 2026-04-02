@@ -35,10 +35,33 @@ import { WelcomeBackBanner } from "@/components/home/welcome-back-banner";
 // ---------------------------------------------------------------------------
 
 const HERO_STATS = [
-  { label: "Data Points", value: 18500000, displayValue: "18.5M", suffix: "+", icon: BarChart3 },
-  { label: "Employers Tracked", value: 243000, displayValue: "243K", icon: Building2 },
-  { label: "Countries", value: 249, icon: Globe2 },
-  { label: "Forecast Series", value: 56, icon: TrendingUp },
+  {
+    label: "Data Points",
+    value: 18500000,
+    displayValue: "18.5M",
+    suffix: "+",
+    icon: BarChart3,
+    tooltip: "Total government records processed: USCIS H-1B and PERM approvals/denials, DOL LCA certifications and wage surveys, State Dept visa bulletins, and BLS occupational data. Covers 1992 to 2026.",
+  },
+  {
+    label: "Employers Tracked",
+    value: 243000,
+    displayValue: "243K",
+    icon: Building2,
+    tooltip: "Unique employer names in our full historical dataset (1992-2026), including legacy employers no longer actively sponsoring. About 68K of these have active filings in the last 36 months and appear in the Sponsor Reliability Score search.",
+  },
+  {
+    label: "Countries",
+    value: 249,
+    icon: Globe2,
+    tooltip: "Birth countries represented across employment-based green card applications in USCIS and State Dept records. Drives per-country priority date forecasts and wait-time estimates.",
+  },
+  {
+    label: "Forecast Series",
+    value: 56,
+    icon: TrendingUp,
+    tooltip: "ML-powered priority date forecast timelines, one per EB category and birth country combination. Each series uses historical visa bulletin data and a trained regression model.",
+  },
 ];
 
 /**
@@ -228,6 +251,7 @@ export default function LandingPage() {
                 displayValue={stat.displayValue}
                 suffix={stat.suffix}
                 icon={stat.icon}
+                tooltip={stat.tooltip}
               />
             </StaggerItem>
           ))}

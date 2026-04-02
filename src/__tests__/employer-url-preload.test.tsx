@@ -168,7 +168,7 @@ describe("Employer Dashboard — URL parameter pre-loading", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByPlaceholderText("Search 70,000+ employers…")
+          screen.getByPlaceholderText(/Search .+ employers…/)
         ).toBeDefined();
       },
       { timeout: 3000 }
@@ -220,7 +220,7 @@ describe("Employer Dashboard — URL parameter pre-loading", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByPlaceholderText("Search 70,000+ employers…")
+          screen.getByPlaceholderText(/Search .+ employers…/)
         ).toBeDefined();
       },
       { timeout: 3000 }

@@ -45,6 +45,7 @@ export function SrsOverview({ stats, className }: SrsOverviewProps) {
             value={stats.totalEmployers}
             icon={Building2}
             format={formatCompact}
+            tooltip="Employers with at least one H-1B or PERM filing in the last 36 months. This is the active search pool for SRS. The full historical dataset (1992-2026) contains 243K+ unique employer names, including legacy filers."
           />
         </StaggerItem>
         <StaggerItem>

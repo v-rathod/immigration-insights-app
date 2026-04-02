@@ -13,6 +13,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, Shield } from "lucide-react";
 import { FadeIn } from "@/components/ui";
+import { formatCompact } from "@/lib/utils/format";
 import {
   EmployerSearch,
   SrsScoreGauge,
@@ -270,6 +271,9 @@ function SrsDashboardPageContent() {
             onSelect={handleSelect}
             selectedId={selectedEmployer?.employer_id}
             initialValue={searchParams.get("q") ?? undefined}
+            placeholder={displayStats.totalEmployers > 0
+              ? `Search ${formatCompact(displayStats.totalEmployers)}+ employers…`
+              : "Search employers…"}
           />
         </div>
       </FadeIn>
