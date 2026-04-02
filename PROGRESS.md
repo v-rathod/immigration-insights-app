@@ -6,14 +6,44 @@
 
 ## Session Quick Snapshot (2026-04-02)
 
-**Current Status**: **MILESTONE 22.4** — Stage = Prod = main at `b2404e7`
-- **Unit Tests**: 1,273 passing (32 skipped) across 42 test files
+**Current Status**: **MILESTONE 22.5** — Stage = Prod = main at `f6c1c8a`
+- **Unit Tests**: 1,302 passing (3 skipped) across 42 test files
 - **Post-Deploy Tests**: 261/261 (47 smoke + 191 comprehensive + 23 Playwright e2e)
 - **Build**: 19 HTML pages + 95,153 employer shards
-- **Stage**: `https://stage.immigrationcompass.fyi` — live at M22.4
-- **Prod**: `https://immigrationcompass.fyi` — live at M22.4 (`b2404e7`)
+- **Stage**: `https://stage.immigrationcompass.fyi` — live at M22.5
+- **Prod**: `https://immigrationcompass.fyi` — live at M22.5 (`f6c1c8a`)
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
+- **S3 Cost**: Expected April reduction to ≤$1 (shard hash fingerprinting skips unnecessary syncs)
+
+---
+
+## 2026-04-02 — Milestone 22.5: S3 Cost Optimization (Shard Hash Fingerprinting)
+
+### S3 Cost Crisis (March: $6.58, unsuitable for <200 visitors)
+- Root cause: 95,153 employer shards × ~13 deploys in March = 1.24M Tier-1 API calls (PUT + LIST) = $6.16 of the $6.58 bill
+- Each full shard sync re-scanned all 95K files even when nothing changed
+
+### Solution: Shard Hash Fingerprinting (commit `f6c1c8a`)
+- Before sync: compute SHA-256 of `_search.json` (the shard index), compare to hash stored in S3
+- If unchanged, skip the 95K-file sync entirely — replaces ~96 ListObjectsV2 + 95K PUTs with 1 GetObject
+- Hash `f445176a99103abb...` stored in both stage and prod S3 buckets
+- Future deploys print: `"Employer shards unchanged — skipping sync (saved ~0.50 USD)"`
+- New flags: `--skip-shards` (always skip both) and `--force-shards` (always sync both)
+
+### Expected April Savings
+- Shards change only when P2 Meridian pipeline runs
+- April bill should be ≤$1 for S3 (was $6.58 in March)
+- Each code-only deploy: ~$0.001 (was $0.50)
+
+### Bonus Fix: Prod CloudFront 403 During Deploy
+- Root cause: Prod S3 bucket policy missing CloudFront OAC grant (Terraform defined it but wasn't applied)
+- Fixed via AWS CLI and verified with full smoke test suite
+
+### Infrastructure Status
+- Both stage and prod at M22.5
+- Shard hash optimization active on both
+- Deploy script bug fixed (unbound variable with empty auth arrays)
 
 ---
 

@@ -1,17 +1,22 @@
 # Next Agent Context
 
-**Updated**: 2026-04-02 | **Milestone**: 22.4
+**Updated**: 2026-04-02 | **Milestone**: 22.5
 **Purpose**: Quick reference for the next agent. Supplements PROGRESS.md and copilot-instructions.md.
 
 ---
 
 ## Current State
 
-**Status**: Stage = Prod = main at `b2404e7`. All environments in sync.
+**Status**: Stage = Prod = main at `f6c1c8a`. All environments in sync.
+
+### Key Feature: Shard Hash Fingerprinting (Cost Optimization)
+- S3 shard sync now skips if `_search.json` hash unchanged — saves ~$0.50/deploy
+- Hash stored in S3 at: `shards/.shard-index-hash`
+- Controlled by `--skip-shards` and `--force-shards` flags (see deploy.sh comments)
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
-| **Unit Tests** | 1,273 passing (32 skipped) | 42 test files |
+| **Unit Tests** | 1,302 passing (3 skipped) | 42 test files |
 | **Post-Deploy: Smoke** | 47/47 | Pages + data files + rendering (48→47: intermediate wage files removed) |
 | **Post-Deploy: Comprehensive** | 191/191 | 11 validation sections |
 | **Post-Deploy: Playwright e2e** | 23/23 | Navigation, data integrity, theme |
@@ -19,11 +24,12 @@
 | **TypeScript** | 0 errors | Strict mode |
 | **ESLint** | 0 errors | |
 | **Stage** | `stage.immigrationcompass.fyi` | Basic auth (CF Function), Zscaler-approved |
-| **Prod** | `immigrationcompass.fyi` | Public, live — at `b2404e7` (M22.4) |
+| **Prod** | `immigrationcompass.fyi` | Public, live — at `f6c1c8a` (M22.5) |
 | **Data** | Fresh (2026-04-02) | 95,153 employer shards, 19.5 MB search index, 102,225 consolidated |
 | **Theme** | Light-first | Dark/system via toggle |
 | **PD Forecast** | v2.2 | Windowed 8yr + anomaly weighting. V1 deleted. |
-| **Last commit** | `b2404e7` | Number ranges: 60K+, 240K+, 18M+ |
+| **S3 Cost Opt** | Active | Shard hash fingerprinting (skip unchanged shards) |
+| **Last commit** | `f6c1c8a` | Shard hash fingerprinting + tooltip/number formatting |
 
 ### Infrastructure
 
@@ -45,10 +51,11 @@ bash scripts/deploy.sh                    # Build + S3 sync + CF invalidation + 
 bash scripts/deploy.sh --skip-build       # Redeploy existing out/
 ```
 
-### Prod (Same-Artifact Promotion)
+### Prod (Same-Artifact Promotion with Shard Hash Skip)
 ```bash
 bash scripts/promote-to-prod.sh
 # Copies S3 bytes from stage to prod (no rebuild). Full smoke + comprehensive + Playwright.
+# Shard hash comparison skips unnecessary sync if unchanged.
 ```
 
 ### Rules

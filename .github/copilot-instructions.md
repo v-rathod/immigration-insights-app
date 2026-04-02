@@ -96,6 +96,25 @@ Use P1/P2/P3 in code and internal comments. Use Horizon/Meridian/Compass in publ
 
 ## Standing Instructions (CRITICAL)
 
+### CRITICAL: Never Process Image Files in Git or Chat
+
+**NEVER view, upload, or commit image files with Copilot. This causes chat session crashes.**
+
+- Do NOT use `view_image` on screenshots or test artifacts
+- Do NOT stage image files for git commit (`git add *.png` → crash)
+- Do NOT use `runSubagent` if the task involves image file processing
+- If `git status` shows image files, run `git restore --staged [files]` before committing
+- `playwright-report/` and `test-results/` are in `.gitignore` — keep them there
+- Root cause: Agent invokes image-vision tools → `vision is not enabled` crash or `mgt.clearMarks is not a function` subagent crash
+
+**Check before every commit:**
+```bash
+git status  # Look for .png, .jpg, .gif, .webp, .svg files
+git restore --staged [image-file]  # If found, unstage them
+```
+
+---
+
 ### Mandatory Test Workflow (ENFORCED — GUARDRAIL #13)
 
 **EVERY code change affecting behavior MUST include corresponding test updates or new tests. This is non-negotiable.**
@@ -292,18 +311,20 @@ The V2 redesign is complete. Key design rules that persist:
 
 ---
 
-## Verified State (2026-04-02 | Milestone 22.4)
+## Verified State (2026-04-02 | Milestone 22.5)
 
 | Metric | Value |
 |--------|-------|
-| Unit tests | 1,273 passing (32 skipped), 42 files |
+| Unit tests | 1,302 passing (3 skipped), 42 files |
 | Post-deploy tests | 261 (47 smoke + 191 comprehensive + 23 Playwright e2e) |
 | Build output | 19 HTML files (16 pages + 404 variants) |
 | TypeScript | 0 errors (strict mode) |
 | ESLint | 0 errors |
-| Stage | `stage.immigrationcompass.fyi` (basic auth, Zscaler-approved) — at M22.4 |
-| Prod | `immigrationcompass.fyi` (live, public) — at M22.4 (`b2404e7`) |
+| Stage | `stage.immigrationcompass.fyi` (basic auth, Zscaler-approved) — at M22.5 |
+| Prod | `immigrationcompass.fyi` (live, public) — at M22.5 (`f6c1c8a`) |
 | Theme | Light-first (dark/system via toggle) |
 | PD Forecast | v2.2 (V1 deleted) |
-| Last commit | `b2404e7` on main (number ranges: 60K+, 240K+, 18M+) |
+| S3 Cost Opt | Shard hash fingerprinting active (skip unchanged shards, save ~$0.50/deploy) |
+| Last commit | `f6c1c8a` on main (shard hash + number ranges + stat tooltips) |
 | Deploy status | Stage = Prod = main. All environments in sync. |
+| Expected May Bill | ≤$1 for S3 (March was $6.58, now optimized) |
