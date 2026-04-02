@@ -292,18 +292,18 @@ The V2 redesign is complete. Key design rules that persist:
 
 ---
 
-## Verified State (2026-04-01 | Milestone 22.3)
+## Verified State (2026-04-02 | Milestone 22.4)
 
 | Metric | Value |
 |--------|-------|
-| Unit tests | 1,302 passing (3 skipped), 42 files |
-| Post-deploy tests | 262 (48 smoke + 191 comprehensive + 23 Playwright e2e) |
+| Unit tests | 1,273 passing (32 skipped), 42 files |
+| Post-deploy tests | 261 (47 smoke + 191 comprehensive + 23 Playwright e2e) |
 | Build output | 19 HTML files (16 pages + 404 variants) |
 | TypeScript | 0 errors (strict mode) |
 | ESLint | 0 errors |
-| Stage | `stage.immigrationcompass.fyi` (basic auth, Zscaler-approved) — deployed M22.3 |
-| Prod | `immigrationcompass.fyi` (live, public) — at M22.0, promotion pending approval |
+| Stage | `stage.immigrationcompass.fyi` (basic auth, Zscaler-approved) — at M22.4 |
+| Prod | `immigrationcompass.fyi` (live, public) — at M22.4 (`b2404e7`) |
 | Theme | Light-first (dark/system via toggle) |
 | PD Forecast | v2.2 (V1 deleted) |
-| Last commit | `1499279` on main (nav label consistency fixes) |
-| Deploy status | Stage = main. Prod needs promotion. |
+| Last commit | `b2404e7` on main (number ranges: 60K+, 240K+, 18M+) |
+| Deploy status | Stage = Prod = main. All environments in sync. |

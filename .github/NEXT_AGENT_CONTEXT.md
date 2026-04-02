@@ -1,33 +1,29 @@
 # Next Agent Context
 
-**Updated**: 2026-04-01 | **Milestone**: 22.3
+**Updated**: 2026-04-02 | **Milestone**: 22.4
 **Purpose**: Quick reference for the next agent. Supplements PROGRESS.md and copilot-instructions.md.
 
 ---
 
 ## Current State
 
-**Status**: Stage deployed (M22.3). Main 2 commits ahead of origin before push. After push + stage deploy, stage = main.
+**Status**: Stage = Prod = main at `b2404e7`. All environments in sync.
 
 | Aspect | Value | Notes |
 |--------|-------|-------|
-| **Unit Tests** | 1,302 passing (3 skipped) | 42 test files |
-| **Post-Deploy: Smoke** | 48/48 | Pages + data files + rendering |
+| **Unit Tests** | 1,273 passing (32 skipped) | 42 test files |
+| **Post-Deploy: Smoke** | 47/47 | Pages + data files + rendering (48→47: intermediate wage files removed) |
 | **Post-Deploy: Comprehensive** | 191/191 | 11 validation sections |
 | **Post-Deploy: Playwright e2e** | 23/23 | Navigation, data integrity, theme |
 | **Build** | 19 HTML files | 16 pages + 404 variants |
 | **TypeScript** | 0 errors | Strict mode |
 | **ESLint** | 0 errors | |
 | **Stage** | `stage.immigrationcompass.fyi` | Basic auth (CF Function), Zscaler-approved |
-| **Prod** | `immigrationcompass.fyi` | Public, live traffic — at `cce7cc0` (M22.0), needs promotion |
-| **Data** | Fresh (2026-04-01) | 94,843 employer shards, 15.8 MB search index, consolidated |
+| **Prod** | `immigrationcompass.fyi` | Public, live — at `b2404e7` (M22.4) |
+| **Data** | Fresh (2026-04-02) | 95,153 employer shards, 19.5 MB search index, 102,225 consolidated |
 | **Theme** | Light-first | Dark/system via toggle |
 | **PD Forecast** | v2.2 | Windowed 8yr + anomaly weighting. V1 deleted. |
-| **Last commit** | `1499279` | Nav label consistency fixes |
-
-### Pending for Prod
-- Awaiting user approval to run `bash scripts/promote-to-prod.sh`
-- Changes pending in prod: M22.1 data refresh, M22.2 "Why not rated?" + transparency, M22.3 nav labels
+| **Last commit** | `b2404e7` | Number ranges: 60K+, 240K+, 18M+ |
 
 ### Infrastructure
 

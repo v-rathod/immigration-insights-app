@@ -4,19 +4,43 @@
 
 ---
 
-## Session Quick Snapshot (2026-04-01)
+## Session Quick Snapshot (2026-04-02)
 
-**Current Status**: **MILESTONE 22.3** — Stage deploy pending (main has 2 commits ahead of origin after push)
-- **Unit Tests**: 1,302 passing (3 skipped) across 42 files
-- **Post-Deploy Tests**: 262/262 passing (48 smoke + 191 comprehensive + 23 Playwright e2e)
-- **Build**: 19 HTML pages + 94,843 employer shards
-- **Stage**: `https://stage.immigrationcompass.fyi` (basic auth) — deploy pending
-- **Prod**: `https://immigrationcompass.fyi` (public, live traffic) — at M22.1 (`cce7cc0`)
+**Current Status**: **MILESTONE 22.4** — Stage = Prod = main at `b2404e7`
+- **Unit Tests**: 1,273 passing (32 skipped) across 42 test files
+- **Post-Deploy Tests**: 261/261 (47 smoke + 191 comprehensive + 23 Playwright e2e)
+- **Build**: 19 HTML pages + 95,153 employer shards
+- **Stage**: `https://stage.immigrationcompass.fyi` — live at M22.4
+- **Prod**: `https://immigrationcompass.fyi` — live at M22.4 (`b2404e7`)
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
-- **PD Forecast**: v2.2 (V1 deleted)
-- **Theme**: Light-first (dark/system via toggle)
-- **Last commit**: `1499279` (nav label fixes)
+
+---
+
+## 2026-04-02 — Milestone 22.4: Number Ranges + Stat Card Tooltips + Prod Deploy
+
+### Number Transparency (commit `b2404e7`)
+- Added `formatCompactRange()` to `src/lib/utils/format.ts` — rounds down to nearest 10K/1M boundary
+- Home page hero: 18.5M → **18M+**, 243K → **240K+** in display values
+- SRS overview: "Total Employers" and "SRS Rated" cards now show rounded ranges (e.g. **60K+**) instead of exact counts
+- SRS search placeholder: was hardcoded "70,000+", now dynamic from data and rounded (e.g. **"Search 60K+ employers…"**)
+- Tooltip copy updated to say "~60K+" instead of exact "68K" figures
+
+### Stat Card Info Tooltips (commit `c73db36`)
+- Added `tooltip` prop to `StatCard` — click ⓘ icon opens contextual popover (keyboard accessible, Framer Motion animated)
+- Home page: all 4 hero stats now have explanatory tooltips (18M+ data points sources, 240K+ employer history, countries, years)
+- SRS "Total Employers": tooltip clarifies 36-month active filing pool vs 243K full history
+- SRS "SRS Rated": tooltip explains minimum 3-filing threshold for a score
+
+### Deploy Script Bug Fix (this session)
+- Fixed `scripts/deploy.sh` line 363: `CURL_AUTH_ARGS[@]` empty array expansion crash with `set -u`  
+- Prod smoke test section was failing with "unbound variable" on prod (no basic auth = empty array)
+- Fix: replaced array-based auth args with conditional `if/else` curl invocations
+
+### Deploy Status
+- Stage deploy: 47/47 smoke + 191/191 comprehensive + 23/23 Playwright = ALL green
+- Prod deploy: 47/47 smoke + 191/191 comprehensive + 23/23 Playwright = ALL green ✅
+- Zero downtime: S3 sync + CloudFront strategy, rollback pre-armed (not needed)
 
 ---
 

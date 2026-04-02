@@ -356,11 +356,13 @@ verify_deployment() {
   CF_URL=$(aws cloudfront get-distribution --id "$CF_DIST" --region "$REGION" \
     --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
   if [[ -n "$CF_URL" ]] && command -v curl &>/dev/null; then
-    local HTTP_STATUS CURL_AUTH_ARGS=()
+    local HTTP_STATUS
+    # Build curl with optional auth — avoid empty array expansion with set -u
     if [[ -n "${BASIC_AUTH_B64:-}" ]]; then
-      CURL_AUTH_ARGS=(-H "Authorization: Basic $BASIC_AUTH_B64")
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Basic $BASIC_AUTH_B64" "https://$CF_URL/" 2>/dev/null || echo "000")
+    else
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$CF_URL/" 2>/dev/null || echo "000")
     fi
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${CURL_AUTH_ARGS[@]}" "https://$CF_URL/" 2>/dev/null || echo "000")
     if [[ "$HTTP_STATUS" == "200" ]]; then
       log "  ✓ CloudFront returning HTTP 200 at https://$CF_URL/"
       (( PASS++ ))
