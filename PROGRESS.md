@@ -4,9 +4,9 @@
 
 ---
 
-## Session Quick Snapshot (2026-04-02)
+## Session Quick Snapshot (2026-04-19)
 
-**Current Status**: **MILESTONE 22.5** — Stage = Prod = main at `f6c1c8a`
+**Current Status**: **MILESTONE 23** — Data sync from P2 Meridian M23/M24
 - **Unit Tests**: 1,302 passing (3 skipped) across 42 test files
 - **Post-Deploy Tests**: 261/261 (47 smoke + 191 comprehensive + 23 Playwright e2e)
 - **Build**: 19 HTML pages + 95,153 employer shards
@@ -15,6 +15,73 @@
 - **TypeScript**: Strict mode, 0 errors
 - **ESLint**: 0 errors
 - **S3 Cost**: Expected April reduction to ≤$1 (shard hash fingerprinting skips unnecessary syncs)
+
+---
+
+## 2026-04-19 — Milestone 23: P2 Meridian Data Refresh (MCRA Fix + M23/M24 Pipeline)
+
+### Objective
+Re-sync all P3 Compass static JSON artifacts from P2 Meridian after a full pipeline rebuild. The M23/M24 rebuild brought new data (May 2026 Visa Bulletin, Oct 2025 USCIS EB inventory) and fixed a critical MCRA model bug. No P3 frontend changes required — only a data refresh.
+
+### P2 Changes Consumed
+
+**MCRA Model Fix (P2 Milestone 24)**
+- Fixed `pd_forecasts_retrograde.parquet` velocity divergence — 35/55 series over-predicted advancement
+- Root cause: MCRA used all-history velocity instead of 8-year window, and plain `np.mean` instead of anomaly-weighted rolling means
+- Fix: added 8-year window + `_compute_weighted_mean()` matching `pd_forecast_v2`
+- Result: 0/55 MCRA violations (previously 35/55)
+
+**New P2 Data Sources (P2 Milestone 23)**
+- May 2026 Visa Bulletin cutoff dates loaded
+- Oct 2025 USCIS EB inventory data (fact_uscis_approvals updated)
+- All dashboard artifacts rebuilt: employer EFS, backlog, queue depth, processing times, geographic, SOC demand
+
+**P2 Scale Metrics (Apr 2026)**
+- Total rows: 23M+ (up from 18.5M)
+- QA pairs: 719 (up from 684)
+- RAG chunks: 341 (unchanged)
+- P2 tests: 655 passing (up from 349, with 47 new baseline regression tests in M24)
+
+### What Was Done (P3)
+
+**Data Sync** (`scripts/sync_p2_data.py`)
+- Re-ran full P2->P3 sync: dashboards, wage, employer raw filings, employer shards (~95K), dims, models, RAG
+- All `public/data/dashboards/` JSON files refreshed
+- `pd_forecasts_retrograde.json` updated with fixed MCRA outputs (more conservative, <90day setbacks)
+- `pd_forecasts.json` updated with May 2026 projections
+- Employer shards refreshed with latest EFS scores and salary data
+- `_freshness.json` updated: `2026-04-19T...`
+
+**Schema Compatibility Verified**
+- `PdForecastRetrograde` TypeScript type: fully compatible with new P2 schema
+- Employer shard shape unchanged: `extractSrsFromShard()` function reads `raw.efs`/`raw.efs_tier` as before
+- All anchor employer IDs stable (Optum `78a46d39`, Infosys `d35dde19`, Cognizant `32d0e42`)
+- No frontend code changes required
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Unit Tests | 1,302 passing (3 skipped) - unchanged |
+| Forecast MCRA violations | 0/55 (was 35/55 in prev sync) |
+| Employer shards | ~95K (same count, refreshed data) |
+| Dashboard JSON files | All refreshed (Apr 19 timestamps) |
+| P3 frontend changes | None required |
+
+### Files Modified
+- `public/data/dashboards/**` — All dashboard JSON files (data refresh)
+- `public/data/models/pd_forecasts.json` — Updated base forecast (May 2026 VB)
+- `public/data/models/pd_forecasts_retrograde.json` — Fixed MCRA forecasts
+- `public/data/dims/**` — Dimension tables refreshed
+- `public/data/rag/**` — RAG chunks and QA pairs updated (719 QA pairs)
+- `public/data/employers/**` — All ~95K employer shards refreshed
+- `public/data/_freshness.json` — Updated to 2026-04-19
+- `PROGRESS.md` — This entry
+
+### Next Steps
+1. Deploy to stage: `./deploy.sh --stage`
+2. Run post-deploy smoke tests: `node scripts/comprehensive-post-deploy.mjs --stage`
+3. If stage passes, deploy to prod: `./deploy.sh --prod`
+4. Dashboard 4: Geographic Heatmaps (pending UI work)
 
 ---
 

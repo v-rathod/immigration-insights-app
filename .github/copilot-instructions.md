@@ -311,7 +311,7 @@ The V2 redesign is complete. Key design rules that persist:
 
 ---
 
-## Verified State (2026-04-02 | Milestone 22.5)
+## Verified State (2026-04-19 | Milestone 23)
 
 | Metric | Value |
 |--------|-------|
@@ -323,8 +323,8 @@ The V2 redesign is complete. Key design rules that persist:
 | Stage | `stage.immigrationcompass.fyi` (basic auth, Zscaler-approved) — at M22.5 |
 | Prod | `immigrationcompass.fyi` (live, public) — at M22.5 (`f6c1c8a`) |
 | Theme | Light-first (dark/system via toggle) |
-| PD Forecast | v2.2 (V1 deleted) |
+| PD Forecast | v2.2 (V1 deleted) + MCRA fixed (0/55 violations, was 35/55) |
 | S3 Cost Opt | Shard hash fingerprinting active (skip unchanged shards, save ~$0.50/deploy) |
 | Last commit | `f6c1c8a` on main (shard hash + number ranges + stat tooltips) |
-| Deploy status | Stage = Prod = main. All environments in sync. |
-| Expected May Bill | ≤$1 for S3 (March was $6.58, now optimized) |
+| Data freshness | P2 M23/M24 synced (May 2026 VB, MCRA fix, Oct 2025 USCIS EB) — deploy pending |
+| Deploy status | Code: Stage = Prod = M22.5. Data: refreshed locally, deploy to follow. |
