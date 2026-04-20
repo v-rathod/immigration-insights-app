@@ -88,6 +88,68 @@ describe.skipIf(!DATA_AVAILABLE)("fact_cutoff_trends.json — live data", () => 
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // CRITICAL SCHEMA GUARD: These columns drive homepage widgets (visa-bulletin-pulse,
+  // priority-date-check). If they are missing, the UI renders "Invalid Date" and
+  // "NaN days/month". This test was added after a regression where fact_cutoffs_all
+  // (raw) was accidentally exported instead of fact_cutoff_trends (computed).
+  // ---------------------------------------------------------------------------
+  it("CRITICAL: computed velocity columns are present in every row (prevents NaN days/month)", () => {
+    const COMPUTED_COLS = [
+      "velocity_3m",
+      "velocity_6m",
+      "monthly_advancement_days",
+      "retrogression_flag",
+      "retrogression_count_cum",
+      "queue_position_days",
+    ] as const;
+    const missingByCol: Record<string, number> = {};
+    for (const col of COMPUTED_COLS) missingByCol[col] = 0;
+
+    for (const row of trends) {
+      for (const col of COMPUTED_COLS) {
+        if (!(col in row)) missingByCol[col]++;
+      }
+    }
+    for (const col of COMPUTED_COLS) {
+      expect(
+        missingByCol[col],
+        `Column "${col}" missing from ${missingByCol[col]} rows. ` +
+        "fact_cutoffs_all (raw) was likely exported instead of fact_cutoff_trends (computed). " +
+        "Run: python3.12 scripts/make_fact_cutoff_trends.py"
+      ).toBe(0);
+    }
+  });
+
+  it("CRITICAL: velocity_3m is numeric (not NaN/undefined) for D-status rows", () => {
+    const dRows = trends.filter((r) => r.status_flag === "D");
+    expect(dRows.length).toBeGreaterThan(3_000);
+    // After the first year of data (need prior month to compute velocity), velocity_3m
+    // should be a finite number or null — never the string "NaN" or JS NaN.
+    let nanCount = 0;
+    for (const row of dRows) {
+      if (row.velocity_3m !== null && row.velocity_3m !== undefined) {
+        const v = Number(row.velocity_3m);
+        if (!Number.isFinite(v)) nanCount++;
+      }
+    }
+    expect(nanCount).toBe(0);
+  });
+
+  it("CRITICAL: cutoff_date format is parseable as a date (prevents Invalid Date in UI)", () => {
+    const dRows = trends.filter((r) => r.status_flag === "D" && r.cutoff_date != null);
+    let invalidCount = 0;
+    for (const row of dRows) {
+      const ts = new Date(row.cutoff_date!).getTime();
+      if (!Number.isFinite(ts)) invalidCount++;
+    }
+    expect(
+      invalidCount,
+      `${invalidCount} rows have unparseable cutoff_date. ` +
+      "This causes 'Invalid Date' in formatCutoffDate() on the homepage."
+    ).toBe(0);
+  });
+
   it("contains both DFF and FAD chart types", () => {
     const charts = new Set(trends.map((r) => r.chart));
     expect(charts.has("DFF")).toBe(true);
