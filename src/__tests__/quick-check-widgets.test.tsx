@@ -48,10 +48,11 @@ const MOCK_EMPLOYERS = [
 ];
 
 const MOCK_CUTOFF_TRENDS = [
-  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB2", country: "IND", status_flag: "D", cutoff_date: "2014-07-01", queue_position_days: null, monthly_advancement_days: 122, velocity_3m: 122, velocity_6m: 80, retrogression_flag: 0, retrogression_count_cum: 0 },
-  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB3", country: "IND", status_flag: "D", cutoff_date: "2013-11-01", queue_position_days: null, monthly_advancement_days: 0, velocity_3m: 0, velocity_6m: 15, retrogression_flag: 0, retrogression_count_cum: 0 },
+  // Using pandas datetime format "YYYY-MM-DDTHH:mm:ss" — matches real P2 data output
+  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB2", country: "IND", status_flag: "D", cutoff_date: "2014-07-01T00:00:00", queue_position_days: null, monthly_advancement_days: 122, velocity_3m: 122, velocity_6m: 80, retrogression_flag: 0, retrogression_count_cum: 0 },
+  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB3", country: "IND", status_flag: "D", cutoff_date: "2013-11-01T00:00:00", queue_position_days: null, monthly_advancement_days: 0, velocity_3m: 0, velocity_6m: 15, retrogression_flag: 0, retrogression_count_cum: 0 },
   { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB1", country: "IND", status_flag: "C", cutoff_date: null, queue_position_days: null, monthly_advancement_days: null, velocity_3m: null, velocity_6m: null, retrogression_flag: 0, retrogression_count_cum: 0 },
-  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB2", country: "CHN", status_flag: "D", cutoff_date: "2021-09-01", queue_position_days: null, monthly_advancement_days: 60, velocity_3m: 60, velocity_6m: 50, retrogression_flag: 0, retrogression_count_cum: 0 },
+  { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB2", country: "CHN", status_flag: "D", cutoff_date: "2021-09-01T00:00:00", queue_position_days: null, monthly_advancement_days: 60, velocity_3m: 60, velocity_6m: 50, retrogression_flag: 0, retrogression_count_cum: 0 },
   { bulletin_year: 2026, bulletin_month: 4, chart: "FAD", category: "EB2", country: "ROW", status_flag: "C", cutoff_date: null, queue_position_days: null, monthly_advancement_days: null, velocity_3m: null, velocity_6m: null, retrogression_flag: 0, retrogression_count_cum: 0 },
 ];
 

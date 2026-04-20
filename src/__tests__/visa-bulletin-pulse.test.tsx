@@ -74,6 +74,9 @@ vi.mock("framer-motion", async () => {
 // ---------------------------------------------------------------------------
 // Mock data loader
 // ---------------------------------------------------------------------------
+// IMPORTANT: cutoff_date uses the REAL pandas serialization format "YYYY-MM-DDTHH:mm:ss".
+// DO NOT change to bare YYYY-MM-DD — that format hides the date-parsing bug where the
+// old component code did new Date(iso + "T00:00:00Z") → Invalid Date for this format.
 const MOCK_TRENDS = [
   {
     bulletin_year: 2026,
@@ -82,7 +85,7 @@ const MOCK_TRENDS = [
     category: "EB2",
     country: "IND",
     status_flag: "D",
-    cutoff_date: "2014-07-01",
+    cutoff_date: "2014-07-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 122,
     velocity_3m: 122,
@@ -97,7 +100,7 @@ const MOCK_TRENDS = [
     category: "EB3",
     country: "IND",
     status_flag: "D",
-    cutoff_date: "2013-11-01",
+    cutoff_date: "2013-11-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 0,
     velocity_3m: 0,
@@ -112,7 +115,7 @@ const MOCK_TRENDS = [
     category: "EB1",
     country: "IND",
     status_flag: "D",
-    cutoff_date: "2023-04-01",
+    cutoff_date: "2023-04-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 30,
     velocity_3m: 30,
@@ -127,7 +130,7 @@ const MOCK_TRENDS = [
     category: "EB2",
     country: "CHN",
     status_flag: "D",
-    cutoff_date: "2021-09-01",
+    cutoff_date: "2021-09-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 60,
     velocity_3m: 60,
@@ -157,7 +160,7 @@ const MOCK_TRENDS = [
     category: "EB2",
     country: "ROW",
     status_flag: "D",
-    cutoff_date: "2024-10-01",
+    cutoff_date: "2024-10-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 90,
     velocity_3m: 90,
@@ -173,7 +176,7 @@ const MOCK_TRENDS = [
     category: "EB2",
     country: "IND",
     status_flag: "D",
-    cutoff_date: "2015-01-01",
+    cutoff_date: "2015-01-01T00:00:00",  // pandas datetime format
     queue_position_days: null,
     monthly_advancement_days: 60,
     velocity_3m: 60,
@@ -346,6 +349,43 @@ describe("VisaBulletinPulse", () => {
     await waitFor(() => {
       // After loading completes with empty data, should render nothing
       expect(container.querySelector("table")).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // CRITICAL: Date format regression tests (M27 regression prevention)
+  // Mock data uses pandas format "YYYY-MM-DDTHH:mm:ss". These tests verify
+  // the component renders valid dates — not "Invalid Date" — with that format.
+  // ---------------------------------------------------------------------------
+
+  it("CRITICAL: no Invalid Date rendered with pandas datetime format (YYYY-MM-DDTHH:mm:ss)", async () => {
+    render(<VisaBulletinPulse />);
+    await waitFor(() => {
+      // All date cells should be rendered
+      expect(screen.getByText("Jul 2014")).toBeInTheDocument();
+    });
+    // Explicitly assert no "Invalid Date" text appears anywhere
+    expect(screen.queryByText(/invalid date/i)).not.toBeInTheDocument();
+  });
+
+  it("CRITICAL: no NaN in velocity display with pandas datetime format", async () => {
+    render(<VisaBulletinPulse />);
+    await waitFor(() => {
+      expect(screen.getByText("+122 days/mo")).toBeInTheDocument();
+    });
+    // Velocity should never show NaN
+    expect(screen.queryByText(/NaN/i)).not.toBeInTheDocument();
+  });
+
+  it("CRITICAL: all cutoff dates render as valid month strings (pandas format)", async () => {
+    render(<VisaBulletinPulse />);
+    await waitFor(() => {
+      // All dates from mock (pandas format) must render as Mon YYYY
+      expect(screen.getByText("Jul 2014")).toBeInTheDocument();   // EB2-IND
+      expect(screen.getByText("Nov 2013")).toBeInTheDocument();   // EB3-IND
+      expect(screen.getByText("Apr 2023")).toBeInTheDocument();   // EB1-IND
+      expect(screen.getByText("Sep 2021")).toBeInTheDocument();   // EB2-CHN
+      expect(screen.getByText("Oct 2024")).toBeInTheDocument();   // EB2-ROW
     });
   });
 });

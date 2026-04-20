@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Calendar, ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { GlassCard } from "@/components/ui";
-import { cn } from "@/lib/utils";
+import { cn, formatCutoffIso } from "@/lib/utils";
 import { loadCutoffTrends } from "@/lib/data/pdi";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
 
@@ -23,14 +23,7 @@ const COUNTRIES = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCutoffDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
+// formatCutoffIso is imported from @/lib/utils — handles both YYYY-MM-DD and YYYY-MM-DDTHH:mm:ss
 
 // ---------------------------------------------------------------------------
 // Component
@@ -163,7 +156,7 @@ export function PdQuickCheck() {
               >
                 {isCurrent || !record.cutoff_date
                   ? "Current"
-                  : formatCutoffDate(record.cutoff_date)}
+                  : formatCutoffIso(record.cutoff_date)}
               </span>
               {!isCurrent && (
                 <span

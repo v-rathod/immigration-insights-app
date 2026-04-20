@@ -34,6 +34,7 @@ import {
 } from "@/lib/data/pdi";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
 import type { PdForecast } from "@/types/p2-artifacts";
+import { parseCutoffIso, formatCutoffIso } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Load REAL data files — skip gracefully when public/data/ is not present
@@ -136,18 +137,45 @@ describe.skipIf(!DATA_AVAILABLE)("fact_cutoff_trends.json — live data", () => 
     expect(nanCount).toBe(0);
   });
 
-  it("CRITICAL: cutoff_date format is parseable as a date (prevents Invalid Date in UI)", () => {
+  it("CRITICAL: cutoff_date renders as a valid month when passed through formatCutoffIso (prevents Invalid Date in UI)", () => {
     const dRows = trends.filter((r) => r.status_flag === "D" && r.cutoff_date != null);
+    expect(dRows.length, "Must have D-status rows to test rendering").toBeGreaterThan(3_000);
     let invalidCount = 0;
+    const invalidSamples: string[] = [];
     for (const row of dRows) {
-      const ts = new Date(row.cutoff_date!).getTime();
-      if (!Number.isFinite(ts)) invalidCount++;
+      // Test the ACTUAL rendering function used by VisaBulletinPulse and PdQuickCheck.
+      // This catches the M27 regression where the component did:
+      //   new Date("2023-12-01T00:00:00" + "T00:00:00Z") → Invalid Date
+      // because P2 pandas serializes dates as "YYYY-MM-DDTHH:mm:ss" (not bare YYYY-MM-DD).
+      const rendered = formatCutoffIso(row.cutoff_date);
+      if (rendered === "\u2013" || rendered.toLowerCase().includes("invalid")) {
+        invalidCount++;
+        if (invalidSamples.length < 3) invalidSamples.push(`"${row.cutoff_date}" → "${rendered}"`);
+      }
     }
     expect(
       invalidCount,
-      `${invalidCount} rows have unparseable cutoff_date. ` +
-      "This causes 'Invalid Date' in formatCutoffDate() on the homepage."
+      `${invalidCount} rows render as invalid date. Samples: ${invalidSamples.join("; ")}. ` +
+      "formatCutoffIso() in src/lib/utils/format.ts must handle both YYYY-MM-DD and YYYY-MM-DDTHH:mm:ss formats."
     ).toBe(0);
+  });
+
+  it("CRITICAL: parseCutoffIso handles pandas datetime format (YYYY-MM-DDTHH:mm:ss) without T00:00:00Z double-append bug", () => {
+    // Unit test of the utility function itself — independent of live data.
+    // This test will fail if someone "fixes" parseCutoffIso back to the broken approach.
+    const pandasFormat = "2023-12-01T00:00:00"; // pandas default serialization
+    const bareDateFormat = "2023-12-01"; // bare date format
+    const parsed1 = parseCutoffIso(pandasFormat);
+    const parsed2 = parseCutoffIso(bareDateFormat);
+    expect(parsed1, `parseCutoffIso("${pandasFormat}") returned null — Invalid Date bug still present`).not.toBeNull();
+    expect(parsed2, `parseCutoffIso("${bareDateFormat}") returned null`).not.toBeNull();
+    expect(Number.isFinite(parsed1!.getTime()), "Parsed pandas format is not a valid date").toBe(true);
+    expect(Number.isFinite(parsed2!.getTime()), "Parsed bare date format is not a valid date").toBe(true);
+    // Both should parse to Dec 2023
+    const fmt1 = formatCutoffIso(pandasFormat);
+    const fmt2 = formatCutoffIso(bareDateFormat);
+    expect(fmt1).toBe("Dec 2023");
+    expect(fmt2).toBe("Dec 2023");
   });
 
   it("contains both DFF and FAD chart types", () => {

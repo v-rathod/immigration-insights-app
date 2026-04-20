@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Minus, Activity, ArrowRight } from "lucide-react";
 import { GlassCard } from "@/components/ui";
-import { cn } from "@/lib/utils";
+import { cn, formatCutoffIso } from "@/lib/utils";
 import { loadCutoffTrends } from "@/lib/data/pdi";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
 
@@ -35,14 +35,7 @@ const KEY_SERIES: { category: string; country: string; label: string }[] = [
   { category: "EB2", country: "ROW", label: "Rest of World" },
 ];
 
-function formatCutoffDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
+// formatCutoffIso is imported from @/lib/utils — handles both YYYY-MM-DD and YYYY-MM-DDTHH:mm:ss
 
 function velocityIcon(v: number | null, retro: boolean) {
   if (retro) return <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
@@ -130,7 +123,7 @@ export function VisaBulletinPulse() {
                 cutoffDate:
                   isCurrent || !match.cutoff_date
                     ? "Current"
-                    : formatCutoffDate(match.cutoff_date),
+                    : formatCutoffIso(match.cutoff_date),
                 velocity3m: match.velocity_3m,
                 retrogression: match.retrogression_flag === 1,
                 statusCurrent: isCurrent,

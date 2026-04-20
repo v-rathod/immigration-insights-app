@@ -7,6 +7,8 @@ import {
   formatMonthYear,
   formatFullDate,
   formatWaitTime,
+  parseCutoffIso,
+  formatCutoffIso,
   tierColor,
   tierBg,
   srsTierColor,
@@ -218,5 +220,78 @@ describe("srsScoreToTier", () => {
   it("returns Unrated for null/NaN", () => {
     expect(srsScoreToTier(null)).toBe("Unrated");
     expect(srsScoreToTier(NaN)).toBe("Unrated");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// parseCutoffIso + formatCutoffIso (CRITICAL — homepage date rendering)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("parseCutoffIso", () => {
+  // M27 regression: pandas serializes datetime as YYYY-MM-DDTHH:mm:ss.
+  // Old code did new Date(iso + "T00:00:00Z") which broke for that format.
+  // parseCutoffIso strips the time part before applying UTC midnight.
+
+  it("CRITICAL: parses pandas format YYYY-MM-DDTHH:mm:ss without double-T bug", () => {
+    const d = parseCutoffIso("2023-12-01T00:00:00");
+    expect(d).not.toBeNull();
+    expect(Number.isFinite(d!.getTime())).toBe(true);
+    // Should be Dec 2023
+    expect(d!.getUTCMonth()).toBe(11); // 0-indexed
+    expect(d!.getUTCFullYear()).toBe(2023);
+  });
+
+  it("parses bare YYYY-MM-DD format correctly", () => {
+    const d = parseCutoffIso("2023-12-01");
+    expect(d).not.toBeNull();
+    expect(d!.getUTCFullYear()).toBe(2023);
+    expect(d!.getUTCMonth()).toBe(11);
+    expect(d!.getUTCDate()).toBe(1);
+  });
+
+  it("returns null for null/undefined", () => {
+    expect(parseCutoffIso(null)).toBeNull();
+    expect(parseCutoffIso(undefined)).toBeNull();
+  });
+
+  it("returns null for \"nan\" string (pandas NaT serialization)", () => {
+    expect(parseCutoffIso("nan")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(parseCutoffIso("")).toBeNull();
+  });
+});
+
+describe("formatCutoffIso", () => {
+  it("CRITICAL: formats pandas datetime format as Mon YYYY (never Invalid Date)", () => {
+    expect(formatCutoffIso("2023-12-01T00:00:00")).toBe("Dec 2023");
+    expect(formatCutoffIso("2014-07-01T00:00:00")).toBe("Jul 2014");
+    expect(formatCutoffIso("2026-05-01T00:00:00")).toBe("May 2026");
+  });
+
+  it("formats bare YYYY-MM-DD format correctly", () => {
+    expect(formatCutoffIso("2023-12-01")).toBe("Dec 2023");
+  });
+
+  it("returns dash for null/undefined/nan", () => {
+    expect(formatCutoffIso(null)).toBe("\u2013");
+    expect(formatCutoffIso(undefined)).toBe("\u2013");
+    expect(formatCutoffIso("nan")).toBe("\u2013");
+  });
+
+  it("result never contains the string Invalid", () => {
+    // Extra safety: ensure result never bleeds through as 'Invalid Date'
+    const inputs = [
+      "2023-12-01T00:00:00",
+      "2014-07-01T00:00:00",
+      "2019-01-01T00:00:00",
+      "2026-05-01T00:00:00",
+    ];
+    for (const iso of inputs) {
+      const result = formatCutoffIso(iso);
+      expect(result, `formatCutoffIso("${iso}") returned: ${result}`)
+        .not.toContain("Invalid");
+    }
   });
 });

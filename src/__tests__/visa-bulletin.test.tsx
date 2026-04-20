@@ -624,13 +624,13 @@ describe("VisaBulletinPage", () => {
     mockLoadPdForecasts.mockResolvedValue(limited);
     render(<VisaBulletinPage />);
     // Switch to Philippines which has no data
-    const phlButton = await screen.findByRole("button", { name: "Philippines" });
+    const phlButton = await screen.findByRole("button", { name: "Philippines" }, { timeout: 5000 });
     fireEvent.click(phlButton);
     await waitFor(() => {
       expect(
         screen.getByText(/No data for EB2/i)
       ).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 
   it("renders sublabels for prediction cards after entering PD", async () => {

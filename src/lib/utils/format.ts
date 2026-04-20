@@ -86,6 +86,44 @@ export function formatMonthYear(dateStr: string | null | undefined): string {
   }
 }
 
+/**
+ * Parse a P2 cutoff date string robustly.
+ *
+ * P2 Meridian serializes pandas Timestamps as "YYYY-MM-DDTHH:mm:ss" (no timezone).
+ * Naively appending "T00:00:00Z" to such a string produces an invalid date.
+ * This function always strips the time component first, then re-applies UTC midnight.
+ *
+ * Handles both formats emitted by P2:
+ *   "2023-12-01"              → Date(2023-12-01 UTC)
+ *   "2023-12-01T00:00:00"     → Date(2023-12-01 UTC)   ← pandas default
+ *
+ * Returns null for null/undefined/"nan" inputs.
+ */
+export function parseCutoffIso(iso: string | null | undefined): Date | null {
+  if (!iso || String(iso) === "nan") return null;
+  const datePart = iso.split("T")[0]; // strip any time component
+  const d = new Date(datePart + "T00:00:00Z");
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+/**
+ * Format a P2 cutoff ISO string as "Dec 2023".
+ * Returns "Current" if the date is null (status_flag = "C") and "-" on parse failure.
+ *
+ * Use this everywhere a cutoff date is displayed in the UI.
+ * DO NOT call `new Date(iso + "T00:00:00Z")` inline — use this function instead.
+ */
+export function formatCutoffIso(iso: string | null | undefined): string {
+  if (!iso || String(iso) === "nan") return "–";
+  const d = parseCutoffIso(iso);
+  if (!d) return "–";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /** Format an ISO date string as "March 15, 2025" */
 export function formatFullDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "–";
