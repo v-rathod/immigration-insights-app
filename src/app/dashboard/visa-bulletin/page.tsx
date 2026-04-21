@@ -37,12 +37,12 @@ import {
   getRetrogradeRiskSummary,
   getHistoricalSeries,
   computePdi,
-  computeCasesAhead,
   extrapolateForChart,
   COUNTRY_LABELS,
 } from "@/lib/data/pdi";
 import type { PdForecast, PdForecastRetrograde, EbInventoryRecord } from "@/types/p2-artifacts";
 import type { PdiResult, CutoffTrendRecord } from "@/lib/data/pdi";
+import { CasesAheadCard } from "@/components/pdi/cases-ahead-card";
 import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
@@ -232,12 +232,6 @@ export default function VisaBulletinPage() {
     };
     return { dff: compute(dffSeries), fad: compute(fadSeries) };
   }, [dffSeries, fadSeries, velocityMultiplier]);
-
-  // Cases ahead (from EB I-485 inventory)
-  const casesAhead = useMemo(() => {
-    if (!priorityDate || ebInventory.length === 0) return null;
-    return computeCasesAhead(ebInventory, category, country, priorityDate);
-  }, [ebInventory, category, country, priorityDate]);
 
   // Historical cutoff trend series
   const dffTrends = useMemo(
@@ -583,36 +577,14 @@ export default function VisaBulletinPage() {
       )}
 
       {/* Queue Snapshot - "Cases Ahead of You" from I-485 inventory data */}
-      {hasData && !!priorityDate && casesAhead && casesAhead.casesAhead > 0 && (
+      {hasData && !!priorityDate && (
         <FadeIn delay={0.18}>
-          <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.03] backdrop-blur-xl p-4">
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-400">
-                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xs font-semibold text-[var(--foreground)]">
-                Cases Ahead of You
-              </h3>
-              <span className="ml-auto text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400">
-                I-485 Queue
-              </span>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-bold font-mono text-purple-400 tracking-tight">
-                ~{casesAhead.casesAhead.toLocaleString()}
-              </span>
-              <span className="text-[10px] text-[var(--muted-foreground)]">
-                pending I-485 applications with priority dates at or before yours
-              </span>
-            </div>
-            <p className="mt-1.5 text-[9px] text-[var(--muted-foreground)]/50 leading-relaxed">
-              Source: USCIS EB I-485 Pending Inventory
-              {casesAhead.snapshotDate ? ` (${casesAhead.snapshotDate})` : ""}.
-              Excludes DOS consular inventory and approved I-140 holders who haven&apos;t filed I-485 yet.
-            </p>
-          </div>
+          <CasesAheadCard
+            inventory={ebInventory}
+            category={category}
+            country={country}
+            priorityDate={priorityDate}
+          />
         </FadeIn>
       )}
 

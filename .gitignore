@@ -49,6 +49,10 @@ terraform/tfplan
 # Deploy logs
 deploy*.log
 
+# Competitive analysis and inspiration docs (never commit)
+COMPETITIVE_ANALYSIS_*.md
+competitive_analysis/
+
 # vercel
 .vercel
 

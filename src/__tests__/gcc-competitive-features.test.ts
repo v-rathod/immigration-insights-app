@@ -109,6 +109,103 @@ describe("computeCasesAhead", () => {
     expect(result).not.toBeNull();
     expect(result!.casesAhead).toBe(500);
   });
+
+  // ---- New fields: dataMaxYear, isPdBeyondDataRange, totalPending ----
+
+  it("returns correct totalPending as sum of all matching rows", async () => {
+    const fn = await loadHelper();
+    const result = fn(sampleInventory, "EB2", "IND", "2020-01-01");
+    expect(result).not.toBeNull();
+    // All IND/EB2 rows: 50+100+200+500+300+400+80+60 = 1690
+    expect(result!.totalPending).toBe(50 + 100 + 200 + 500 + 300 + 400 + 80 + 60);
+  });
+
+  it("returns correct dataMaxYear as highest non-zero pd_year", async () => {
+    const fn = await loadHelper();
+    const result = fn(sampleInventory, "EB2", "IND", "2014-01-01");
+    expect(result).not.toBeNull();
+    expect(result!.dataMaxYear).toBe(2014);
+  });
+
+  it("dataMaxYear excludes pd_year=0 (Prior Years bucket)", async () => {
+    const fn = await loadHelper();
+    const inventory: EbInventoryRecord[] = [
+      { snapshot_date: "2026-01-02", country: "IND", category: "EB1", visa_status: "Available", pd_month: 1, pd_year: 0, pending_count: 100 },
+    ];
+    // Only pd_year=0 exists — dataMaxYear should still be 0 (or the only year)
+    const result = fn(inventory, "EB1", "IND", "2025-01-01");
+    expect(result).not.toBeNull();
+    // pd_year=0 is "Prior Years", no named year → dataMaxYear=0
+    expect(result!.dataMaxYear).toBe(0);
+    expect(result!.isPdBeyondDataRange).toBe(true);
+  });
+
+  it("isPdBeyondDataRange is false when PD is within data range", async () => {
+    const fn = await loadHelper();
+    const result = fn(sampleInventory, "EB2", "IND", "2013-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.isPdBeyondDataRange).toBe(false);
+  });
+
+  it("isPdBeyondDataRange is true when PD exceeds dataMaxYear", async () => {
+    const fn = await loadHelper();
+    const result = fn(sampleInventory, "EB2", "IND", "2020-01-01");
+    expect(result).not.toBeNull();
+    expect(result!.isPdBeyondDataRange).toBe(true);
+    expect(result!.dataMaxYear).toBe(2014);
+    // casesAhead should equal totalPending when beyond range
+    expect(result!.casesAhead).toBe(result!.totalPending);
+  });
+
+  it("casesAhead is always <= totalPending (bounds check)", async () => {
+    const fn = await loadHelper();
+    const dates = ["2010-01-01", "2012-06-15", "2013-03-01", "2014-01-01", "2015-01-01", "2020-01-01"];
+    for (const pd of dates) {
+      const result = fn(sampleInventory, "EB2", "IND", pd);
+      expect(result).not.toBeNull();
+      expect(result!.casesAhead).toBeGreaterThanOrEqual(0);
+      expect(result!.casesAhead).toBeLessThanOrEqual(result!.totalPending);
+    }
+  });
+
+  it("casesAhead is monotonically non-decreasing as PD gets later", async () => {
+    const fn = await loadHelper();
+    const pds = ["2010-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01"] as const;
+    const results = pds.map((pd) => fn(sampleInventory, "EB2", "IND", pd)!);
+    for (let i = 1; i < results.length; i++) {
+      expect(results[i].casesAhead).toBeGreaterThanOrEqual(results[i - 1].casesAhead);
+    }
+  });
+
+  it("casesAhead strictly increases within data range (monotonicity)", async () => {
+    const fn = await loadHelper();
+    const r2010 = fn(sampleInventory, "EB2", "IND", "2010-01-01")!;
+    const r2012 = fn(sampleInventory, "EB2", "IND", "2012-06-01")!;
+    const r2014 = fn(sampleInventory, "EB2", "IND", "2014-01-15")!;
+    // More cases are "ahead" as PD moves later within data range
+    expect(r2010.casesAhead).toBeLessThan(r2012.casesAhead);
+    expect(r2012.casesAhead).toBeLessThan(r2014.casesAhead);
+  });
+
+  it("country isolation: same PD/category, different country → different count", async () => {
+    const fn = await loadHelper();
+    const indResult = fn(sampleInventory, "EB2", "IND", "2020-01-01");
+    const chnResult = fn(sampleInventory, "EB2", "CHN", "2020-01-01");
+    expect(indResult).not.toBeNull();
+    expect(chnResult).not.toBeNull();
+    // India has much larger backlog than CHN sample (1690 vs 999)
+    expect(indResult!.casesAhead).not.toBe(chnResult!.casesAhead);
+  });
+
+  it("beyond-range count equals totalPending for any future PD", async () => {
+    const fn = await loadHelper();
+    const r2020 = fn(sampleInventory, "EB2", "IND", "2020-01-01")!;
+    const r2025 = fn(sampleInventory, "EB2", "IND", "2025-06-01")!;
+    // Both beyond dataMaxYear (2014), both should equal totalPending
+    expect(r2020.casesAhead).toBe(r2020.totalPending);
+    expect(r2025.casesAhead).toBe(r2025.totalPending);
+    expect(r2020.casesAhead).toBe(r2025.casesAhead);
+  });
 });
 
 // ======================================================================

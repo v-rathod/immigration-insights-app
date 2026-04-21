@@ -485,19 +485,45 @@ const INVENTORY_COUNTRY_MAP: Record<string, string> = {
   "EL SALVADOR GUATEMALA HONDURAS": "ROW",
 };
 
+export interface CasesAheadResult {
+  /** Pending I-485s with a priority date at or before the user's PD */
+  casesAhead: number;
+  /** Date of the USCIS inventory snapshot used */
+  snapshotDate: string | null;
+  /**
+   * The latest non-zero pd_year present in the data for this category/country.
+   * For EB2/IND this is ~2014; for EB1/ROW this is ~2025.
+   * Any PD newer than this means ALL filed cases are ahead.
+   */
+  dataMaxYear: number;
+  /**
+   * True when the user's priority date is newer than any record in the inventory.
+   * Their PD is so recent no one with that PD has filed an I-485 yet — all
+   * existing filed cases are ahead of them.
+   */
+  isPdBeyondDataRange: boolean;
+  /** Total pending count for this category/country (useful for sanity checks) */
+  totalPending: number;
+}
+
 /**
  * Compute how many I-485 cases are filed ahead of the user's priority date.
  *
  * Sums pending_count for all records where the priority date (pd_year/pd_month)
- * is earlier than the user's priority date, for a given country + category.
+ * is at or before the user's priority date, for a given country + category.
  * Includes both "Available" and "Awaiting Availability" visa statuses.
+ *
+ * NOTE on "static" counts: For backlogs like EB2/IND, the USCIS inventory only
+ * contains rows up to the current cutoff year (~2014). Any PD newer than that
+ * gives the same total — because people with newer PDs haven't filed I-485 yet.
+ * `isPdBeyondDataRange` signals this to the UI so it can explain the situation.
  */
 export function computeCasesAhead(
   inventory: EbInventoryRecord[],
   category: string,
   country: string,
   priorityDate: string // ISO: "2020-03-15"
-): { casesAhead: number; snapshotDate: string | null } | null {
+): CasesAheadResult | null {
   const invCountry = INVENTORY_COUNTRY_MAP[country] ?? "ROW";
 
   // Filter to matching country + category
@@ -513,23 +539,27 @@ export function computeCasesAhead(
   const pdYear = pdDate.getFullYear();
   const pdMonth = pdDate.getMonth() + 1; // 1-indexed
 
+  // Compute dataMaxYear — highest non-zero pd_year in the data
+  const nonZeroYears = matched.map((r) => r.pd_year).filter((y) => y > 0);
+  const dataMaxYear = nonZeroYears.length > 0 ? Math.max(...nonZeroYears) : 0;
+  const isPdBeyondDataRange = pdYear > dataMaxYear;
+
+  const totalPending = matched.reduce((s, r) => s + r.pending_count, 0);
+
   let casesAhead = 0;
   for (const r of matched) {
     const ry = r.pd_year;
     const rm = r.pd_month;
 
-    // pd_year=0 means "Prior Years" — always ahead
+    // pd_year=0 means "Prior Years" — always ahead of everyone
     if (ry === 0) {
       casesAhead += r.pending_count;
-    } else if (ry < pdYear || (ry === pdYear && rm < pdMonth)) {
-      casesAhead += r.pending_count;
-    }
-    // Same year+month: include (filed in same month, likely ahead)
-    else if (ry === pdYear && rm === pdMonth) {
+    } else if (ry < pdYear || (ry === pdYear && rm <= pdMonth)) {
+      // Same month counts as ahead (filed same month as user, likely earlier in queue)
       casesAhead += r.pending_count;
     }
   }
 
   const snapshotDate = matched[0]?.snapshot_date ?? null;
-  return { casesAhead, snapshotDate };
+  return { casesAhead, snapshotDate, dataMaxYear, isPdBeyondDataRange, totalPending };
 }

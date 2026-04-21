@@ -51,6 +51,7 @@ import {
   loadPdForecasts,
   loadPdForecastsRetrograde,
   loadCutoffTrends,
+  loadEbInventory,
   getForecastSeries,
   getHistoricalSeries,
   computePdi,
@@ -77,8 +78,9 @@ import {
 } from "@/lib/data/wage";
 import type { EmployerWageRanking } from "@/lib/data/wage";
 import { secureGet, secureSet } from "@/lib/security";
-import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde, EbInventoryRecord } from "@/types/p2-artifacts";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
+import { CasesAheadCard } from "@/components/pdi/cases-ahead-card";
 import type {
   SponsorReliabilityScore,
   SponsorReliabilityScoreML,
@@ -1436,6 +1438,7 @@ export default function InsightsPage() {
   const [forecasts, setForecasts] = useState<PdForecast[]>([]);
   const [retroForecasts, setRetroForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
+  const [ebInventory, setEbInventory] = useState<EbInventoryRecord[]>([]);
 
   // SRS data
   const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
@@ -1530,15 +1533,17 @@ export default function InsightsPage() {
       loadPdForecasts(),
       loadPdForecastsRetrograde(),
       loadCutoffTrends(),
+      loadEbInventory().catch(() => [] as EbInventoryRecord[]),
       loadEmployerSearch(),
       loadSrsScoresML(),
       loadEmployerRiskFeatures(),
       loadSalaryBenchmarksNational(),
     ])
-      .then(([fc, retroFc, tr, entries, ml, risks, bench]) => {
+      .then(([fc, retroFc, tr, inv, entries, ml, risks, bench]) => {
         setForecasts(fc);
         setRetroForecasts(retroFc);
         setTrends(tr);
+        setEbInventory(inv as EbInventoryRecord[]);
         setSearchEntries(entries);
         // Build lightweight SponsorReliabilityScore[] for EmployerSearch component.
         // n_36m is populated from total_filings so smart-sort volume ranking works.
@@ -1676,6 +1681,18 @@ export default function InsightsPage() {
         <StaggerItem>
           <GreenCardPanel profile={profile} forecasts={forecasts} retroForecasts={retroForecasts} trends={trends} />
         </StaggerItem>
+
+        {/* Cases Ahead of You — inline queue snapshot, shown when PD is set */}
+        {profile.priorityDate && profile.category && profile.country && (
+          <StaggerItem>
+            <CasesAheadCard
+              inventory={ebInventory}
+              category={profile.category}
+              country={profile.country}
+              priorityDate={profile.priorityDate}
+            />
+          </StaggerItem>
+        )}
 
         {/* Panel B: Sponsor Intelligence */}
         <StaggerItem>
