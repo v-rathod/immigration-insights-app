@@ -40,9 +40,10 @@ import {
   extrapolateForChart,
   COUNTRY_LABELS,
 } from "@/lib/data/pdi";
-import type { PdForecast, PdForecastRetrograde, EbInventoryRecord } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde, EbInventoryRecord, I140DemandRecord } from "@/types/p2-artifacts";
 import type { PdiResult, CutoffTrendRecord } from "@/lib/data/pdi";
-import { CasesAheadCard } from "@/components/pdi/cases-ahead-card";
+import { loadI140Demand } from "@/lib/data/backlog";
+import { QueueSnapshotCard } from "@/components/pdi/queue-snapshot-card";
 import { analytics } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
@@ -107,6 +108,7 @@ export default function VisaBulletinPage() {
   const [retrogradeForecasts, setRetrogradeForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
   const [ebInventory, setEbInventory] = useState<EbInventoryRecord[]>([]);
+  const [i140Data, setI140Data] = useState<I140DemandRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -151,12 +153,13 @@ export default function VisaBulletinPage() {
 
   // Load forecasts (base + MCRA) + historical trends + inventory on mount
   useEffect(() => {
-    Promise.all([loadPdForecasts(), loadPdForecastsRetrograde(), loadCutoffTrends(), loadEbInventory().catch(() => [])])
-      .then(([fc, mcra, tr, inv]) => {
+    Promise.all([loadPdForecasts(), loadPdForecastsRetrograde(), loadCutoffTrends(), loadEbInventory().catch(() => []), loadI140Demand().catch(() => [])])
+      .then(([fc, mcra, tr, inv, i140]) => {
         setForecasts(fc);
         setRetrogradeForecasts(mcra);
         setTrends(tr);
-        setEbInventory(inv);
+        setEbInventory(inv as EbInventoryRecord[]);
+        setI140Data(i140 as I140DemandRecord[]);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load data")
@@ -576,11 +579,13 @@ export default function VisaBulletinPage() {
         </AnimatePresence>
       )}
 
-      {/* Queue Snapshot - "Cases Ahead of You" from I-485 inventory data */}
+      {/* Queue Snapshot — three-segment I-485 + I-140 demand breakdown */}
       {hasData && !!priorityDate && (
         <FadeIn delay={0.18}>
-          <CasesAheadCard
+          <QueueSnapshotCard
             inventory={ebInventory}
+            cutoffTrends={trends}
+            i140Data={i140Data}
             category={category}
             country={country}
             priorityDate={priorityDate}

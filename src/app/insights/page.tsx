@@ -78,9 +78,10 @@ import {
 } from "@/lib/data/wage";
 import type { EmployerWageRanking } from "@/lib/data/wage";
 import { secureGet, secureSet } from "@/lib/security";
-import type { PdForecast, PdForecastRetrograde, EbInventoryRecord } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde, EbInventoryRecord, I140DemandRecord } from "@/types/p2-artifacts";
 import type { CutoffTrendRecord } from "@/lib/data/pdi";
-import { CasesAheadCard } from "@/components/pdi/cases-ahead-card";
+import { loadI140Demand } from "@/lib/data/backlog";
+import { QueueSnapshotCard } from "@/components/pdi/queue-snapshot-card";
 import type {
   SponsorReliabilityScore,
   SponsorReliabilityScoreML,
@@ -1439,6 +1440,7 @@ export default function InsightsPage() {
   const [retroForecasts, setRetroForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
   const [ebInventory, setEbInventory] = useState<EbInventoryRecord[]>([]);
+  const [i140Data, setI140Data] = useState<I140DemandRecord[]>([]);
 
   // SRS data
   const [overallScores, setOverallScores] = useState<SponsorReliabilityScore[]>([]);
@@ -1534,16 +1536,18 @@ export default function InsightsPage() {
       loadPdForecastsRetrograde(),
       loadCutoffTrends(),
       loadEbInventory().catch(() => [] as EbInventoryRecord[]),
+      loadI140Demand().catch(() => [] as I140DemandRecord[]),
       loadEmployerSearch(),
       loadSrsScoresML(),
       loadEmployerRiskFeatures(),
       loadSalaryBenchmarksNational(),
     ])
-      .then(([fc, retroFc, tr, inv, entries, ml, risks, bench]) => {
+      .then(([fc, retroFc, tr, inv, i140, entries, ml, risks, bench]) => {
         setForecasts(fc);
         setRetroForecasts(retroFc);
         setTrends(tr);
         setEbInventory(inv as EbInventoryRecord[]);
+        setI140Data(i140 as I140DemandRecord[]);
         setSearchEntries(entries);
         // Build lightweight SponsorReliabilityScore[] for EmployerSearch component.
         // n_36m is populated from total_filings so smart-sort volume ranking works.
@@ -1682,11 +1686,13 @@ export default function InsightsPage() {
           <GreenCardPanel profile={profile} forecasts={forecasts} retroForecasts={retroForecasts} trends={trends} />
         </StaggerItem>
 
-        {/* Cases Ahead of You — inline queue snapshot, shown when PD is set */}
+        {/* Queue Snapshot — three-segment I-485 + I-140 demand breakdown */}
         {profile.priorityDate && profile.category && profile.country && (
           <StaggerItem>
-            <CasesAheadCard
+            <QueueSnapshotCard
               inventory={ebInventory}
+              cutoffTrends={trends}
+              i140Data={i140Data}
               category={profile.category}
               country={profile.country}
               priorityDate={profile.priorityDate}

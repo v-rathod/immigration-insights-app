@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { EbInventoryRecord, I140DemandRecord } from "@/types/p2-artifacts";
+import type { CutoffTrendRecord } from "@/lib/data/pdi";
 
 // ---------------------------------------------------------------------------
 // Mock fetch globally
@@ -341,5 +342,191 @@ describe("loadI140Demand", () => {
     const result = await loadI140Demand();
     expect(mockFetch).toHaveBeenCalledWith("/data/dashboards/backlog/fact_i140_demand.json");
     expect(result).toHaveLength(1);
+  });
+});
+
+// ======================================================================
+// computeDemandBreakdown — Queue Snapshot three-segment breakdown
+// ======================================================================
+
+describe("computeDemandBreakdown", () => {
+  // Shared sample data — EB2/IND with FAD=Jul 2014, DFF=Jan 2015
+  const makeCutoffs = (fadDate: string, dffDate: string): CutoffTrendRecord[] => [
+    {
+      bulletin_year: 2026, bulletin_month: 5,
+      chart: "FAD", category: "EB2", country: "IND",
+      status_flag: "D", cutoff_date: fadDate,
+      queue_position_days: null, monthly_advancement_days: null,
+      velocity_3m: null, velocity_6m: null,
+      retrogression_flag: 0, retrogression_count_cum: 0,
+    },
+    {
+      bulletin_year: 2026, bulletin_month: 5,
+      chart: "DFF", category: "EB2", country: "IND",
+      status_flag: "D", cutoff_date: dffDate,
+      queue_position_days: null, monthly_advancement_days: null,
+      velocity_3m: null, velocity_6m: null,
+      retrogression_flag: 0, retrogression_count_cum: 0,
+    },
+  ];
+
+  const sampleInventory: EbInventoryRecord[] = [
+    // Available — PD before Jul 2014 FAD
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Available",              pd_month: 1, pd_year: 0,    pending_count: 50 },
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Available",              pd_month: 3, pd_year: 2013, pending_count: 100 },
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Available",              pd_month: 7, pd_year: 2014, pending_count: 999 }, // Jul 2014 - at FAD boundary, included
+    // Awaiting Availability — PD at or before Jan 2015 DFF
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Awaiting Availability", pd_month: 8, pd_year: 2014, pending_count: 200 },
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Awaiting Availability", pd_month: 1, pd_year: 2015, pending_count: 300 }, // Jan 2015 - at DFF boundary, included
+    // Awaiting Availability — PD after DFF (should NOT count in seg 2)
+    { snapshot_date: "2026-01-02", country: "IND", category: "EB2", visa_status: "Awaiting Availability", pd_month: 6, pd_year: 2015, pending_count: 999 },
+  ];
+
+  const sampleI140: I140DemandRecord[] = [
+    { report_period: "FY2025_Q4", country: "IND", category: "EB2", fiscal_year: 2015, received: 33807, approved: 31634, denied: 2171, pending: 2 },
+    { report_period: "FY2025_Q4", country: "IND", category: "EB2", fiscal_year: 2016, received: 50538, approved: 47635, denied: 2895, pending: 8 },
+  ];
+
+  it("returns null for empty inventory", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown([], makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).toBeNull();
+  });
+
+  it("returns null for invalid priority date", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "not-a-date");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when no records match the category/country", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB3", "CHN", "2016-06-01");
+    expect(result).toBeNull();
+  });
+
+  it("segment 1 counts only Available I-485 records at or before FAD", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // FAD = Jul 2014 → rows 50 (Prior Years) + 100 (Mar 2013) + 999 (Jul 2014) = 1149
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.currentlyProcessable).toBe(50 + 100 + 999);
+  });
+
+  it("segment 2 counts only Awaiting Availability records at or before DFF", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // DFF = Jan 2015 → rows 200 (Aug 2014) + 300 (Jan 2015) = 500; row Jun 2015 excluded
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.inDffWindow).toBe(200 + 300);
+  });
+
+  it("total equals sum of all three segments", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.total).toBe(result!.currentlyProcessable + result!.inDffWindow + result!.beyondDff);
+  });
+
+  it("FAD-DFF gap is correct (6 months for Jul 2014 → Jan 2015)", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.fadDffGapMonths).toBe(6);
+  });
+
+  it("hasI140Estimate is false when i140Data is empty", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), [], "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.hasI140Estimate).toBe(false);
+    expect(result!.beyondDff).toBe(0);
+  });
+
+  it("beyondDff is 0 when priority date is at or before DFF", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // PD = Jan 2015 = DFF → no latent demand beyond DFF
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2015-01-01");
+    expect(result).not.toBeNull();
+    expect(result!.beyondDff).toBe(0);
+  });
+
+  it("isPdBeyondI485Ceiling is true when PD > data max year", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // sampleInventory max non-zero year = 2015; PD = 2016 > 2015
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.isPdBeyondI485Ceiling).toBe(true);
+    expect(result!.i485DataMaxYear).toBe(2015);
+  });
+
+  it("isPdBeyondI485Ceiling is false when PD is within data range", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // PD = 2013 < max year 2015
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2013-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.isPdBeyondI485Ceiling).toBe(false);
+  });
+
+  it("snapshotDate comes from inventory records", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.snapshotDate).toBe("2026-01-02");
+  });
+
+  it("fadCutoffDate and dffCutoffDate come from latest bulletin", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.fadCutoffDate).toBe("2014-07-15");
+    expect(result!.dffCutoffDate).toBe("2015-01-15");
+  });
+
+  it("beyondDff is positive when PD is past DFF and I-140 data exists", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const result = computeDemandBreakdown(sampleInventory, makeCutoffs("2014-07-15", "2015-01-15"), sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.beyondDff).toBeGreaterThan(0);
+    expect(result!.hasI140Estimate).toBe(true);
+  });
+
+  it("latest bulletin is used when multiple bulletin months exist", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    // Inject older bulletin with different dates — should be ignored
+    const cutoffsOldAndNew: CutoffTrendRecord[] = [
+      ...makeCutoffs("2014-07-15", "2015-01-15"),
+      {
+        bulletin_year: 2025, bulletin_month: 1,
+        chart: "FAD", category: "EB2", country: "IND",
+        status_flag: "D", cutoff_date: "2012-01-01",
+        queue_position_days: null, monthly_advancement_days: null,
+        velocity_3m: null, velocity_6m: null,
+        retrogression_flag: 0, retrogression_count_cum: 0,
+      },
+    ];
+    const result = computeDemandBreakdown(sampleInventory, cutoffsOldAndNew, sampleI140, "EB2", "IND", "2016-06-01");
+    expect(result).not.toBeNull();
+    // Should use May 2026 dates, not Jan 2025
+    expect(result!.fadCutoffDate).toBe("2014-07-15");
+  });
+
+  it("ROW country uses ROW inventory bucket and ALL I-140 data", async () => {
+    const { computeDemandBreakdown } = await import("@/lib/data/pdi");
+    const rowInventory: EbInventoryRecord[] = [
+      { snapshot_date: "2026-01-02", country: "ROW", category: "EB2", visa_status: "Available", pd_month: 1, pd_year: 2020, pending_count: 500 },
+    ];
+    const rowCutoffs: CutoffTrendRecord[] = [
+      { bulletin_year: 2026, bulletin_month: 5, chart: "FAD", category: "EB2", country: "ROW", status_flag: "D", cutoff_date: "2021-01-01", queue_position_days: null, monthly_advancement_days: null, velocity_3m: null, velocity_6m: null, retrogression_flag: 0, retrogression_count_cum: 0 },
+      { bulletin_year: 2026, bulletin_month: 5, chart: "DFF", category: "EB2", country: "ROW", status_flag: "D", cutoff_date: "2022-01-01", queue_position_days: null, monthly_advancement_days: null, velocity_3m: null, velocity_6m: null, retrogression_flag: 0, retrogression_count_cum: 0 },
+    ];
+    const allI140: I140DemandRecord[] = [
+      { report_period: "FY2025_Q4", country: "ALL", category: "EB2", fiscal_year: 2022, received: 80000, approved: 70000, denied: 5000, pending: 100 },
+    ];
+    const result = computeDemandBreakdown(rowInventory, rowCutoffs, allI140, "EB2", "ROW", "2023-06-01");
+    expect(result).not.toBeNull();
+    expect(result!.currentlyProcessable).toBe(500);
+    // beyondDff should use ALL country I-140 data
+    expect(result!.beyondDff).toBeGreaterThan(0);
   });
 });

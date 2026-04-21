@@ -465,7 +465,7 @@ export function extrapolateForChart(
 // EB I-485 Pending Inventory — "Cases Ahead of You" (Queue Snapshot)
 // ---------------------------------------------------------------------------
 
-import type { EbInventoryRecord } from "@/types/p2-artifacts";
+import type { EbInventoryRecord, I140DemandRecord } from "@/types/p2-artifacts";
 
 /** Load the latest EB I-485 pending inventory snapshot */
 export async function loadEbInventory(): Promise<EbInventoryRecord[]> {
@@ -562,4 +562,259 @@ export function computeCasesAhead(
 
   const snapshotDate = matched[0]?.snapshot_date ?? null;
   return { casesAhead, snapshotDate, dataMaxYear, isPdBeyondDataRange, totalPending };
+}
+
+// ---------------------------------------------------------------------------
+// Queue Snapshot — three-segment demand breakdown (GCC-style)
+// ---------------------------------------------------------------------------
+
+/** Country map for I-140 data (subset of countries available) */
+const I140_COUNTRY_MAP: Record<string, string> = {
+  IND: "IND",
+  CHN: "CHN",
+  PHL: "PHL",
+  MEX: "ALL",
+  ROW: "ALL",
+  "EL SALVADOR GUATEMALA HONDURAS": "ALL",
+};
+
+export interface DemandBreakdownResult {
+  /** Segment 1: I-485 "Available" status, PD at or before current FAD */
+  currentlyProcessable: number;
+  /** Segment 2: I-485 "Awaiting Availability" status, PD at or before current DFF */
+  inDffWindow: number;
+  /** Segment 3: Estimated I-140 latent demand for PD range DFF → user's PD */
+  beyondDff: number;
+  /** Sum of all three segments */
+  total: number;
+
+  /** Current Final Action Date cutoff (e.g. "2014-07-15") */
+  fadCutoffDate: string | null;
+  /** Current Date for Filing cutoff (e.g. "2015-01-15") */
+  dffCutoffDate: string | null;
+  /** DFF - FAD in months (> 0 means DFF is ahead = filing window exists) */
+  fadDffGapMonths: number;
+
+  /** Date of the USCIS I-485 inventory snapshot used */
+  snapshotDate: string | null;
+  /** Highest pd_year in the I-485 inventory for this category/country */
+  i485DataMaxYear: number;
+  /** True when user's PD exceeds the I-485 inventory ceiling */
+  isPdBeyondI485Ceiling: boolean;
+  /** Whether the I-140 latent estimate (segment 3) was computable */
+  hasI140Estimate: boolean;
+}
+
+/** Get the latest FAD and DFF cutoff dates for a category/country */
+function getLatestCutoffs(
+  trends: CutoffTrendRecord[],
+  category: string,
+  country: string
+): { fadDate: string | null; dffDate: string | null } {
+  const filtered = trends.filter(
+    (r) => r.category === category && r.country === country
+  );
+
+  // Find max bulletin year/month
+  let maxYear = 0,
+    maxMonth = 0;
+  for (const r of filtered) {
+    if (
+      r.bulletin_year > maxYear ||
+      (r.bulletin_year === maxYear && r.bulletin_month > maxMonth)
+    ) {
+      maxYear = r.bulletin_year;
+      maxMonth = r.bulletin_month;
+    }
+  }
+
+  const latest = filtered.filter(
+    (r) => r.bulletin_year === maxYear && r.bulletin_month === maxMonth
+  );
+
+  const fadRecord = latest.find((r) => r.chart === "FAD");
+  const dffRecord = latest.find((r) => r.chart === "DFF");
+
+  const toDate = (r: CutoffTrendRecord | undefined): string | null => {
+    const d = r?.cutoff_date;
+    if (!d || d === "NaT" || d === "nan") return null;
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? null : d.slice(0, 10);
+  };
+
+  return { fadDate: toDate(fadRecord), dffDate: toDate(dffRecord) };
+}
+
+/** True if inventory row's PD is at or before the given cutoff date */
+function pdAtOrBefore(
+  pdYear: number,
+  pdMonth: number,
+  cutoffDateStr: string
+): boolean {
+  if (pdYear === 0) return true; // "Prior Years" bucket — always ahead
+  const cutoff = new Date(cutoffDateStr);
+  if (isNaN(cutoff.getTime())) return false;
+  const cy = cutoff.getFullYear();
+  const cm = cutoff.getMonth() + 1;
+  return pdYear < cy || (pdYear === cy && pdMonth <= cm);
+}
+
+/** Months between two ISO date strings (positive = b is later than a) */
+function monthsBetween(a: string, b: string): number {
+  const da = new Date(a),
+    db = new Date(b);
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return 0;
+  return Math.round((db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+}
+
+/**
+ * Estimate I-140 latent demand for PD range [dffDate, userPD].
+ * Maps the date range to overlapping fiscal years, sums annual I-140
+ * approvals (pro-rated for partial years), then applies a family
+ * multiplier and attrition factor.
+ */
+function estimateLatentI140(
+  i140Data: I140DemandRecord[],
+  category: string,
+  country: string,
+  dffDateStr: string,
+  userPdStr: string
+): number {
+  const dataCountry = I140_COUNTRY_MAP[country] ?? "ALL";
+  const matched = i140Data.filter(
+    (r) => r.country === dataCountry && r.category === category
+  );
+  if (matched.length === 0) return 0;
+
+  const dff = new Date(dffDateStr);
+  const userPd = new Date(userPdStr);
+  if (isNaN(dff.getTime()) || isNaN(userPd.getTime())) return 0;
+  if (userPd <= dff) return 0;
+
+  // US FY N = Oct (N-1) → Sep N. A date in month >= 10 belongs to FY = year+1.
+  const toFY = (d: Date) => (d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear());
+  const startFY = toFY(dff);
+  const endFY = toFY(userPd);
+
+  // Deduplicate I-140 records: keep latest report_period per fiscal_year
+  const latestByFY = new Map<number, I140DemandRecord>();
+  for (const r of matched) {
+    const ex = latestByFY.get(r.fiscal_year);
+    if (!ex || r.report_period > ex.report_period) latestByFY.set(r.fiscal_year, r);
+  }
+
+  const MS_DAY = 1000 * 60 * 60 * 24;
+  const FY_MS = 365.25 * MS_DAY;
+
+  let raw = 0;
+  for (const [fy, record] of latestByFY) {
+    if (fy < startFY || fy > endFY) continue;
+    const fyStart = new Date(fy - 1, 9, 1); // Oct 1
+    const fyEnd = new Date(fy, 8, 30);       // Sep 30
+
+    let fraction = 1.0;
+    if (startFY === endFY) {
+      // Both DFF and userPD in the same FY — just the slice between them
+      fraction = Math.max(0, (userPd.getTime() - dff.getTime())) / FY_MS;
+    } else if (fy === startFY) {
+      // From DFF to end of FY
+      const remaining = fyEnd.getTime() - Math.max(dff.getTime(), fyStart.getTime());
+      fraction = Math.min(1, Math.max(0, remaining / FY_MS));
+    } else if (fy === endFY) {
+      // From start of FY to userPD
+      const elapsed = Math.min(userPd.getTime(), fyEnd.getTime()) - fyStart.getTime();
+      fraction = Math.min(1, Math.max(0, elapsed / FY_MS));
+    }
+
+    raw += (record.approved ?? 0) * fraction;
+  }
+
+  // Family multiplier: avg 0.8 dependents per primary applicant → ×1.8
+  // Attrition: ~25% abandon / age-out / obtain GC via other path → ×0.75
+  return Math.round(raw * 1.8 * 0.75);
+}
+
+/**
+ * Compute the three-segment I-485 + I-140 queue breakdown ahead of a priority date.
+ *
+ * Segment 1 — Currently Processable:
+ *   I-485 cases with "Available" visa status whose PD is at or before the current FAD.
+ *   These applicants can have their case approved right now.
+ *
+ * Segment 2 — In DFF Window (Filed, Awaiting Final Action Date):
+ *   I-485 cases with "Awaiting Availability" status whose PD is at or before DFF.
+ *   These applicants have filed I-485 but need the FAD to advance to their PD.
+ *
+ * Segment 3 — Beyond DFF (Cannot File Yet):
+ *   Estimated from I-140 annual approvals for the PD range DFF → user's PD.
+ *   These are approved I-140 holders who haven't filed I-485 yet because the DFF
+ *   hasn't reached their PD. Labeled "est." in the UI.
+ */
+export function computeDemandBreakdown(
+  inventory: EbInventoryRecord[],
+  cutoffTrends: CutoffTrendRecord[],
+  i140Data: I140DemandRecord[],
+  category: string,
+  country: string,
+  priorityDate: string
+): DemandBreakdownResult | null {
+  const invCountry = INVENTORY_COUNTRY_MAP[country] ?? "ROW";
+
+  const matched = inventory.filter(
+    (r) => r.country === invCountry && r.category === category
+  );
+  if (matched.length === 0) return null;
+
+  const pdDate = new Date(priorityDate);
+  if (isNaN(pdDate.getTime())) return null;
+
+  const { fadDate, dffDate } = getLatestCutoffs(cutoffTrends, category, country);
+
+  // Segment 1 + 2 from I-485 inventory
+  let currentlyProcessable = 0;
+  let inDffWindow = 0;
+
+  const nonZeroYears = matched.filter((r) => r.pd_year > 0).map((r) => r.pd_year);
+  const i485DataMaxYear = nonZeroYears.length > 0 ? Math.max(...nonZeroYears) : 0;
+  const isPdBeyondI485Ceiling = pdDate.getFullYear() > i485DataMaxYear;
+
+  for (const r of matched) {
+    if (r.visa_status === "Available" && fadDate) {
+      if (pdAtOrBefore(r.pd_year, r.pd_month, fadDate)) {
+        currentlyProcessable += r.pending_count;
+      }
+    } else if (r.visa_status === "Awaiting Availability" && dffDate) {
+      if (pdAtOrBefore(r.pd_year, r.pd_month, dffDate)) {
+        inDffWindow += r.pending_count;
+      }
+    }
+  }
+
+  // Segment 3: latent I-140 demand
+  let beyondDff = 0;
+  let hasI140Estimate = false;
+  if (dffDate && i140Data.length > 0) {
+    beyondDff = estimateLatentI140(i140Data, category, country, dffDate, priorityDate);
+    hasI140Estimate = beyondDff > 0;
+  }
+
+  const fadDffGapMonths =
+    fadDate && dffDate ? monthsBetween(fadDate, dffDate) : 0;
+
+  const total = currentlyProcessable + inDffWindow + beyondDff;
+  const snapshotDate = matched[0]?.snapshot_date ?? null;
+
+  return {
+    currentlyProcessable,
+    inDffWindow,
+    beyondDff,
+    total,
+    fadCutoffDate: fadDate,
+    dffCutoffDate: dffDate,
+    fadDffGapMonths,
+    snapshotDate,
+    i485DataMaxYear,
+    isPdBeyondI485Ceiling,
+    hasI140Estimate,
+  };
 }
