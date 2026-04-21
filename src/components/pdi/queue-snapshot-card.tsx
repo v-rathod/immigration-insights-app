@@ -164,8 +164,11 @@ export function QueueSnapshotCard({
 
   return (
     <div
-      className={`rounded-2xl border border-white/[0.07] bg-white/[0.02] backdrop-blur-xl overflow-hidden ${className ?? ""}`}
+      className={`relative rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] backdrop-blur-xl overflow-hidden ${className ?? ""}`}
     >
+      {/* Subtle corner glow — matches DFF/FAD card pattern */}
+      <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-[0.08] blur-2xl bg-violet-500 pointer-events-none" />
+
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-white/[0.05]">
         <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-400 shrink-0">

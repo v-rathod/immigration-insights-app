@@ -174,6 +174,37 @@ test.describe("Dashboard data integrity", () => {
     // Should NOT contain cost info anymore
     expect(bodyText).not.toContain("$5/month");
   });
+
+  test("Visa Bulletin Queue Snapshot appears after entering priority date", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard/visa-bulletin/", {
+      waitUntil: "networkidle",
+    });
+    await waitForHydration(page);
+
+    // Confirm dashboard data has loaded (forecasts present)
+    const bodyBefore = await page.locator("body").innerText();
+    expect(bodyBefore).toMatch(/EB-?[123]|India|China|Priority Date/i);
+
+    // Enter a priority date that is in the oversubscribed backlog range so
+    // inventory data covers it (EB2/IND, PD 2016-06-01)
+    const dateInput = page.locator('input[type="date"]').first();
+    await dateInput.fill("2016-06-01");
+    // Allow React state update + FadeIn animation to settle
+    await page.waitForTimeout(2500);
+
+    // Queue Snapshot card must be visible
+    await expect(
+      page.locator("text=Queue Snapshot").first()
+    ).toBeVisible({ timeout: 8000 });
+
+    // All three demand segments must appear in the page text
+    const bodyAfter = await page.locator("body").innerText();
+    expect(bodyAfter).toMatch(/Approvable Now/i);
+    expect(bodyAfter).toMatch(/Filed, Awaiting FAD/i);
+    expect(bodyAfter).toMatch(/Est\. Total Demand Ahead/i);
+  });
 });
 
 // ── Theme and interactivity ──────────────────────────────────────────────────
