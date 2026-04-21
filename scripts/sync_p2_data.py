@@ -44,6 +44,7 @@ DASHBOARD_ARTIFACTS = {
     "visa-bulletin": [
         "fact_cutoff_trends.parquet",
         "fact_cutoffs_all.parquet",
+        "fact_eb_inventory.parquet",
     ],
     "employer": [
         "employer_friendliness_scores.parquet",
@@ -70,6 +71,7 @@ DASHBOARD_ARTIFACTS = {
     "backlog": [
         "backlog_estimates.parquet",
         "queue_depth_estimates.parquet",
+        "fact_i140_demand.parquet",
     ],
 }
 
@@ -176,11 +178,40 @@ def _transform_employer_monthly_metrics(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+def _transform_eb_inventory(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only the latest snapshot of I-485 pending inventory.
+
+    The full table has 20+ monthly snapshots (132K rows).  P3 only needs
+    the most recent snapshot for the "cases ahead" queue position feature.
+    """
+    if df.empty or "snapshot_date" not in df.columns:
+        return df
+    latest = df["snapshot_date"].max()
+    result = df[df["snapshot_date"] == latest].reset_index(drop=True)
+    print(f"      [eb_inventory] kept latest snapshot ({latest}): {len(df):,} → {len(result):,} rows")
+    return result
+
+
+def _transform_i140_demand(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only the latest report period of I-140 demand data.
+
+    P3 only needs cumulative totals from the most recent quarterly report.
+    """
+    if df.empty or "report_period" not in df.columns:
+        return df
+    latest = sorted(df["report_period"].unique())[-1]
+    result = df[df["report_period"] == latest].reset_index(drop=True)
+    print(f"      [i140_demand] kept latest period ({latest}): {len(df):,} → {len(result):,} rows")
+    return result
+
+
 # Maps artifact stem → transform function applied before writing JSON
 ARTIFACT_TRANSFORMS: dict = {
     "worksite_geo_metrics": _transform_worksite_geo_metrics,
     "employer_monthly_metrics": _transform_employer_monthly_metrics,
     "employer_friendliness_scores": _normalize_employer_names,
+    "fact_eb_inventory": lambda df: _transform_eb_inventory(df),
+    "fact_i140_demand": lambda df: _transform_i140_demand(df),
 }
 
 
@@ -1069,6 +1100,7 @@ def consolidate_employer_shards():
 
     # ── Consolidate into each shard ────────────────────────────────────────
     shards_enriched = 0
+    shards_unchanged = 0
     shards_skipped_corrupted = 0
     for emp_name, emp_id in emp_index.items():
         shard_path = employers_dir / f"{emp_id}.json"
@@ -1108,10 +1140,21 @@ def consolidate_employer_shards():
         if srs_monthly:
             shard["srs_monthly"] = _strip_emp_fields(srs_monthly)
 
-        shard_path.write_text(json.dumps(_nan_to_null(shard)))
+        # Content-compare before writing: skip re-write if data is unchanged.
+        # This preserves the file's modification timestamp, which lets
+        # `aws s3 sync --size-only` skip unchanged shards during deployment —
+        # saving ~$0.50/deploy in S3 API costs when only code (not employer data) changed.
+        new_content = json.dumps(_nan_to_null(shard))
+        existing_content = shard_path.read_text() if shard_path.exists() else None
+        if existing_content == new_content:
+            shards_unchanged += 1
+            continue
+        shard_path.write_text(new_content)
         shards_enriched += 1
 
-    print(f"  ✓ {shards_enriched:,} shards enriched with wage + SRS data")
+    print(f"  ✓ {shards_enriched:,} shards updated (wage + SRS data changed)")
+    if shards_unchanged > 0:
+        print(f"  ✓ {shards_unchanged:,} shards unchanged (file not rewritten — S3 sync will skip these)")
     if shards_skipped_corrupted:
         print(f"  ⚠ {shards_skipped_corrupted:,} corrupted shards skipped")
 
