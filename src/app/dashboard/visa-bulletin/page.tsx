@@ -31,15 +31,17 @@ import {
   loadPdForecasts,
   loadPdForecastsRetrograde,
   loadCutoffTrends,
+  loadEbInventory,
   getForecastSeries,
   getRetrogradeSeries,
   getRetrogradeRiskSummary,
   getHistoricalSeries,
   computePdi,
+  computeCasesAhead,
   extrapolateForChart,
   COUNTRY_LABELS,
 } from "@/lib/data/pdi";
-import type { PdForecast, PdForecastRetrograde } from "@/types/p2-artifacts";
+import type { PdForecast, PdForecastRetrograde, EbInventoryRecord } from "@/types/p2-artifacts";
 import type { PdiResult, CutoffTrendRecord } from "@/lib/data/pdi";
 import { analytics } from "@/lib/analytics";
 
@@ -59,6 +61,15 @@ const DEFAULT_COUNTRY = "IND";
 
 /** Easing for all animations */
 const EASE = [0.25, 0.1, 0.25, 1] as const;
+
+/** Statutory EB visa supply constants (FY2025 INA) */
+const VISA_SUPPLY = {
+  EB_TOTAL: 140_000,
+  PER_COUNTRY_CAP: 9_800, // 7% of 140K
+  CATEGORY_BASE: { EB1: 40_040, EB2: 40_040, EB3: 40_040, EB4: 9_940, EB5: 9_940 } as Record<string, number>,
+  /** Countries that are perennially oversubscribed */
+  OVERSUBSCRIBED: new Set(["IND", "CHN"]),
+} as const;
 
 // ---------------------------------------------------------------------------
 // Page
@@ -95,6 +106,7 @@ export default function VisaBulletinPage() {
   const [forecasts, setForecasts] = useState<PdForecast[]>([]);
   const [retrogradeForecasts, setRetrogradeForecasts] = useState<PdForecastRetrograde[]>([]);
   const [trends, setTrends] = useState<CutoffTrendRecord[]>([]);
+  const [ebInventory, setEbInventory] = useState<EbInventoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,13 +149,14 @@ export default function VisaBulletinPage() {
   // For MCRA mode, use retrograde forecasts; otherwise use base
   const activeForecastSource = forecastMode === "mcra" ? retrogradeForecasts : forecasts;
 
-  // Load forecasts (base + MCRA) + historical trends on mount
+  // Load forecasts (base + MCRA) + historical trends + inventory on mount
   useEffect(() => {
-    Promise.all([loadPdForecasts(), loadPdForecastsRetrograde(), loadCutoffTrends()])
-      .then(([fc, mcra, tr]) => {
+    Promise.all([loadPdForecasts(), loadPdForecastsRetrograde(), loadCutoffTrends(), loadEbInventory().catch(() => [])])
+      .then(([fc, mcra, tr, inv]) => {
         setForecasts(fc);
         setRetrogradeForecasts(mcra);
         setTrends(tr);
+        setEbInventory(inv);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load data")
@@ -219,6 +232,12 @@ export default function VisaBulletinPage() {
     };
     return { dff: compute(dffSeries), fad: compute(fadSeries) };
   }, [dffSeries, fadSeries, velocityMultiplier]);
+
+  // Cases ahead (from EB I-485 inventory)
+  const casesAhead = useMemo(() => {
+    if (!priorityDate || ebInventory.length === 0) return null;
+    return computeCasesAhead(ebInventory, category, country, priorityDate);
+  }, [ebInventory, category, country, priorityDate]);
 
   // Historical cutoff trend series
   const dffTrends = useMemo(
@@ -546,6 +565,7 @@ export default function VisaBulletinPage() {
               hasPriorityDate={!!priorityDate}
               forecastMode={forecastMode}
               delay={0}
+              retroProb={retroRisk?.dff.avgRetroProb}
             />
             <PredictionCard
               type="fad"
@@ -556,9 +576,100 @@ export default function VisaBulletinPage() {
               hasPriorityDate={!!priorityDate}
               forecastMode={forecastMode}
               delay={0.05}
+              retroProb={retroRisk?.fad.avgRetroProb}
             />
           </motion.div>
         </AnimatePresence>
+      )}
+
+      {/* Queue Snapshot - "Cases Ahead of You" from I-485 inventory data */}
+      {hasData && !!priorityDate && casesAhead && casesAhead.casesAhead > 0 && (
+        <FadeIn delay={0.18}>
+          <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.03] backdrop-blur-xl p-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-400">
+                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xs font-semibold text-[var(--foreground)]">
+                Cases Ahead of You
+              </h3>
+              <span className="ml-auto text-[8px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400">
+                I-485 Queue
+              </span>
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-bold font-mono text-purple-400 tracking-tight">
+                ~{casesAhead.casesAhead.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-[var(--muted-foreground)]">
+                pending I-485 applications with priority dates at or before yours
+              </span>
+            </div>
+            <p className="mt-1.5 text-[9px] text-[var(--muted-foreground)]/50 leading-relaxed">
+              Source: USCIS EB I-485 Pending Inventory
+              {casesAhead.snapshotDate ? ` (${casesAhead.snapshotDate})` : ""}.
+              Excludes DOS consular inventory and approved I-140 holders who haven&apos;t filed I-485 yet.
+            </p>
+          </div>
+        </FadeIn>
+      )}
+
+      {/* Visa Supply Context - collapsible, shows the math behind predictions */}
+      {hasData && !!priorityDate && (
+        <FadeIn delay={0.22}>
+          <details className="group rounded-xl border border-white/[0.06] bg-white/[0.01] text-xs text-[var(--muted-foreground)]">
+            <summary className="cursor-pointer select-none list-none px-4 py-2.5 flex items-center gap-2 hover:text-blue-400 transition-colors [&::-webkit-details-marker]:hidden">
+              <Info className="h-3.5 w-3.5 text-[var(--muted-foreground)]/60 shrink-0" />
+              <span className="font-medium text-[var(--foreground)] text-[11px]">Visa Supply Math</span>
+              <span className="text-[9px] text-[var(--muted-foreground)]/50 ml-1">
+                {VISA_SUPPLY.OVERSUBSCRIBED.has(country)
+                  ? `${COUNTRY_LABELS[country] ?? country} is oversubscribed - per-country cap applies`
+                  : `${COUNTRY_LABELS[country] ?? country} - typically current or near-current`}
+              </span>
+              <svg className="w-3.5 h-3.5 shrink-0 ml-auto text-[var(--muted-foreground)]/40 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </summary>
+            <div className="px-4 pb-3 pt-0 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center border-t border-white/[0.04]">
+              <div className="py-2">
+                <div className="text-sm font-bold font-mono text-[var(--foreground)]">140K</div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">Annual EB visas</div>
+              </div>
+              <div className="py-2">
+                <div className="text-sm font-bold font-mono text-[var(--foreground)]">
+                  {((VISA_SUPPLY.CATEGORY_BASE[category] ?? 0) / 1000).toFixed(0)}K
+                </div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">{category} allocation</div>
+              </div>
+              <div className="py-2">
+                <div className="text-sm font-bold font-mono text-[var(--foreground)]">
+                  {VISA_SUPPLY.OVERSUBSCRIBED.has(country)
+                    ? `~${(VISA_SUPPLY.PER_COUNTRY_CAP / 1000).toFixed(1)}K`
+                    : "N/A"}
+                </div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  {VISA_SUPPLY.OVERSUBSCRIBED.has(country) ? "Per-country cap (7%)" : "No cap constraint"}
+                </div>
+              </div>
+              <div className="py-2">
+                <div className="text-sm font-bold font-mono text-[var(--foreground)]">
+                  {VISA_SUPPLY.OVERSUBSCRIBED.has(country)
+                    ? `~${Math.round(VISA_SUPPLY.PER_COUNTRY_CAP * (VISA_SUPPLY.CATEGORY_BASE[category] ?? 40040) / VISA_SUPPLY.EB_TOTAL).toLocaleString()}`
+                    : "\u2014"}
+                </div>
+                <div className="text-[9px] text-[var(--muted-foreground)]">
+                  {VISA_SUPPLY.OVERSUBSCRIBED.has(country)
+                    ? `Est. ${category} visas/yr for ${COUNTRY_LABELS[country]?.split(" ")[0] ?? country}`
+                    : "Not cap-constrained"}
+                </div>
+              </div>
+            </div>
+            <p className="px-4 pb-3 text-[9px] text-[var(--muted-foreground)]/40 leading-relaxed">
+              Actual throughput varies with FB&rarr;EB spillover, per-country unused visa reallocation, and USCIS processing capacity.
+              In high-spillover years, oversubscribed countries may receive substantially more than the base allocation.
+            </p>
+          </details>
+        </FadeIn>
       )}
 
       {/* Velocity Stats Strip */}
@@ -667,6 +778,7 @@ interface PredictionCardProps {
   hasPriorityDate: boolean;
   forecastMode: ForecastMode;
   delay: number;
+  retroProb?: number;
 }
 
 const PREDICTION_MODE_STYLE: Record<ForecastMode, { bg: string; text: string }> = {
@@ -687,6 +799,7 @@ function PredictionCard({
   hasPriorityDate,
   forecastMode,
   delay,
+  retroProb,
 }: PredictionCardProps) {
   const isDFF = type === "dff";
 
@@ -853,6 +966,19 @@ function PredictionCard({
           </div>
         )}
       </div>
+
+      {/* Scenario math annotation - shows what drives the prediction */}
+      {hasPriorityDate && pdi?.found && (
+        <div className="mt-2 pt-2 border-t border-white/[0.04] relative">
+          <p className="text-[9px] text-[var(--muted-foreground)]/50 leading-relaxed">
+            {forecastMode === "optimistic" ? (
+              <>Based on {pdi.avgVelocity} days/mo historical advancement pace</>
+            ) : (
+              <>Monte Carlo risk-adjusted{retroProb != null && retroProb > 0 ? ` - ${(retroProb * 100).toFixed(1)}% monthly retro probability` : ""}</>
+            )}
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }

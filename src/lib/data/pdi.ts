@@ -460,3 +460,76 @@ export function extrapolateForChart(
 
   return points;
 }
+
+// ---------------------------------------------------------------------------
+// EB I-485 Pending Inventory — "Cases Ahead of You" (Queue Snapshot)
+// ---------------------------------------------------------------------------
+
+import type { EbInventoryRecord } from "@/types/p2-artifacts";
+
+/** Load the latest EB I-485 pending inventory snapshot */
+export async function loadEbInventory(): Promise<EbInventoryRecord[]> {
+  return loadDashboardData<EbInventoryRecord>(
+    "visa-bulletin",
+    "fact_eb_inventory"
+  );
+}
+
+/** Country code mapping: P3 display codes -> eb_inventory codes */
+const INVENTORY_COUNTRY_MAP: Record<string, string> = {
+  IND: "IND",
+  CHN: "CHN",
+  MEX: "MEX",
+  PHL: "PHL",
+  ROW: "ROW",
+  "EL SALVADOR GUATEMALA HONDURAS": "ROW",
+};
+
+/**
+ * Compute how many I-485 cases are filed ahead of the user's priority date.
+ *
+ * Sums pending_count for all records where the priority date (pd_year/pd_month)
+ * is earlier than the user's priority date, for a given country + category.
+ * Includes both "Available" and "Awaiting Availability" visa statuses.
+ */
+export function computeCasesAhead(
+  inventory: EbInventoryRecord[],
+  category: string,
+  country: string,
+  priorityDate: string // ISO: "2020-03-15"
+): { casesAhead: number; snapshotDate: string | null } | null {
+  const invCountry = INVENTORY_COUNTRY_MAP[country] ?? "ROW";
+
+  // Filter to matching country + category
+  const matched = inventory.filter(
+    (r) => r.country === invCountry && r.category === category
+  );
+
+  if (matched.length === 0) return null;
+
+  const pdDate = new Date(priorityDate);
+  if (isNaN(pdDate.getTime())) return null;
+
+  const pdYear = pdDate.getFullYear();
+  const pdMonth = pdDate.getMonth() + 1; // 1-indexed
+
+  let casesAhead = 0;
+  for (const r of matched) {
+    const ry = r.pd_year;
+    const rm = r.pd_month;
+
+    // pd_year=0 means "Prior Years" — always ahead
+    if (ry === 0) {
+      casesAhead += r.pending_count;
+    } else if (ry < pdYear || (ry === pdYear && rm < pdMonth)) {
+      casesAhead += r.pending_count;
+    }
+    // Same year+month: include (filed in same month, likely ahead)
+    else if (ry === pdYear && rm === pdMonth) {
+      casesAhead += r.pending_count;
+    }
+  }
+
+  const snapshotDate = matched[0]?.snapshot_date ?? null;
+  return { casesAhead, snapshotDate };
+}

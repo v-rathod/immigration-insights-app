@@ -141,3 +141,52 @@ export function getQueueDimensions(data: QueueDepthEstimate[]): {
     countries: Array.from(new Set(data.map((r) => r.country))).sort(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// I-140 Demand (Latent Demand)
+// ---------------------------------------------------------------------------
+
+import type { I140DemandRecord } from "@/types/p2-artifacts";
+
+/** Load I-140 petition demand data (latest quarterly report) */
+export async function loadI140Demand(): Promise<I140DemandRecord[]> {
+  return loadDashboardData<I140DemandRecord>("backlog", "fact_i140_demand");
+}
+
+/** Country code mapping: P3 display codes -> I-140 data codes */
+const I140_COUNTRY_MAP: Record<string, string> = {
+  IND: "IND",
+  CHN: "CHN",
+  PHL: "PHL",
+  ROW: "ALL", // use All Countries as proxy for ROW (no separate ROW data)
+};
+
+/**
+ * Compute I-140 latent demand for a category/country.
+ *
+ * "Latent demand" = total approved I-140 petitions across all fiscal years
+ * that represent potential future I-485 filings. This shows the true depth
+ * of the queue including people who haven't filed I-485 yet.
+ */
+export function computeI140LatentDemand(
+  data: I140DemandRecord[],
+  category: string,
+  country: string
+): {
+  totalApproved: number;
+  totalPending: number;
+  reportPeriod: string | null;
+} | null {
+  const dataCountry = I140_COUNTRY_MAP[country] ?? "ALL";
+  const matched = data.filter(
+    (r) => r.country === dataCountry && r.category === category
+  );
+
+  if (matched.length === 0) return null;
+
+  const totalApproved = matched.reduce((s, r) => s + r.approved, 0);
+  const totalPending = matched.reduce((s, r) => s + r.pending, 0);
+  const reportPeriod = matched[0]?.report_period ?? null;
+
+  return { totalApproved, totalPending, reportPeriod };
+}

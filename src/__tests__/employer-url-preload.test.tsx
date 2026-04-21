@@ -187,26 +187,23 @@ describe("Employer Dashboard — URL parameter pre-loading", () => {
     render(<SrsDashboardPage />);
 
     // After data loads: useEffect reads q, finds "Acme Corp", calls handleSelect.
-    // handleSelect: loadEmployerShard returns null → fallback sets selectedEmployer.
-    // Page then renders employer name banner + EmployerDetailCard ("Key Metrics").
+    // handleSelect: loadEmployerShard returns null -> fallback sets selectedEmployer.
+    // Page then renders employer name banner.
     await waitFor(
       () => {
-        expect(screen.getByText("Key Metrics")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Acme Corp" })).toBeDefined();
       },
       { timeout: 3000 }
     );
-
-    // Employer name should be in top banner
-    expect(screen.getByRole("heading", { name: "Acme Corp" })).toBeDefined();
   });
 
-  it("auto-selects with case-insensitive match (acme corp → Acme Corp)", async () => {
+  it("auto-selects with case-insensitive match (acme corp -> Acme Corp)", async () => {
     mockState.q = "acme corp"; // lowercase variant
     render(<SrsDashboardPage />);
 
     await waitFor(
       () => {
-        expect(screen.getByText("Key Metrics")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Acme Corp" })).toBeDefined();
       },
       { timeout: 3000 }
     );

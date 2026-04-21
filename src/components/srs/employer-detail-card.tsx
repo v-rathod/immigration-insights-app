@@ -3,9 +3,12 @@
  *
  * Shows approval/denial rates, case volume, wage ratios, risk flags,
  * and SOC/geographic breadth in a glassmorphic card layout.
+ * Each metric card is hoverable to show a portal-rendered floating tooltip.
  */
 "use client";
 
+import { useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle,
   XCircle,
@@ -20,10 +23,55 @@ import {
   Award,
   BarChart2,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatPercent, formatNumber, formatMonthYear } from "@/lib/utils/format";
 import type { SponsorReliabilityScore, EmployerRiskFeature } from "@/types/p2-artifacts";
+
+interface StatTooltip {
+  label: string;
+  tooltip: string;
+  top: number;
+  left: number;
+  width: number;
+}
+
+/** Floating tooltip portal — renders above the card, avoiding stacking context issues */
+function StatTooltipPortal({ data, onClose }: { data: StatTooltip; onClose: () => void }) {
+  // Dismiss on any click outside
+  useEffect(() => {
+    const handler = () => onClose();
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const panel = (
+    <motion.div
+      key="stat-tooltip"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.15 }}
+      style={{
+        position: "fixed",
+        top: data.top - 8,
+        left: Math.max(8, data.left),
+        width: Math.min(280, window.innerWidth - 16),
+        transform: "translateY(-100%)",
+        zIndex: 9999,
+      }}
+      className="rounded-lg border border-blue-500/30 bg-[#0d1726] shadow-2xl px-3 py-2.5 pointer-events-none"
+    >
+      <p className="text-xs font-semibold text-blue-400 mb-1">{data.label}</p>
+      <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">{data.tooltip}</p>
+    </motion.div>
+  );
+
+  return typeof document !== "undefined" ? createPortal(
+    <AnimatePresence>{panel}</AnimatePresence>,
+    document.body
+  ) : null;
+}
 
 interface EmployerDetailCardProps {
   employer: SponsorReliabilityScore;
@@ -37,6 +85,7 @@ export function EmployerDetailCard({
   risk,
   className,
 }: EmployerDetailCardProps) {
+  const [activeTooltip, setActiveTooltip] = useState<StatTooltip | null>(null);
   const trend = employer.approval_rate_trend_12v12;
   const trendIcon =
     trend != null && !isNaN(trend)
@@ -54,6 +103,9 @@ export function EmployerDetailCard({
           ? "text-rose-400"
           : "text-zinc-400"
       : "text-zinc-400";
+
+  // Determine if stat has a real value (not a dash placeholder)
+  const hasValue = (v: string) => v !== "–" && v !== "" && v !== "0";
 
   const stats = [
     {
@@ -142,6 +194,12 @@ export function EmployerDetailCard({
     },
   ];
 
+  // Filter to only show stats that have meaningful data
+  const populatedStats = stats.filter((s) => hasValue(s.value));
+
+  // If fewer than 3 stats have data, the widget is not useful - don't render
+  if (populatedStats.length < 3) return null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -188,7 +246,7 @@ export function EmployerDetailCard({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {stats.map((stat, i) => (
+        {populatedStats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
@@ -198,8 +256,18 @@ export function EmployerDetailCard({
               delay: i * 0.05,
               ease: [0.25, 0.1, 0.25, 1],
             }}
-            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
-            title={stat.tooltip}
+            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 cursor-help hover:border-blue-500/30 transition-colors"
+            onMouseEnter={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setActiveTooltip({
+                label: stat.label,
+                tooltip: stat.tooltip,
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+              });
+            }}
+            onMouseLeave={() => setActiveTooltip(null)}
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon
@@ -222,7 +290,15 @@ export function EmployerDetailCard({
         ))}
       </div>
 
-      {/* WARN Act alert reserved for future release */}
+      {/* Portal-rendered floating tooltip */}
+      <AnimatePresence>
+        {activeTooltip && (
+          <StatTooltipPortal
+            data={activeTooltip}
+            onClose={() => setActiveTooltip(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

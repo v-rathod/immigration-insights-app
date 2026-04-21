@@ -44,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/eb-category", label: "EB Categories", icon: BarChart3, group: "Explore" },
   { href: "/dashboard/geographic", label: "Geographic", icon: Globe2, group: "Explore" },
   { href: "/dashboard/job-demand", label: "Occupation Demand", icon: Briefcase, group: "Explore" },
+  // { href: "/dashboard/backlog", label: "Backlog & Queue", icon: Layers, group: "Explore" },  // TODO: enable when data pipeline is complete
   { href: "/dashboard/processing", label: "Processing", icon: Clock, group: "Explore" },
   { href: "/dashboard/approvals", label: "Approvals", icon: CheckCircle, group: "Explore" },
   { href: "/about", label: "About", icon: Compass, group: "App" }

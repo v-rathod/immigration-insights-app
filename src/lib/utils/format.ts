@@ -73,9 +73,10 @@ export function formatCompactRange(n: number | null | undefined): string {
 
 /** Format an ISO date string as "Mar 2025" */
 export function formatMonthYear(dateStr: string | null | undefined): string {
-  if (!dateStr) return "–";
+  if (!dateStr || String(dateStr) === "nan") return "–";
   try {
     const d = new Date(dateStr);
+    if (!Number.isFinite(d.getTime())) return "–";
     return d.toLocaleDateString("en-US", {
       month: "short",
       year: "numeric",

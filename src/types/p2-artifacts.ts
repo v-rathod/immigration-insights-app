@@ -420,3 +420,32 @@ export type RagTopic =
   | "visa_demand"
   | "filings"
   | "general";
+
+// ---------------------------------------------------------------------------
+// EB I-485 Pending Inventory (fact_eb_inventory)
+// ---------------------------------------------------------------------------
+
+export interface EbInventoryRecord {
+  snapshot_date: string;
+  country: string;       // ROW / CHN / IND / MEX / PHL
+  category: string;      // EB1 / EB2 / EB3 / EB4 / EB5 / EW3 / CRW
+  visa_status: string;   // Available / Awaiting Availability
+  pd_month: number;      // 1-12
+  pd_year: number;       // actual year or 0 for "Prior Years"
+  pending_count: number;
+}
+
+// ---------------------------------------------------------------------------
+// I-140 Demand (fact_i140_demand)
+// ---------------------------------------------------------------------------
+
+export interface I140DemandRecord {
+  report_period: string; // e.g. "FY2025_Q4"
+  country: string;       // ALL / IND / CHN / PHL / BRA / VNM / KOR
+  category: string;      // TOTAL / EB1 / EB2 / EB3
+  fiscal_year: number;
+  received: number;
+  approved: number;
+  denied: number;
+  pending: number;
+}

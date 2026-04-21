@@ -36,8 +36,8 @@ const GAUGE_SIZE = 180;
 const STROKE_WIDTH = 12;
 const RADIUS = (GAUGE_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-// Show 270° arc (3/4 of circle)
-const ARC_LENGTH = CIRCUMFERENCE * 0.75;
+// Full 360° ring — score 80 = 80% visually. No gap, no perception confusion.
+const ARC_LENGTH = CIRCUMFERENCE;
 
 export function SrsScoreGauge({
   score,
@@ -48,7 +48,9 @@ export function SrsScoreGauge({
   caseCount,
   className,
 }: SrsScoreGaugeProps) {
-  const normalizedScore = score != null && !isNaN(score) ? score : 0;
+  // Ensure score is a proper number (guard against string values)
+  const scoreNum = score != null ? Number(score) : null;
+  const normalizedScore = scoreNum != null && !isNaN(scoreNum) ? scoreNum : 0;
   const fillPercent = normalizedScore / 100;
   const color = srsTierHex(tier);
   const [showWhyUnrated, setShowWhyUnrated] = useState(false);
@@ -67,7 +69,7 @@ export function SrsScoreGauge({
 
   const displayScore = useTransform(springValue, (v) => Math.round(v));
 
-  const isRated = score != null && !isNaN(score) && tier !== "Unrated";
+  const isRated = scoreNum != null && !isNaN(scoreNum) && tier !== "Unrated";
   const hasSubscores =
     subscores.outcome > 0 || subscores.wage > 0 || subscores.sustainability > 0;
 
@@ -79,7 +81,7 @@ export function SrsScoreGauge({
           width="100%"
           height="100%"
           viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE}`}
-          className="-rotate-[135deg]"
+          className="-rotate-90"
           role="img"
           aria-label={
             isRated
@@ -87,7 +89,7 @@ export function SrsScoreGauge({
               : "Sponsor Reliability Score: Unrated"
           }
         >
-          {/* Background arc */}
+          {/* Background track — full 360° ring */}
           <circle
             cx={GAUGE_SIZE / 2}
             cy={GAUGE_SIZE / 2}
@@ -95,12 +97,11 @@ export function SrsScoreGauge({
             fill="none"
             stroke="currentColor"
             strokeWidth={STROKE_WIDTH}
-            strokeDasharray={`${ARC_LENGTH} ${CIRCUMFERENCE}`}
-            strokeLinecap="round"
+            strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
             className="text-white/[0.06]"
           />
 
-          {/* Filled arc */}
+          {/* Filled arc — score 80 = 80% of ring filled */}
           {isRated && (
             <motion.circle
               cx={GAUGE_SIZE / 2}
@@ -109,11 +110,10 @@ export function SrsScoreGauge({
               fill="none"
               stroke={color}
               strokeWidth={STROKE_WIDTH}
-              strokeDasharray={`${ARC_LENGTH * fillPercent} ${CIRCUMFERENCE}`}
-              strokeLinecap="round"
+              strokeDasharray={`${CIRCUMFERENCE * fillPercent} ${CIRCUMFERENCE}`}
               initial={{ strokeDasharray: `0 ${CIRCUMFERENCE}` }}
               animate={{
-                strokeDasharray: `${ARC_LENGTH * fillPercent} ${CIRCUMFERENCE}`,
+                strokeDasharray: `${CIRCUMFERENCE * fillPercent} ${CIRCUMFERENCE}`,
               }}
               transition={{
                 duration: 1.2,
@@ -270,7 +270,7 @@ function SubscoreBar({
       <div className="flex items-center justify-between text-xs mb-1.5">
         <span className="text-[var(--muted-foreground)]">{label}</span>
         <span className="font-mono text-[var(--foreground)] tabular-nums">
-          {Math.round(value)}
+          {Math.round(value || 0)}
           <span className="text-[var(--muted-foreground)] ml-1">({weight})</span>
         </span>
       </div>

@@ -19,16 +19,18 @@ import { GlassCard } from "@/components/ui";
 import {
   loadBacklogEstimates,
   loadQueueDepth,
+  loadI140Demand,
   filterBacklog,
   buildBacklogSummary,
   filterQueueDepth,
   getQueuePosition,
   getQueueDimensions,
+  computeI140LatentDemand,
   BACKLOG_CATEGORIES,
   BACKLOG_COUNTRIES,
   COUNTRY_LABELS,
 } from "@/lib/data/backlog";
-import type { BacklogEstimate, QueueDepthEstimate } from "@/types/p2-artifacts";
+import type { BacklogEstimate, QueueDepthEstimate, I140DemandRecord } from "@/types/p2-artifacts";
 import { formatNumber, formatWaitTime } from "@/lib/utils/format";
 import { analytics } from "@/lib/analytics";
 
@@ -49,6 +51,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function BacklogDashboardPage() {
   const [backlog, setBacklog] = useState<BacklogEstimate[]>([]);
   const [queueDepth, setQueueDepth] = useState<QueueDepthEstimate[]>([]);
+  const [i140Data, setI140Data] = useState<I140DemandRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState("IND");
@@ -57,10 +60,11 @@ export default function BacklogDashboardPage() {
   const [pdCategory, setPdCategory] = useState("EB2");
 
   useEffect(() => {
-    Promise.all([loadBacklogEstimates(), loadQueueDepth()])
-      .then(([b, q]) => {
+    Promise.all([loadBacklogEstimates(), loadQueueDepth(), loadI140Demand().catch(() => [])])
+      .then(([b, q, i]) => {
         setBacklog(b);
         setQueueDepth(q);
+        setI140Data(i);
       })
       .catch((e) =>
         setError(e instanceof Error ? e.message : "Failed to load data")
@@ -108,6 +112,21 @@ export default function BacklogDashboardPage() {
   }, [queueDepth, pdCategory, selectedCountry, pdInput]);
 
   const queueDims = useMemo(() => getQueueDimensions(queueDepth), [queueDepth]);
+
+  // I-140 latent demand by category for selected country
+  const i140Summary = useMemo(() => {
+    if (i140Data.length === 0) return null;
+    const results: Array<{
+      category: string;
+      totalApproved: number;
+      totalPending: number;
+    }> = [];
+    for (const cat of BACKLOG_CATEGORIES) {
+      const d = computeI140LatentDemand(i140Data, cat, selectedCountry);
+      if (d) results.push({ category: cat, ...d });
+    }
+    return results.length > 0 ? results : null;
+  }, [i140Data, selectedCountry]);
 
   if (loading) {
     return (
@@ -442,6 +461,60 @@ export default function BacklogDashboardPage() {
             )}
           </GlassCard>
         </FadeIn>
+
+        {/* I-140 Latent Demand - shows the "hidden" queue */}
+        {i140Summary && i140Summary.length > 0 && (
+          <FadeIn>
+            <GlassCard className="p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-pink-400">
+                  <TrendingUp className="h-3.5 w-3.5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-[var(--foreground)]">
+                    I-140 Latent Demand
+                  </h2>
+                  <p className="text-[10px] text-[var(--muted-foreground)]">
+                    Approved petitions creating future I-485 filing pressure for {COUNTRY_LABELS[selectedCountry] ?? selectedCountry}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {i140Summary.map((item) => {
+                  const color = CATEGORY_COLORS[item.category] ?? "#8b5cf6";
+                  return (
+                    <div
+                      key={item.category}
+                      className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-1">
+                        {item.category}
+                      </p>
+                      <p className="text-lg font-bold font-mono" style={{ color }}>
+                        {item.totalApproved > 999999
+                          ? `${(item.totalApproved / 1000).toFixed(0)}K`
+                          : item.totalApproved.toLocaleString()}
+                      </p>
+                      <p className="text-[9px] text-[var(--muted-foreground)]">
+                        approved I-140s
+                      </p>
+                      {item.totalPending > 0 && (
+                        <p className="text-[9px] text-[var(--muted-foreground)]/60 mt-0.5">
+                          +{item.totalPending.toLocaleString()} still pending
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[9px] text-[var(--muted-foreground)]/50 leading-relaxed">
+                Each approved I-140 represents a potential future I-485 filing.
+                Many approved I-140 holders are waiting for their priority date to become current before filing.
+                This &ldquo;latent demand&rdquo; means the actual queue is deeper than what I-485 pending counts show.
+              </p>
+            </GlassCard>
+          </FadeIn>
+        )}
 
         {/* Methodology */}
         <FadeIn>

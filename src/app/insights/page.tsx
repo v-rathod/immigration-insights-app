@@ -43,6 +43,7 @@ import { PriorityDateChart } from "@/components/pdi/priority-date-chart";
 import {
   EmployerSearch,
   SrsScoreGauge,
+  SrsScoreExplainer,
   EmployerDetailCard,
   SrsTrendChart,
 } from "@/components/srs";
@@ -751,6 +752,9 @@ function SponsorScoreContent({
       {isRated ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <GlassCard variant="elevated" padding="lg">
+            <div className="mb-4">
+              <SrsScoreExplainer />
+            </div>
             <SrsScoreGauge
               score={employer.srs ?? null}
               tier={employer.srs_tier}

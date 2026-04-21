@@ -17,6 +17,7 @@ import { formatCompact, formatCompactRange } from "@/lib/utils/format";
 import {
   EmployerSearch,
   SrsScoreGauge,
+  SrsScoreExplainer,
   EmployerDetailCard,
   SrsTrendChart,
   SrsOverview,
@@ -308,13 +309,16 @@ function SrsDashboardPageContent() {
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             {/* Score Gauge */}
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-6">
+              <div className="mb-4">
+                <SrsScoreExplainer />
+              </div>
               <SrsScoreGauge
                 score={selectedEmployer.srs ?? null}
                 tier={selectedEmployer.srs_tier}
                 subscores={{
-                  outcome: selectedEmployer.outcome_subscore,
-                  wage: selectedEmployer.wage_subscore,
-                  sustainability: selectedEmployer.sustainability_subscore,
+                  outcome: selectedEmployer.outcome_subscore ?? 0,
+                  wage: selectedEmployer.wage_subscore ?? 0,
+                  sustainability: selectedEmployer.sustainability_subscore ?? 0,
                 }}
                 mlScore={selectedEmployer.srs_ml}
                 activityStatus={selectedEmployer.activity_status}

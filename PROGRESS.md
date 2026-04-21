@@ -7129,6 +7129,78 @@ Build the `/ask` page — a RAG-powered Q&A search experience with 3-tier answer
 
 ---
 
+## 2026-04-20 — Milestone 9: SRS UI Quality Sprint + GCC Competitive Features
+
+### Objective
+Fix critical visual bugs on the Sponsor Reliability Score (SRS) gauge (ring showing wrong fill %), improve tooltip ergonomics, add contextual help on all key metrics, and integrate GCC competitive features from P2 Milestone 28.
+
+### What Was Done
+
+**Ring Fix (Critical)**
+- Switched gauge from 270° arc to full 360° ring. Score 80 now fills exactly 80% of the ring. The 270° design caused score 80 to visually appear as ~60% (0.75 × 0.80 = 0.60 of circle), which was deeply confusing.
+- Rotated SVG by -90° (12 o'clock start) instead of -135°
+- Removed `strokeDasharray` multiplication by 0.75 arc factor; now `CIRCUMFERENCE * (score/100)` directly
+
+**SrsScoreExplainer Info Button**
+- Built portal-rendered tooltip using `createPortal` to `document.body` + `position: fixed`
+- Fixes z-index being trapped inside `backdrop-filter` stacking context on parent cards
+- Positions panel at computed `getBoundingClientRect()` offsets; always renders above all content
+- Click `?` opens panel; Escape key or outside click dismisses it
+- Added to both SRS dashboard and My Insights page
+
+**Key Metrics Hover Tooltips**
+- Replaced click-to-expand panel with industry-standard hover tooltips
+- Each metric card shows tooltip floating above it on mouse-enter; disappears on mouse-leave
+- Uses same `createPortal` + `position: fixed` pattern; tooltip never goes behind other UI
+- 8 metrics with detailed human-readable explanations of each field
+
+**NaN/Invalid Date Guards (carried forward)**
+- `formatMonthYear()` guards `Number.isFinite(d.getTime())` before formatting dates
+- `SubscoreBar` uses `Math.round(value || 0)` to prevent rendering "NaN"
+- Sub-scores default `?? 0` in employer/page.tsx; usefulness guard hides key metrics card with < 3 populated stats
+
+**GCC Competitive Feature #3 - Backlog & Queue Page**
+- Hidden from navigation (sidebar.tsx) while data pipeline completes
+- Page code preserved at `/dashboard/backlog/`; re-enable by uncommenting NAV_ITEMS entry
+
+**P2 Feature Integration (Milestone 28)**
+- `fact_eb_inventory.parquet` (132K rows) + `fact_i140_demand.parquet` (2.5K rows) imported
+- Queue Snapshot card on visa-bulletin dashboard shows "Cases Ahead of You"
+- VISA_SUPPLY constants and "Visa Supply Context" collapsible section
+- I-140 Latent Demand card (backlog page, hidden until pipeline complete)
+
+### Results
+| Metric | Value |
+|--------|-------|
+| Tests passing | 1,499 (47 files) |
+| New tests added | 26 (ring geometry × 7, SRS regression × 11, GCC features × 19) |
+| Pages affected | SRS dashboard, My Insights, sidebar navigation, backlog |
+| Ring accuracy | Score 80 → 80% fill (was ~60% with 270° arc) |
+| Tooltip rendering | Fixed: portal-rendered, always on top, hover-to-show |
+| Employer shards | Unchanged - no sync needed |
+
+### Files Created/Modified
+- `src/components/srs/score-gauge.tsx` - Full 360° ring, string-to-number coercion, -90° rotation
+- `src/components/srs/score-gauge-explainer.tsx` - NEW: portal-rendered info tooltip
+- `src/components/srs/employer-detail-card.tsx` - Hover tooltips via StatTooltipPortal
+- `src/components/srs/index.ts` - Export SrsScoreExplainer
+- `src/app/dashboard/employer/page.tsx` - SrsScoreExplainer integration
+- `src/app/insights/page.tsx` - SrsScoreExplainer + SrsScoreGauge integration
+- `src/components/layout/sidebar.tsx` - Backlog page hidden (commented out)
+- `src/lib/utils/format.ts` - formatMonthYear NaN guard
+- `scripts/deploy.sh` - Removed backlog/index.html from preflight checks
+- `src/__tests__/srs-regression-nan.test.tsx` - NEW: ring geometry + NaN regression tests
+- `src/__tests__/data-quality-guards.test.ts` - NEW: JSON data quality tests (53 tests)
+- `src/__tests__/cross-page-nan-guard.test.ts` - NEW: cross-page NaN scan (63 tests)
+- `src/__tests__/gcc-competitive-features.test.ts` - NEW: GCC features logic (19 tests)
+
+### Next Steps
+1. Re-enable Backlog & Queue in navigation when P2 data pipeline is stable
+2. Deploy to stage (code-only - no shard changes)
+3. Monitor ring visualization on live site
+
+---
+
 ## 2026-02-27 — Milestone 8.3: Groq Cloud LLM Backend
 
 ### Objective

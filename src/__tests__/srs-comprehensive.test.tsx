@@ -1161,13 +1161,14 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("GC-committed")).toBeDefined();
   });
 
-  it("shows dash when lca_to_perm_ratio is null", () => {
+  it("hides lca_to_perm_ratio row when value is null (usefulness guard)", () => {
     render(
       <EmployerDetailCard
         employer={makeSrs({ lca_to_perm_ratio: null })}
       />
     );
-    expect(screen.getByText("H-1B per GC Filing")).toBeDefined();
+    // When lca_to_perm_ratio is null, that stat row is filtered out by usefulness guard
+    expect(screen.queryByText("H-1B per GC Filing")).toBeNull();
   });
 
   it("displays wage ratio as percentage of market", () => {
@@ -1178,13 +1179,14 @@ describe("EmployerDetailCard — Comprehensive", () => {
     expect(screen.getByText("of market")).toBeDefined();
   });
 
-  it("displays dash when wage ratio is null", () => {
+  it("hides wage ratio row when value is null (usefulness guard)", () => {
     render(
       <EmployerDetailCard
         employer={makeSrs({ wage_ratio_med: null as unknown as number })}
       />
     );
-    expect(screen.getByText("–")).toBeDefined();
+    // When wage_ratio_med is null, stat row is filtered out
+    expect(screen.queryByText("Wage Ratio (Median)")).toBeNull();
   });
 
   it("displays Job Category breadth with 'categories' suffix", () => {

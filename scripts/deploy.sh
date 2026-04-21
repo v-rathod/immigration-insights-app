@@ -118,8 +118,8 @@ preflight() {
     "dashboard/wage/index.html"
     "dashboard/employer/index.html"
     "dashboard/visa-bulletin/index.html"
-    "dashboard/backlog/index.html"
   )
+  # Note: dashboard/backlog/index.html intentionally omitted — page exists but is hidden from nav
   for page in "${EXPECTED_PAGES[@]}"; do
     if [[ ! -f "$OUT_DIR/$page" ]]; then
       error "Missing expected page: $OUT_DIR/$page"
