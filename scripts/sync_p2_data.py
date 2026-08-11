@@ -1281,6 +1281,20 @@ def consolidate_employer_shards():
     }
     overview_path = employer_dir / "srs_overview.json"
     overview_path.parent.mkdir(parents=True, exist_ok=True)
+    # Guard: same fail-loud principle as the _search.json guard above — refuse to
+    # clobber a healthy overview with an empty one if srs_scores_raw came back
+    # empty (missing employer_friendliness_scores.json input).
+    if overview_path.exists():
+        try:
+            existing_total = json.loads(overview_path.read_text()).get("totalEmployers", 0)
+        except (json.JSONDecodeError, ValueError):
+            existing_total = 0
+        if existing_total > 100 and srs_overview["totalEmployers"] == 0:
+            raise RuntimeError(
+                f"Refusing to write srs_overview.json: new totalEmployers is 0 but "
+                f"existing file has {existing_total:,}. The employer_friendliness_scores.json "
+                f"input was likely missing when consolidate_employer_shards() ran."
+            )
     overview_path.write_text(json.dumps(srs_overview))
     print(f"  ✓ srs_overview.json: {len(overall_scores):,} employers → {overview_path.stat().st_size} bytes")
 

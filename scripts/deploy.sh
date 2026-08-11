@@ -14,9 +14,10 @@
 #
 # SHARD HASH FINGERPRINT:
 #   Employer shards (95K files, 1.1GB) are only re-uploaded when they change.
-#   A SHA-256 of _search.json is stored in S3 as data/employers/.shard-hash.
-#   If the hash matches, shard sync is skipped — saving ~$0.50 per deploy.
-#   Shards change only when P2 Meridian pipeline runs (rare).
+#   A SHA-256 of the sorted (filename, size) listing of all shard files is
+#   stored in S3 as data/employers/.shard-hash. If the hash matches, shard sync
+#   is skipped — saving ~$0.50 per deploy. Shards change only when P2 Meridian
+#   pipeline runs or shards are re-consolidated (rare).
 #   Use --force-shards to override the hash check.
 # -----------------------------------------------------------------------
 set -euo pipefail
@@ -170,6 +171,9 @@ do_build() {
   # Bake environment and analytics key into the bundle at build time.
   # NEXT_PUBLIC_* vars are inlined by Next.js during static export.
   export NEXT_PUBLIC_APP_ENV="$DEPLOY_ENV"
+  # Suppresses noisy (non-fatal) attempts to patch the lockfile with optional
+  # cross-platform @next/swc binaries this machine will never use.
+  export NEXT_IGNORE_INCORRECT_LOCKFILE=1
   [[ -n "$POSTHOG_KEY" ]] && export NEXT_PUBLIC_POSTHOG_KEY="$POSTHOG_KEY"
   npx next build
 
@@ -249,12 +253,18 @@ deploy_main() {
 # ── Deploy employer shards ─────────────────────────────────────────────────
 
 # Compute a fingerprint for the employer shard dataset.
-# Uses _search.json as proxy: if the search index hasn't changed, shards haven't either.
+# Hashes the sorted (filename, size) listing of every shard file — this reflects
+# actual shard content changes (e.g. wage/SRS re-embedding) even when _search.json
+# is byte-identical across two runs, which a _search.json-only proxy would miss.
 compute_shard_hash() {
-  if [[ -f "$OUT_DIR/data/employers/_search.json" ]]; then
-    shasum -a 256 "$OUT_DIR/data/employers/_search.json" | cut -d' ' -f1
+  local shard_dir="$OUT_DIR/data/employers"
+  if [[ -d "$shard_dir" ]]; then
+    find "$shard_dir" -name "*.json" -exec stat -f "%N %z" {} + 2>/dev/null \
+      | sort \
+      | shasum -a 256 \
+      | cut -d' ' -f1
   else
-    echo "no_search_index_$(date +%s)"
+    echo "no_shard_dir_$(date +%s)"
   fi
 }
 
