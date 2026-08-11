@@ -77,6 +77,8 @@ BUILD_START=0; BUILD_DURATION=0
 MAIN_SYNC_START=0; MAIN_SYNC_DURATION=0
 SHARD_SYNC_START=0; SHARD_SYNC_DURATION=0
 SMOKE_START=0; SMOKE_DURATION=0
+MAIN_UPLOAD_COUNT=0
+SHARD_UPLOAD_COUNT=0
 
 _elapsed() { echo $(( SECONDS - $1 )); }
 
@@ -260,6 +262,7 @@ deploy_main() {
     --no-progress \
     --region "$REGION" \
     2>&1 | grep -c "upload:" || true)
+  MAIN_UPLOAD_COUNT="$upload_count"
   MAIN_SYNC_DURATION=$(_elapsed $MAIN_SYNC_START)
   log "Main site deployed: ${upload_count} files uploaded in ${MAIN_SYNC_DURATION}s ✓"
 }
@@ -325,6 +328,7 @@ deploy_shards() {
     --size-only \
     --no-progress \
     2>&1 | grep -c "upload:" || true)
+  SHARD_UPLOAD_COUNT="$upload_count"
   SHARD_SYNC_DURATION=$(_elapsed $SHARD_SYNC_START)
   log "Employer shards deployed: ${upload_count} updated in ${SHARD_SYNC_DURATION}s ✓"
 
@@ -594,7 +598,22 @@ print_timing_summary() {
   echo -e "${BOLD}${CYAN}  ─────────────────────────────────────────────────────────${NC}"
   printf "  ${BOLD}%-28s %s${NC}\n" "Total:" "${total_duration}s ($(( total_duration / 60 ))m $(( total_duration % 60 ))s)"
   echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo ""
+
+  # ── S3 API call / cost visibility ─────────────────────────────────────
+  # PUT/COPY/POST requests cost $0.005 per 1,000 (S3 Standard). This is an
+  # estimate of THIS deploy's upload cost only — it does not include LIST
+  # requests (negligible, ~1 per 1,000 objects listed) or CloudFront
+  # invalidation (free for the first 1,000 paths/month; "/*" counts as 1 path
+  # regardless of how many files it matches) or ongoing site-traffic costs,
+  # which typically dominate real AWS spend far more than occasional deploys.
+  local total_uploads=$(( MAIN_UPLOAD_COUNT + SHARD_UPLOAD_COUNT ))
+  if (( total_uploads > 0 )); then
+    local put_cost_cents
+    # S3 Standard PUT/COPY/POST pricing: $0.005 per 1,000 requests = $0.000005/request.
+    put_cost_cents=$(awk -v n="$total_uploads" 'BEGIN { printf "%.4f", n * 0.000005 }')
+    echo -e "  ${DIM:-}Estimated S3 PUT cost this deploy: ~\$${put_cost_cents} (${total_uploads} objects uploaded)${NC}"
+    echo ""
+  fi
 }
 
 # ── Main ───────────────────────────────────────────────────────────────────
