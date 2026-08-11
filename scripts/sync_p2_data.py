@@ -1229,6 +1229,24 @@ def consolidate_employer_shards():
     unified_search.sort(key=lambda x: x.get("total_filings", 0), reverse=True)
 
     search_path = employers_dir / "_search.json"
+    # Guard: refuse to silently clobber a healthy _search.json with a corrupted/
+    # empty one (e.g. if search_index_raw came back empty because the monolithic
+    # employer_search_index.json input was missing). Fail loud instead of writing
+    # a broken index that only gets caught by expensive downstream smoke tests.
+    if search_path.exists():
+        try:
+            existing_count = len(json.loads(search_path.read_text()))
+        except (json.JSONDecodeError, ValueError):
+            existing_count = 0
+        if existing_count > 1000 and len(unified_search) < existing_count * 0.5:
+            raise RuntimeError(
+                f"Refusing to write _search.json: new entry count "
+                f"({len(unified_search):,}) is less than half the existing "
+                f"count ({existing_count:,}). This usually means the monolithic "
+                f"wage/SRS inputs were missing when consolidate_employer_shards() "
+                f"ran. Regenerate them first (sync_dashboards('employer') + "
+                f"sync_wage_dashboard()) before re-running consolidation."
+            )
     search_path.write_text(json.dumps(_nan_to_null(unified_search)))
     search_kb = search_path.stat().st_size / 1024
     print(f"  ✓ _search.json: {len(unified_search):,} employers → {search_kb:.0f} KB")

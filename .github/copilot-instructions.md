@@ -169,11 +169,12 @@ git restore --staged [image-file]  # If found, unstage them
 **STAGE-FIRST PROMOTION — Always follow this exactly:**
 
 1. **Make code changes** → Test locally (`npm test`, `npm run build` success)
-2. **Commit to main** (clear commit message describing the change)
-3. **Deploy to stage** → `bash scripts/deploy.sh` (stage is the default target)
-4. **Wait for user verification** → Ask user to test on `https://stage.immigrationcompass.fyi/` (specific features to verify)
-5. **Get explicit approval** → User says "looks good, deploy to prod" or "I found an issue, fix this"
-6. **Deploy to prod** → `bash scripts/deploy.sh --env prod` **ONLY after explicit user approval**
+2. **After ANY data pipeline change** (`npm run sync-data`, `_regen_search.py`, `run_consolidation.py`) → run `npm run predeploy-checks` (build + `predeploy-checks.test.ts`) BEFORE touching deploy.sh. It validates shard wage/SRS embedding and `srs_overview.json` locally in seconds — deploy.sh's remote smoke tests catch the same issues but cost a full ~15-45 min S3 shard sync per attempt. Never skip straight to deploy.sh after a data refresh.
+3. **Commit to main** (clear commit message describing the change)
+4. **Deploy to stage** → `bash scripts/deploy.sh` (stage is the default target)
+5. **Wait for user verification** → Ask user to test on `https://stage.immigrationcompass.fyi/` (specific features to verify)
+6. **Get explicit approval** → User says "looks good, deploy to prod" or "I found an issue, fix this"
+7. **Deploy to prod** → `bash scripts/deploy.sh --env prod` **ONLY after explicit user approval**
 
 **Exception for Config-Only Changes** (meta tags, robots.txt, DNS records, env vars):
 - Deploy to stage normally
@@ -279,14 +280,15 @@ npm run dev          # Local dev server (localhost:3000)
 npm run build        # Static export to out/
 npm test             # Run all tests (Vitest)
 npm run lint         # ESLint
-python3 scripts/sync_p2_data.py   # Sync P2 artifacts -> public/data/
+npm run sync-data:full   # Full P2 refresh IN CORRECT ORDER: sync_p2_data.py (dashboards+wage+shards+consolidation) -> _regen_search.py (dedupe employer names)
+npm run predeploy-checks # build + predeploy-checks.test.ts -- run this locally after ANY data refresh, BEFORE deploy.sh
 bash scripts/deploy.sh             # Full deploy (build + S3 + CloudFront + smoke test)
 bash scripts/deploy.sh --skip-build  # Deploy existing build
 ```
 
 ### Workflow Patterns
 1. **Code change** -> `npm test` -> `npm run build` -> commit -> push
-2. **Data sync** -> `python3 scripts/sync_p2_data.py` -> update types/loaders if needed -> commit
+2. **Data sync** -> `npm run sync-data:full` (do NOT run `sync_p2_data.py` and `run_consolidation.py` separately/out of order -- `sync_p2_data.py` already runs consolidation internally and deletes its monolithic inputs when done; `run_consolidation.py` is only for standalone wage/SRS re-embeds without a full shard rebuild, and always regenerates its own inputs first) -> `npm run predeploy-checks` -> update types/loaders if needed -> commit
 3. **Deploy** -> Only with explicit user request -> `bash scripts/deploy.sh`
 
 ---
