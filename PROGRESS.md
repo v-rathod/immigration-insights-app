@@ -4,6 +4,49 @@
 
 ---
 
+## Session Quick Snapshot (2026-08-11)
+
+**Current Status**: Consolidation pipeline bug fixed + stage redeployed
+- **Unit Tests**: 1,534 passing (3 skipped) across 48 test files
+- **Post-Deploy Tests**: 262/262 (47 smoke + 191 comprehensive + 24 Playwright e2e)
+- **Stage**: `https://stage.immigrationcompass.fyi` — redeployed, all checks green
+- **TypeScript**: Strict mode, 0 errors
+
+---
+
+## 2026-08-11 — Consolidation Pipeline Fix: run_consolidation.py self-sufficiency
+
+### Root Cause
+`sync_p2_data.py`'s `main()` already calls `consolidate_employer_shards()` internally
+(embeds wage+SRS into employer shards, then DELETES the monolithic wage/SRS JSON
+inputs it consumed to save ~338MB). Running the standalone
+`scripts/run_consolidation.py` afterward found those inputs already gone, silently
+embedded nothing into shards, and corrupted `_search.json` (rebuilt from the
+now-empty `employer_search_index.json`). This caused every employer shard to be
+missing `wage_roles`/`wage_trend`/`srs` data, and `srs_overview.json` to report
+0 employers — caught by stage deploy smoke tests before reaching prod.
+
+### Fix
+`scripts/run_consolidation.py` now regenerates its own monolithic inputs via
+`sync_dashboards(dashboard_filter="employer")` + `sync_wage_dashboard()` before
+calling `consolidate_employer_shards()`. Self-sufficient and safe to run
+standalone at any time (e.g. after retraining wage/SRS models without a full
+LCA shard rebuild). Correct order: `sync-data`/`run_consolidation.py` first
+(writes raw `_search.json`), then `_regen_search.py` last (dedupes employer
+name typos/variants on top).
+
+### Verification
+- 300/300 sampled shards now have `wage_roles` embedded (was 0/20 before fix)
+- Optum/Cognizant/Infosys/Google/Microsoft shards confirmed with `wage_roles` + `srs`
+- `srs_overview.json`: 70,503 employers (was 0)
+- Test updates for P2 ML retrain: Infosys SRS tier Excellent→Good (efs 76.9),
+  Cognizant name uppercase "US", EB2 India forecast ceiling 60→85 months
+- `npm test`: 1,534 passed, 3 skipped, 0 failed (48/48 files)
+- Stage deploy: 47/47 smoke tests, 191/191 comprehensive tests, 24/24 Playwright
+  e2e tests all passing
+
+---
+
 ## Session Quick Snapshot (2026-04-19)
 
 **Current Status**: **MILESTONE 23** — Data sync from P2 Meridian M23/M24
