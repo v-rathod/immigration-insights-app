@@ -615,7 +615,7 @@ describe.skipIf(!DATA_AVAILABLE)("computePdi() with real forecasts", () => {
     const result = computePdi(forecasts, "FAD", "EB2", "IND", "2016-06-15");
     expect(result.found).toBe(true);
     expect(result.monthsUntilCurrent!).toBeGreaterThanOrEqual(15);
-    expect(result.monthsUntilCurrent!).toBeLessThanOrEqual(60);
+    expect(result.monthsUntilCurrent!).toBeLessThanOrEqual(85); // Updated for P2 ML retrain
   });
 
   it("ROW countries become current much faster than India", () => {

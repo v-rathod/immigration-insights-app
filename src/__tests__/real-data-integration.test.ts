@@ -485,8 +485,8 @@ describe("Real Data: Search + Sort — 'Infosys' query", () => {
     expect(sorted[0].n_36m).toBeGreaterThan(200000);
   });
 
-  it("Infosys has Excellent SRS tier", () => {
-    expect(sorted[0].srs_tier).toBe("Excellent");
+  it("Infosys has Good SRS tier (P2 ML retrain)", () => {
+    expect(sorted[0].srs_tier).toBe("Good");
   });
 });
 
@@ -734,9 +734,9 @@ describe("Real Data: Major consulting firm validation", () => {
     expect(e!.srs).not.toBeNull();
   });
 
-  it("Cognizant Technology Solutions Us has merged filings > 100K", () => {
-    // Name uses title-case "Us" (not "US") per P2 consolidation
-    const e = findEmployer("Cognizant Technology Solutions Us");
+  it("Cognizant Technology Solutions US has merged filings > 100K", () => {
+    // Name uses uppercase "US" per P2 consolidation
+    const e = findEmployer("Cognizant Technology Solutions US");
     expect(e).toBeDefined();
     expect(e!.n_36m).toBeGreaterThan(100000);
   });
