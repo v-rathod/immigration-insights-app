@@ -230,6 +230,20 @@ rollback_deploy() {
   warn "The site may take 30-60s to fully propagate."
 }
 
+# Handles the outcome of run_smoke_tests(): rolls back only for exit code 1
+# (site broken); exit code 2 (data-only issue) fails the deploy without
+# rolling back, since restoring an older index.html wouldn't fix data content
+# and risks referencing CSS/JS assets a newer build already deleted from S3.
+handle_smoke_result() {
+  local smoke_exit="$1"
+  if [[ "$smoke_exit" -eq 2 ]]; then
+    error "Deploy finished but data-integrity issues were found (see above). NOT rolled back."
+    exit 1
+  fi
+  rollback_deploy
+  exit 1
+}
+
 # ── Deploy main site ───────────────────────────────────────────────────────
 
 deploy_main() {
@@ -451,6 +465,13 @@ verify_deployment() {
 }
 
 # ── Post-deploy smoke tests ──────────────────────────────────────────────────
+#
+# smoke-test.mjs and comprehensive-post-deploy.mjs both use differentiated
+# exit codes: 1 = a SITE check failed (page/CSS/JS broken, rollback warranted),
+# 2 = only DATA checks failed (site renders fine, some JSON content is wrong —
+# rolling back index.html wouldn't fix that and risks referencing deleted
+# CSS/JS assets from a newer build). run_smoke_tests() returns that same
+# code so main() only calls rollback_deploy() for code 1.
 
 run_smoke_tests() {
   if ! command -v node &>/dev/null; then
@@ -471,18 +492,30 @@ run_smoke_tests() {
   local SMOKE_URL="${DEPLOY_URL}"
 
   log "Running HTTP smoke tests against ${SMOKE_URL}..."
-  SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/smoke-test.mjs" || {
-    error "Smoke tests FAILED — site may be degraded. Check CloudFront and S3."
+  local smoke_exit=0
+  SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/smoke-test.mjs" || smoke_exit=$?
+  if [[ $smoke_exit -eq 1 ]]; then
+    error "Smoke tests FAILED (site rendering/assets broken) — rollback warranted."
     return 1
-  }
+  elif [[ $smoke_exit -eq 2 ]]; then
+    warn "Smoke tests found DATA-ONLY issues (pages render fine, some content is wrong/stale)."
+    warn "NOT rolling back — restoring an older index.html wouldn't fix the data and risks"
+    warn "referencing deleted CSS/JS assets. Investigate the data pipeline before redeploying."
+    return 2
+  fi
 
   # ── Comprehensive post-deploy validation ────────────────────────────────
   if [[ -f "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" ]]; then
     log "Running comprehensive post-deploy validation..."
-    SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || {
-      error "Comprehensive post-deploy tests FAILED — data integrity issues. Check above output."
+    local comp_exit=0
+    SMOKE_TEST_URL="$SMOKE_URL" node "$PROJECT_DIR/scripts/comprehensive-post-deploy.mjs" || comp_exit=$?
+    if [[ $comp_exit -eq 1 ]]; then
+      error "Comprehensive post-deploy tests FAILED (site rendering broken) — rollback warranted."
       return 1
-    }
+    elif [[ $comp_exit -eq 2 ]]; then
+      warn "Comprehensive post-deploy tests found DATA-ONLY issues — NOT rolling back."
+      return 2
+    fi
   fi
 
   # ── Playwright e2e (browser rendering + user flows) ─────────────────────
@@ -641,7 +674,7 @@ main() {
     deploy_shards
     invalidate_cf
     verify_deployment
-    run_smoke_tests || { rollback_deploy; exit 1; }
+    run_smoke_tests || handle_smoke_result $?
   else
     if ! $SKIP_BUILD; then
       do_build
@@ -652,7 +685,7 @@ main() {
     deploy_shards
     invalidate_cf
     verify_deployment
-    run_smoke_tests || { rollback_deploy; exit 1; }
+    run_smoke_tests || handle_smoke_result $?
   fi
 
   print_timing_summary

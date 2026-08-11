@@ -12,7 +12,10 @@
  *
  * Exit codes:
  *   0 — all checks passed
- *   1 — one or more checks failed
+ *   1 — a SITE check failed (page/CSS/JS broken) — rollback is warranted
+ *   2 — only DATA checks failed (pages render fine, some JSON content is
+ *       wrong/stale) — site itself is healthy, rolling back index.html would
+ *       not fix the data and risks re-introducing an asset-hash mismatch
  */
 
 const args = process.argv.slice(2);
@@ -46,6 +49,12 @@ const BOLD   = '\x1b[1m';
 //   headOnly  — Use HEAD request (skips body download — use for large files)
 //   minSize   — Minimum byte count: Content-Length (HEAD) or body length (GET)
 //   validate  — Optional fn: receives parsed JSON, throws Error if invalid
+//
+// Category (for rollback decisions in deploy.sh), inferred from path below:
+//   'site' — page/asset unreachable or malformed = users see a broken site.
+//   'data' — a /data/*.json file loads fine, but its CONTENT is wrong (e.g.
+//            missing wage_roles). Pages still render; only specific dashboard
+//            values are off.
 //
 const CHECKS = [
 
@@ -540,6 +549,10 @@ async function main() {
   const pageCount  = CHECKS.filter(c => c.path.match(/^\/[^/]*\/?$|^\/dashboard\//)).length;
   const dataCount  = CHECKS.length - pageCount;
 
+  // A /data/*.json check failing means content is wrong, not that the site is
+  // broken — see the Exit codes / Category doc comments above.
+  const categoryFor = (path) => (path.startsWith('/data/') ? 'data' : 'site');
+
   console.log(`\n${BOLD}Compass Smoke Tests${RESET}`);
   console.log(`${DIM}Target: ${displayUrl}${RESET}`);
   console.log(`${DIM}Checks: ${pageCount} pages + ${dataCount} data files + rendering${RESET}\n`);
@@ -547,6 +560,8 @@ async function main() {
   const results = [];
   let passed = 0;
   let failed = 0;
+  let failedSite = 0;
+  let failedData = 0;
 
   // Run checks in batches for controlled concurrency
   for (let i = 0; i < CHECKS.length; i += CONCURRENCY) {
@@ -563,12 +578,18 @@ async function main() {
       const reason  = result.ok ? '' : `\n      ${YELLOW}→ ${result.reason}${RESET}`;
 
       console.log(`  ${icon}  ${name}${sizeStr}${reason}`);
-      results.push({ check, result });
-      if (result.ok) passed++; else failed++;
+      results.push({ check, result, category: categoryFor(check.path) });
+      if (result.ok) {
+        passed++;
+      } else {
+        failed++;
+        if (categoryFor(check.path) === 'data') failedData++; else failedSite++;
+      }
     }
   }
 
   // ── Rendering / CSS checks ──────────────────────────────────────────────
+  // Always 'site' category — these directly measure whether pages render.
   console.log(`\n${BOLD}Rendering checks${RESET}`);
   const renderResults = await runRenderingChecks();
   for (const r of renderResults) {
@@ -578,8 +599,8 @@ async function main() {
     const name    = r.ok ? r.label : `${RED}${r.label}${RESET}`;
     const reason  = r.ok ? '' : `\n      ${YELLOW}→ ${r.reason}${RESET}`;
     console.log(`  ${icon}  ${name}${sizeStr}${detail}${reason}`);
-    results.push({ check: { path: r.label }, result: r });
-    if (r.ok) passed++; else failed++;
+    results.push({ check: { path: r.label }, result: r, category: 'site' });
+    if (r.ok) { passed++; } else { failed++; failedSite++; }
   }
 
   // Summary
@@ -588,12 +609,18 @@ async function main() {
   if (failed > 0) {
     console.log(`\n${RED}${BOLD}${failed} check(s) FAILED${RESET}  (${passed} passed)\n`);
     const failures = results.filter(r => !r.result.ok);
-    failures.forEach(({ check, result }) => {
-      console.log(`  ${RED}✗  ${check.path}${RESET}`);
+    failures.forEach(({ check, result, category }) => {
+      console.log(`  ${RED}✗  [${category}]  ${check.path}${RESET}`);
       console.log(`     ${YELLOW}${result.reason}${RESET}`);
     });
     console.log('');
-    process.exit(1);
+    if (failedSite > 0) {
+      console.log(`${RED}${failedSite} SITE check(s) failed — pages/assets broken, rollback warranted.${RESET}\n`);
+      process.exit(1);
+    }
+    console.log(`${YELLOW}${failedData} DATA check(s) failed — site renders fine, but content is wrong/stale. ` +
+      `NOT rollback-worthy (rolling back index.html won't fix data content).${RESET}\n`);
+    process.exit(2);
   } else {
     console.log(`\n${GREEN}${BOLD}ALL ${passed} CHECKS PASSED${RESET} ✓\n`);
     process.exit(0);

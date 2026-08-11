@@ -17,7 +17,8 @@
  *
  * Exit codes:
  *   0 — all checks passed
- *   1 — one or more checks failed
+ *   1 — a SITE check failed (Section 1: Page Availability & Rendering) — rollback warranted
+ *   2 — only DATA checks failed (Sections 2-11) — site renders fine, not rollback-worthy
  */
 
 const args = process.argv.slice(2);
@@ -46,10 +47,16 @@ let passed = 0, failed = 0, skipped = 0;
 const failures = [];
 const startTime = Date.now();
 
+// Failures in the 'site' category (page/asset rendering broken) warrant a
+// deploy.sh rollback; 'data' category failures mean pages render fine but
+// some JSON content is wrong — rolling back index.html wouldn't fix that and
+// risks referencing deleted CSS/JS assets, so it maps to a distinct exit code.
+let currentCategory = 'data';
+
 function pass(label) { passed++; }
 function fail(label, reason) {
   failed++;
-  failures.push({ label, reason });
+  failures.push({ label, reason, category: currentCategory });
   console.log(`  ${C.R}✗${C.RST}  ${C.R}${label}${C.RST}\n      ${C.Y}→ ${reason}${C.RST}`);
 }
 function skip(label) { skipped++; }
@@ -102,7 +109,8 @@ async function fetchHTML(path) {
 }
 
 // ── Test runner ──────────────────────────────────────────────────────────────
-async function runBatch(label, tests) {
+async function runBatch(label, tests, category = 'data') {
+  currentCategory = category;
   console.log(`\n${C.BOLD}${label}${C.RST} ${C.D}(${tests.length} tests)${C.RST}`);
   for (let i = 0; i < tests.length; i += CONCURRENCY) {
     const batch = tests.slice(i, i + CONCURRENCY);
@@ -211,7 +219,7 @@ async function testPages() {
     }
   });
 
-  await runBatch('1. Page Availability & Rendering', tests);
+  await runBatch('1. Page Availability & Rendering', tests, 'site');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1215,11 +1223,18 @@ async function main() {
     console.log(`\n${C.R}${C.BOLD}${failed} FAILED${C.RST}  |  ${C.G}${passed} passed${C.RST}  |  ${skipped} skipped  |  ${total} total  |  ${elapsed}s\n`);
     console.log(`${C.R}${C.BOLD}Failed tests:${C.RST}`);
     for (const f of failures) {
-      console.log(`  ${C.R}✗${C.RST}  ${f.label}`);
+      console.log(`  ${C.R}✗${C.RST}  [${f.category}]  ${f.label}`);
       console.log(`    ${C.Y}${f.reason}${C.RST}`);
     }
     console.log('');
-    process.exit(1);
+    const failedSite = failures.filter(f => f.category === 'site').length;
+    if (failedSite > 0) {
+      console.log(`${C.R}${failedSite} SITE check(s) failed — pages/assets broken, rollback warranted.${C.RST}\n`);
+      process.exit(1);
+    }
+    console.log(`${C.Y}${failed} DATA check(s) failed — site renders fine, but content is wrong/stale. ` +
+      `NOT rollback-worthy.${C.RST}\n`);
+    process.exit(2);
   } else {
     console.log(`\n${C.G}${C.BOLD}ALL ${passed} TESTS PASSED${C.RST} ✓  |  ${skipped} skipped  |  ${elapsed}s\n`);
     process.exit(0);

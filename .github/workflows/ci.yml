@@ -9,6 +9,10 @@
 #      security utilities, and full page rendering with mocked data.
 #   2. TypeScript type check — strict mode, catches type regressions.
 #   3. ESLint — enforces coding conventions.
+#   4. Data consolidation pipeline (Python, fixture-based) — regression guard
+#      for the wage/SRS shard-embedding + _search.json/srs_overview.json
+#      corruption bug class (see scripts/test_consolidation.py). Uses tiny
+#      synthetic fixtures, no real P2 data required.
 #
 # Note: The Next.js static export build is NOT run here because it requires
 # ~1.3 GB of pre-generated P2 data artifacts that live on the dev machine.
@@ -55,3 +59,22 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+  data-pipeline-test:
+    name: Data Consolidation Pipeline (fixture-based)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install pandas
+        run: pip install pandas
+
+      - name: Run consolidation regression tests
+        run: python3 scripts/test_consolidation.py

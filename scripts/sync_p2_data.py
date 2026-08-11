@@ -1398,6 +1398,53 @@ def ping_index_now():
         print(f"⚠️  IndexNow ping error: {e}. This won't block the sync.")
 
 
+# Tables consumed together by sync_wage_dashboard() + consolidate_employer_shards().
+# If one of these is much older than the others, a P2 rebuild likely only touched
+# some tables and P3 will silently mix fresh + stale data (happened 2026-08:
+# employer_salary_profiles.parquet was 4+ months older than the rest of a "fresh"
+# P2 rebuild, went unnoticed until manually investigated).
+WAGE_SRS_FRESHNESS_GROUP = [
+    "employer_salary_profiles.parquet",
+    "employer_salary_yearly.parquet",
+    "soc_salary_market.parquet",
+    "employer_friendliness_scores.parquet",
+    "employer_friendliness_scores_ml.parquet",
+    "employer_monthly_metrics.parquet",
+    "employer_risk_features.parquet",
+]
+
+
+def check_p2_freshness(stale_threshold_days: int = 60) -> None:
+    """Warn (non-fatal) if wage/SRS source tables have wildly different ages,
+    which usually means the last P2 rebuild only refreshed some of them."""
+    from datetime import datetime as _dt
+
+    mtimes: dict[str, float] = {}
+    for name in WAGE_SRS_FRESHNESS_GROUP:
+        path = P2_TABLES / name
+        if path.exists():
+            mtimes[name] = path.stat().st_mtime
+
+    if len(mtimes) < 2:
+        return
+
+    newest = max(mtimes.values())
+    stale = {
+        name: mtime for name, mtime in mtimes.items()
+        if (newest - mtime) > stale_threshold_days * 86400
+    }
+    if stale:
+        print(f"\n⚠️  P2 DATA FRESHNESS WARNING: {len(stale)} wage/SRS table(s) are "
+              f">{stale_threshold_days} days older than the newest table in this group.")
+        print("   This usually means the last P2 rebuild only refreshed some tables —")
+        print("   P3 will mix fresh + stale data silently unless you confirm this is expected.")
+        for name, mtime in sorted(mtimes.items(), key=lambda kv: kv[1]):
+            age_days = (newest - mtime) / 86400
+            flag = " ← STALE" if name in stale else ""
+            print(f"     {_dt.fromtimestamp(mtime).date()}  {name}{flag} ({age_days:.0f}d older than newest)")
+        print()
+
+
 def main():
     print("=" * 60)
     print("P2 Meridian → P3 Compass Data Sync")
@@ -1408,6 +1455,8 @@ def main():
         print(f"❌ P2 artifacts not found at: {P2_TABLES}")
         print("   Make sure immigration-model-builder is at the expected path.")
         sys.exit(1)
+
+    check_p2_freshness()
 
     # Parse args
     rag_only = "--rag-only" in sys.argv
