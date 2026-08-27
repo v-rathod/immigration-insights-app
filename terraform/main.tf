@@ -56,6 +56,32 @@ resource "aws_s3_bucket_versioning" "site" {
   }
 }
 
+# Without this, every overwritten object (e.g. employer shards on each data
+# refresh) keeps its old version forever, growing storage cost with zero
+# visitor traffic. deploy.sh's rollback only ever needs the immediately
+# prior version, so 14 days is ample safety margin.
+resource "aws_s3_bucket_lifecycle_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 14
+    }
+
+    # Also clean up delete markers left behind once their noncurrent versions expire.
+    expiration {
+      expired_object_delete_marker = true
+    }
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   bucket = aws_s3_bucket.site.id
   rule {
@@ -514,7 +540,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "CloudFront Requests"
+          title = "CloudFront Requests"
           metrics = [
             ["AWS/CloudFront", "Requests", "DistributionId", aws_cloudfront_distribution.site.id, "Region", "Global", { stat = "Sum", period = 300 }]
           ]
@@ -530,7 +556,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "Error Rate (4xx / 5xx)"
+          title = "Error Rate (4xx / 5xx)"
           metrics = [
             ["AWS/CloudFront", "4xxErrorRate", "DistributionId", aws_cloudfront_distribution.site.id, "Region", "Global", { stat = "Average", period = 300, label = "4xx" }],
             ["AWS/CloudFront", "5xxErrorRate", "DistributionId", aws_cloudfront_distribution.site.id, "Region", "Global", { stat = "Average", period = 300, label = "5xx" }]
@@ -547,7 +573,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "Bytes Downloaded"
+          title = "Bytes Downloaded"
           metrics = [
             ["AWS/CloudFront", "BytesDownloaded", "DistributionId", aws_cloudfront_distribution.site.id, "Region", "Global", { stat = "Sum", period = 300 }]
           ]
@@ -563,7 +589,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "Cache Hit Rate"
+          title = "Cache Hit Rate"
           metrics = [
             ["AWS/CloudFront", "CacheHitRate", "DistributionId", aws_cloudfront_distribution.site.id, "Region", "Global", { stat = "Average", period = 300 }]
           ]
@@ -579,7 +605,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "S3 Bucket Size"
+          title = "S3 Bucket Size"
           metrics = [
             ["AWS/S3", "BucketSizeBytes", "StorageType", "StandardStorage", "BucketName", var.s3_bucket_name, { stat = "Average", period = 86400 }]
           ]
@@ -595,7 +621,7 @@ resource "aws_cloudwatch_dashboard" "compass" {
         width  = 12
         height = 6
         properties = {
-          title   = "S3 Object Count"
+          title = "S3 Object Count"
           metrics = [
             ["AWS/S3", "NumberOfObjects", "StorageType", "AllStorageTypes", "BucketName", var.s3_bucket_name, { stat = "Average", period = 86400 }]
           ]
