@@ -495,13 +495,13 @@ describe("Infosys shard — SRS + Wage Intelligence anchors", () => {
     expect(shard.employer_name).toBe("Infosys");
   });
 
-  it("SRS tier is 'Good' (P2 ML retrain)", () => {
-    expect(shard.srs?.efs_tier).toBe("Good");
+  it("SRS tier is 'Excellent' (2026-08-27 P2 refresh)", () => {
+    expect(shard.srs?.efs_tier).toBe("Excellent");
   });
 
-  it("SRS efs score is between 70 and 85 (Good tier range, P2 ML retrain)", () => {
-    expect(shard.srs?.efs).toBeGreaterThanOrEqual(70);
-    expect(shard.srs?.efs).toBeLessThan(85);
+  it("SRS efs score is between 85 and 100 (Excellent tier range, 2026-08-27 P2 refresh)", () => {
+    expect(shard.srs?.efs).toBeGreaterThanOrEqual(85);
+    expect(shard.srs?.efs).toBeLessThanOrEqual(100);
   });
 
   it("wage_roles[0] SOC code is a computer occupation (15-xxxx)", () => {

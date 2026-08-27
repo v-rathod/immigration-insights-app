@@ -485,8 +485,8 @@ describe("Real Data: Search + Sort — 'Infosys' query", () => {
     expect(sorted[0].n_36m).toBeGreaterThan(200000);
   });
 
-  it("Infosys has Good SRS tier (P2 ML retrain)", () => {
-    expect(sorted[0].srs_tier).toBe("Good");
+  it("Infosys has Excellent SRS tier (2026-08-27 P2 refresh)", () => {
+    expect(sorted[0].srs_tier).toBe("Excellent");
   });
 });
 
